@@ -36,7 +36,7 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'account',
+    'blog.account',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -60,7 +60,7 @@ WSGI_APPLICATION = 'blog.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'server',
+        'NAME': 'blog',
         'USER': 'eternalzzx',
         'PASSWORD': 'qwer4321',
         'HOST': 'localhost',
