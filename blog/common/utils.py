@@ -1,6 +1,6 @@
 from django.http import JsonResponse
 
-from blog.common.result import Dictable, Response
+from blog.common.base import Dictable, Response
 
 
 def json_response(fun):

@@ -1,4 +1,4 @@
-from blog.common.result import Dictable, NoneObject
+from blog.common.base import Dictable, NoneObject
 
 
 class AccountError(Exception, Dictable):
