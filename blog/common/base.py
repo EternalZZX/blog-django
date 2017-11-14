@@ -64,12 +64,14 @@ class Authorize(object):
         self.save_token(uuid=uuid, md5=md5)
         return token
 
-    def save_token(self, uuid, md5):
+    @staticmethod
+    def save_token(uuid, md5):
         timeStamp = str(time.time()).split('.')[0]
         value = md5 + '&' + timeStamp
         MemcachedClient().set(key=uuid, value=value)
 
-    def get_uuid(self, token):
+    @staticmethod
+    def get_uuid(token):
         if len(token) > 4:
             code = token
             num = 4 - (len(token) % 4)
@@ -92,22 +94,25 @@ class Service(object):
 
     def auth(self, token):
         try:
-            middle_code = token[9:][:-6]
-            code_end = MemcachedClient().get(middle_code)
-            if code_end[-6:] != token[-6:]:
-                raise OpenStackAPIError(code=ResponseCode.MULTI_LOGIN, message=u"您的账号已在其他设备登录!")
-            try:
-                raw_code = base64.b64decode(base64.b64decode(base64.b64decode(middle_code)))
-            except:
-                raise OpenStackAPIError(code=ResponseCode.TOKEN_ERROR, message=u"您的登录信息已失效!")
-
-            if '&' not in raw_code:
-                raise OpenStackAPIError(code=ResponseCode.TOKEN_ERROR, message=u"您的登录信息已失效!")
-            username, password = raw_code.split('&', 1)[0], raw_code.split('&', 1)[1]
-            self.username = username
-            if not Users.objects.filter(username=username, password=base64.b64encode(password)):
-                raise OpenStackAPIError(code=ResponseCode.TOKEN_ERROR, message=u"您的登录信息已失效!")
+            pass
+            # middle_code = token[9:][:-6]
+            # code_end = MemcachedClient().get(middle_code)
+            # if code_end[-6:] != token[-6:]:
+            #     raise OpenStackAPIError(code=ResponseCode.MULTI_LOGIN, message=u"您的账号已在其他设备登录!")
+            # try:
+            #     raw_code = base64.b64decode(base64.b64decode(base64.b64decode(middle_code)))
+            # except:
+            #     raise OpenStackAPIError(code=ResponseCode.TOKEN_ERROR, message=u"您的登录信息已失效!")
+            #
+            # if '&' not in raw_code:
+            #     raise OpenStackAPIError(code=ResponseCode.TOKEN_ERROR, message=u"您的登录信息已失效!")
+            # username, password = raw_code.split('&', 1)[0], raw_code.split('&', 1)[1]
+            # self.username = username
+            # if not Users.objects.filter(username=username, password=base64.b64encode(password)):
+            #     raise OpenStackAPIError(code=ResponseCode.TOKEN_ERROR, message=u"您的登录信息已失效!")
         except Exception as e:
-            code = getattr(e, 'code', ResponseCode.TOKEN_ERROR)
-            msg = getattr(e, 'message', "您的登录信息已失效!")
-            raise OpenStackAPIError(code=code, message=msg)
+            pass
+            # msg = getattr(e, 'message', "您的登录信息已失效!")
+            # rcode = getattr(e, 'code', ResponseCode.TOKEN_ERROR)
+            # aise OpenStackAPIError(code=code, message=msg)
+
