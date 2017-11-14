@@ -66,8 +66,8 @@ class Authorize(object):
 
     @staticmethod
     def save_token(uuid, md5):
-        timeStamp = str(time.time()).split('.')[0]
-        value = md5 + '&' + timeStamp
+        time_stamp = str(time.time()).split('.')[0]
+        value = md5 + '&' + time_stamp
         MemcachedClient().set(key=uuid, value=value)
 
     @staticmethod
