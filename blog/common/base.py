@@ -1,5 +1,9 @@
+import base64
 import memcache
+import random
+import time
 
+from Crypto.Hash import MD5
 from blog.settings import MEMCACHED_HOSTS
 
 
@@ -49,6 +53,33 @@ class MemcachedClient(object):
 
     def delete(self, key):
         return self.client.delete(key)
+
+
+class Authorize(object):
+    def gen_token(self, uuid):
+        rand = MD5.new()
+        rand.update(str(random.random()))
+        md5 = rand.hexdigest()
+        token = base64.b64encode('ETE' + md5 + base64.b64encode(uuid)).rstrip('=')
+        self.save_token(uuid=uuid, md5=md5)
+        return token
+
+    def save_token(self, uuid, md5):
+        timeStamp = str(time.time()).split('.')[0]
+        value = md5 + '&' + timeStamp
+        MemcachedClient().set(key=uuid, value=value)
+
+    def get_uuid(self, token):
+        if len(token) > 4:
+            code = token
+            num = 4 - (len(token) % 4)
+            if num < 4:
+                for i in range(num):
+                    code += '='
+            code = base64.b64decode(code)
+            if len(code) > 35 and code[:3] == 'ETE':
+                return base64.b64decode(code[35:])
+        return None
 
 
 class Service(object):
