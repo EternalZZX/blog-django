@@ -134,7 +134,6 @@ class Authorize(object):
 class Service(object):
     def __init__(self, request):
         self.request = request
-        self.data = request.GET or request.POST
         self.token = request.META.get('HTTP_AUTH_TOKEN')
         self.uuid = Authorize.auth_token(self.token)
 
