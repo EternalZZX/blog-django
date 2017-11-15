@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from Crypto.Hash import MD5
+
 from blog.account.models import User
 from blog.common.utils import model_to_dict
 from blog.common.base import Service

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-
 class _Const(object):
     class ConstError(TypeError):
         pass
@@ -14,9 +13,11 @@ class _Const(object):
 
 ERROR_MSG = _Const()
 
-ERROR_MSG.UNEXPECTED_TOKEN = 'Unexpected token'
-ERROR_MSG.UNEXPECTED_FLAG = 'Unexpected token mark bit'
 ERROR_MSG.REQUEST_ERROR = 'Request error'
 
 ACCOUNT_ERROR_MSG = _Const()
+
+ACCOUNT_ERROR_MSG.UNEXPECTED_TOKEN = 'Unexpected token'
+ACCOUNT_ERROR_MSG.UNEXPECTED_FLAG = 'Unexpected token mark bit'
+ACCOUNT_ERROR_MSG.PASSWORD_ERROR = 'Username and password do not match'
 ACCOUNT_ERROR_MSG.DUPLICATE_USERNAME = 'Duplicate username'

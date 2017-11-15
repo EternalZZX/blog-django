@@ -7,8 +7,9 @@ import random
 import time
 
 from Crypto.Hash import MD5
+
 from blog.common.error import AuthError
-from blog.common.message import ERROR_MSG
+from blog.common.message import ACCOUNT_ERROR_MSG
 from blog.settings import MEMCACHED_HOSTS, SESSION_LIMIT, \
                           TOKEN_EXPIRATION, TOKEN_EXPIRATION_TIME
 
@@ -71,44 +72,49 @@ class Authorize(object):
             rand.update(str(random.random()))
             md5 = rand.hexdigest()
             token = base64.b64encode('ETE' + md5 + base64.b64encode(uuid)).rstrip('=')
-            Authorize.save_token(uuid=uuid, md5=md5)
+            Authorize._save_token(uuid=uuid, md5=md5)
         return token
 
     @staticmethod
     def update_token(token=None, uuid=None):
         if uuid:
-            md5_stamp, time_stamp = Authorize.parse_memcached_value(uuid=uuid)
+            md5_stamp, time_stamp = Authorize._parse_memcached_value(uuid=uuid)
             token = base64.b64encode('ETE' + md5_stamp + base64.b64encode(uuid)).rstrip('=')
         else:
-            uuid, md5_stamp = Authorize.parse_token(token=token)
+            uuid, md5_stamp, time_stamp = Authorize._auth_token_md5(token=token)
         if uuid and md5_stamp:
-            Authorize.save_token(uuid=uuid, md5=md5_stamp)
+            Authorize._save_token(uuid=uuid, md5=md5_stamp)
             return token
         return None
 
     @staticmethod
-    def save_token(uuid, md5):
+    def auth_token(token):
+        uuid, md5_stamp, time_stamp = Authorize._auth_token_md5(token=token)
+        if TOKEN_EXPIRATION and time.time() - int(time_stamp) > TOKEN_EXPIRATION_TIME:
+            MemcachedClient().delete(uuid)
+            raise AuthError(code=419, message=ACCOUNT_ERROR_MSG.UNEXPECTED_FLAG)
+        return uuid
+
+    @staticmethod
+    def _save_token(uuid, md5):
         time_stamp = str(time.time()).split('.')[0]
         value = md5 + '&' + time_stamp
         MemcachedClient().set(key=uuid, value=value)
 
     @staticmethod
-    def auth_token(token):
-        uuid, md5 = Authorize.parse_token(token=token)
+    def _auth_token_md5(token):
+        uuid, md5 = Authorize._parse_token(token=token)
         if not uuid:
             raise AuthError()
-        md5_stamp, time_stamp = Authorize.parse_memcached_value(uuid=uuid)
+        md5_stamp, time_stamp = Authorize._parse_memcached_value(uuid=uuid)
         if not md5_stamp:
             raise AuthError()
         if md5_stamp != md5:
-            raise AuthError(code=418, message=ERROR_MSG.UNEXPECTED_FLAG)
-        if TOKEN_EXPIRATION and time.time() - int(time_stamp) > TOKEN_EXPIRATION_TIME:
-            MemcachedClient().delete(uuid)
-            raise AuthError(code=419, message=ERROR_MSG.UNEXPECTED_FLAG)
-        return uuid
+            raise AuthError(code=418, message=ACCOUNT_ERROR_MSG.UNEXPECTED_FLAG)
+        return uuid, md5_stamp, time_stamp
 
     @staticmethod
-    def parse_token(token):
+    def _parse_token(token):
         if len(token) > 4:
             code = token
             num = 4 - (len(token) % 4)
@@ -121,7 +127,7 @@ class Authorize(object):
         return None, None
 
     @staticmethod
-    def parse_memcached_value(uuid):
+    def _parse_memcached_value(uuid):
         value = MemcachedClient().get(key=uuid)
         if not value:
             return None, None
