@@ -136,5 +136,3 @@ class Service(object):
         self.request = request
         self.token = request.META.get('HTTP_AUTH_TOKEN')
         self.uuid = Authorize.auth_token(self.token)
-
-

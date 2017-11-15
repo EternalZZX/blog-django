@@ -16,4 +16,7 @@ ERROR_MSG = _Const()
 
 ERROR_MSG.UNEXPECTED_TOKEN = 'Unexpected token'
 ERROR_MSG.UNEXPECTED_FLAG = 'Unexpected token mark bit'
+ERROR_MSG.REQUEST_ERROR = 'Request error'
 
+ACCOUNT_ERROR_MSG = _Const()
+ACCOUNT_ERROR_MSG.DUPLICATE_USERNAME = 'Duplicate username'
