@@ -47,7 +47,7 @@ def json_response(fun):
             data, status_code = result.dict(), 200
         else:
             data, status_code = {}, 500
-        return JsonResponse(data, status=status_code)
+        return JsonResponse({'data': data}, status=status_code)
     wrapper.__name__ = fun.__name__
     return wrapper
 

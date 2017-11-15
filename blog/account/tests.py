@@ -33,6 +33,5 @@ params = {
 
 response = requests.post(url, params)
 
-print '\n'.join(['%s:%s' % item for item in response.__dict__.items()])
 print "code:", response.status_code
-print 'data:', response.content
+print 'body:', response.content
