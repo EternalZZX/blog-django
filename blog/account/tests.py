@@ -25,10 +25,16 @@ import sys
 reload(sys)
 sys.setdefaultencoding('utf8')
 
-url = 'http://0.0.0.0:8000/blog/account/auth/'
+# url = 'http://0.0.0.0:8000/blog/account/auth/'
+# params = {
+#     'username': 'admin',
+#     'password': 'admin'
+# }
+
+url = 'http://0.0.0.0:8000/blog/account/user_create/'
 params = {
-    'username': 'admin',
-    'password': 'admin'
+    'username': 'test-user',
+    'password': 'password'
 }
 
 response = requests.post(url, params)

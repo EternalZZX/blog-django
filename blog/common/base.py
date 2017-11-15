@@ -84,7 +84,7 @@ class Authorize(object):
 
     @staticmethod
     def _parse_token(token):
-        if len(token) > 4:
+        if token and len(token) > 4:
             code = token
             num = 4 - (len(token) % 4)
             if num < 4:
