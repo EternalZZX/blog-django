@@ -1,8 +1,11 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 from blog.common.base import Dictable, NoneObject
+from blog.common.message import ERROR_MSG
 
 
-class AccountError(Exception, Dictable):
-    def __init__(self, error=NoneObject(), code=500, title="", message=""):
+class AuthError(Exception, Dictable):
+    def __init__(self, error=NoneObject(), code=401, message=ERROR_MSG.UNEXPECTED_TOKEN):
         self.code = code or error.code
-        self.title = title or error.title
         self.message = message or error.message

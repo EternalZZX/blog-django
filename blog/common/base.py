@@ -1,10 +1,16 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import base64
 import memcache
 import random
 import time
 
 from Crypto.Hash import MD5
-from blog.settings import MEMCACHED_HOSTS
+from blog.common.error import AuthError
+from blog.common.message import ERROR_MSG
+from blog.settings import MEMCACHED_HOSTS, SESSION_LIMIT, \
+                          TOKEN_EXPIRATION, TOKEN_EXPIRATION_TIME
 
 
 class Dictable(object):
@@ -56,13 +62,29 @@ class MemcachedClient(object):
 
 
 class Authorize(object):
-    def gen_token(self, uuid):
-        rand = MD5.new()
-        rand.update(str(random.random()))
-        md5 = rand.hexdigest()
-        token = base64.b64encode('ETE' + md5 + base64.b64encode(uuid)).rstrip('=')
-        self.save_token(uuid=uuid, md5=md5)
+    @staticmethod
+    def gen_token(uuid):
+        if not SESSION_LIMIT and MemcachedClient().get(key=uuid):
+            token = Authorize.update_token(uuid=uuid)
+        else:
+            rand = MD5.new()
+            rand.update(str(random.random()))
+            md5 = rand.hexdigest()
+            token = base64.b64encode('ETE' + md5 + base64.b64encode(uuid)).rstrip('=')
+            Authorize.save_token(uuid=uuid, md5=md5)
         return token
+
+    @staticmethod
+    def update_token(token=None, uuid=None):
+        if uuid:
+            md5_stamp, time_stamp = Authorize.parse_memcached_value(uuid=uuid)
+            token = base64.b64encode('ETE' + md5_stamp + base64.b64encode(uuid)).rstrip('=')
+        else:
+            uuid, md5_stamp = Authorize.parse_token(token=token)
+        if uuid and md5_stamp:
+            Authorize.save_token(uuid=uuid, md5=md5_stamp)
+            return token
+        return None
 
     @staticmethod
     def save_token(uuid, md5):
@@ -71,7 +93,22 @@ class Authorize(object):
         MemcachedClient().set(key=uuid, value=value)
 
     @staticmethod
-    def get_uuid(token):
+    def auth_token(token):
+        uuid, md5 = Authorize.parse_token(token=token)
+        if not uuid:
+            raise AuthError()
+        md5_stamp, time_stamp = Authorize.parse_memcached_value(uuid=uuid)
+        if not md5_stamp:
+            raise AuthError()
+        if md5_stamp != md5:
+            raise AuthError(code=418, message=ERROR_MSG.UNEXPECTED_FLAG)
+        if TOKEN_EXPIRATION and time.time() - int(time_stamp) > TOKEN_EXPIRATION_TIME:
+            MemcachedClient().delete(uuid)
+            raise AuthError(code=419, message=ERROR_MSG.UNEXPECTED_FLAG)
+        return uuid
+
+    @staticmethod
+    def parse_token(token):
         if len(token) > 4:
             code = token
             num = 4 - (len(token) % 4)
@@ -80,39 +117,25 @@ class Authorize(object):
                     code += '='
             code = base64.b64decode(code)
             if len(code) > 35 and code[:3] == 'ETE':
-                return base64.b64decode(code[35:])
-        return None
+                return base64.b64decode(code[35:]), code[3:35]
+        return None, None
+
+    @staticmethod
+    def parse_memcached_value(uuid):
+        value = MemcachedClient().get(key=uuid)
+        if not value:
+            return None, None
+        value_list = value.split('&')
+        if len(value_list) != 2:
+            return None, None
+        return value_list[0], value_list[1]
 
 
 class Service(object):
     def __init__(self, request):
         self.request = request
         self.data = request.GET or request.POST
-        self.user = self.data.get('user')
         self.token = request.META.get('HTTP_AUTH_TOKEN')
-        self.auth(self.token)
+        self.uuid = Authorize.auth_token(self.token)
 
-    def auth(self, token):
-        try:
-            pass
-            # middle_code = token[9:][:-6]
-            # code_end = MemcachedClient().get(middle_code)
-            # if code_end[-6:] != token[-6:]:
-            #     raise OpenStackAPIError(code=ResponseCode.MULTI_LOGIN, message=u"您的账号已在其他设备登录!")
-            # try:
-            #     raw_code = base64.b64decode(base64.b64decode(base64.b64decode(middle_code)))
-            # except:
-            #     raise OpenStackAPIError(code=ResponseCode.TOKEN_ERROR, message=u"您的登录信息已失效!")
-            #
-            # if '&' not in raw_code:
-            #     raise OpenStackAPIError(code=ResponseCode.TOKEN_ERROR, message=u"您的登录信息已失效!")
-            # username, password = raw_code.split('&', 1)[0], raw_code.split('&', 1)[1]
-            # self.username = username
-            # if not Users.objects.filter(username=username, password=base64.b64encode(password)):
-            #     raise OpenStackAPIError(code=ResponseCode.TOKEN_ERROR, message=u"您的登录信息已失效!")
-        except Exception as e:
-            pass
-            # msg = getattr(e, 'message', "您的登录信息已失效!")
-            # rcode = getattr(e, 'code', ResponseCode.TOKEN_ERROR)
-            # aise OpenStackAPIError(code=code, message=msg)
 
