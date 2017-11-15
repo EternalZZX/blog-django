@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from blog.common.base import Dictable, NoneObject
+from blog.common.utils import Dictable, NoneObject
 from blog.common.message import ERROR_MSG, ACCOUNT_ERROR_MSG
 
 

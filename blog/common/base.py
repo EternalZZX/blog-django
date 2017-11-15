@@ -14,37 +14,6 @@ from blog.settings import MEMCACHED_HOSTS, SESSION_LIMIT, \
                           TOKEN_EXPIRATION, TOKEN_EXPIRATION_TIME
 
 
-class Dictable(object):
-    def __init__(self, *args, **kwargs):
-        for key, value in kwargs.items():
-            setattr(self, key, value)
-
-    def dict(self):
-        return dict(self)
-
-    def __iter__(self):
-        return self.__dict__.items()
-
-
-class NoneObject(object):
-    def __getattr__(self, key):
-        return self
-
-    def __or__(self, other):
-        return other
-
-    def __and__(self, other):
-        return self
-
-
-class Response(object):
-    def __init__(self, code=200, data=None):
-        if data is None:
-            data = {}
-        self.code = code
-        self.data = data
-
-
 class MemcachedClient(object):
     def __init__(self):
         self.client = memcache.Client(MEMCACHED_HOSTS, debug=0)
