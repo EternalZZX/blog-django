@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import uuid
+
 from Crypto.Hash import MD5
 
 from blog.account.models import User
@@ -18,7 +20,8 @@ class UserService(Service):
         md5 = MD5.new()
         md5.update(password)
         md5 = md5.hexdigest()
-        user = User.objects.create(username=username, password=md5, nick=nick,
-                                   gender=gender, email=email, phone=phone,
+        user_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, username)
+        user = User.objects.create(uuid=user_uuid, username=username, password=md5,
+                                   nick=nick, gender=gender, email=email, phone=phone,
                                    qq=qq, address=address, remark=remark)
         return 200, model_to_dict(user)
