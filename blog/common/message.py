@@ -19,5 +19,6 @@ ACCOUNT_ERROR_MSG = _Const()
 
 ACCOUNT_ERROR_MSG.UNEXPECTED_TOKEN = 'Unexpected token'
 ACCOUNT_ERROR_MSG.UNEXPECTED_FLAG = 'Unexpected token mark bit'
+ACCOUNT_ERROR_MSG.TOKEN_TIMEOUT = 'Token timeout'
 ACCOUNT_ERROR_MSG.PASSWORD_ERROR = 'Username and password do not match'
 ACCOUNT_ERROR_MSG.DUPLICATE_USERNAME = 'Duplicate username'

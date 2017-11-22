@@ -61,7 +61,7 @@ class Authorize(object):
         uuid, md5_stamp, time_stamp = Authorize._auth_token_md5(token=token)
         if TOKEN_EXPIRATION and time.time() - int(time_stamp) > TOKEN_EXPIRATION_TIME:
             MemcachedClient().delete(uuid)
-            raise AuthError(code=419, message=ACCOUNT_ERROR_MSG.UNEXPECTED_FLAG)
+            raise AuthError(code=419, message=ACCOUNT_ERROR_MSG.TOKEN_TIMEOUT)
         return uuid
 
     @staticmethod
