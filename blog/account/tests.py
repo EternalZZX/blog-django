@@ -27,8 +27,8 @@ sys.setdefaultencoding('utf8')
 
 url = 'http://0.0.0.0:8000/blog/account/auth/'
 params = {
-    'username': 'test-user',
-    'password': 'password'
+    'username': 'admin',
+    'password': 'admin'
 }
 response = requests.post(url, params)
 

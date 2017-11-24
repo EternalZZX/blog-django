@@ -27,7 +27,7 @@ def auth(request):
         try:
             uuid = User.objects.get(username=username, password=md5).uuid
             code, data = 200, Authorize.gen_token(uuid=uuid)
-        except AuthError:
+        except (User.DoesNotExist, AuthError):
             code, data = 403, ACCOUNT_ERROR_MSG.PASSWORD_ERROR
     elif token:
         try:
@@ -35,6 +35,7 @@ def auth(request):
         except AuthError as e:
             code, data = getattr(e, 'code', 400), \
                          getattr(e, 'message', ERROR_MSG.REQUEST_ERROR)
+    print code
     return Response(code=code, data=data)
 
 
