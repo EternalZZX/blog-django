@@ -12,7 +12,6 @@ from Crypto.Hash import MD5
 from blog.account.models import User, Role
 from blog.common.error import AuthError
 from blog.common.message import AccountErrorMsg
-from blog.common.utils import model_to_dict
 from blog.common.permission import PermissionName
 from blog.settings import MEMCACHED_HOSTS, SESSION_LIMIT, \
                           TOKEN_EXPIRATION, TOKEN_EXPIRATION_TIME
@@ -137,13 +136,13 @@ class Grant(object):
         for k, v in PermissionName():
             try:
                 grant = role.rolepermission_set.get(permission__name=v)
-                perm[k] = {
+                perm[v] = {
                     'state': grant.state,
                     'level': grant.level,
                     'value': grant.value
                 }
             except role.rolepermission.DoesNotExist:
-                perm[k] = {
+                perm[v] = {
                     'state': False,
                     'level': None,
                     'value': None
@@ -158,3 +157,12 @@ class Service(object):
         self.token = request.META.get('HTTP_AUTH_TOKEN')
         self.uuid, self.role_id = Authorize().auth_token(self.token)
         self.permission = Grant().get_permission(role_id=self.role_id)
+
+    def auth_permission(self, name, level=None):
+        perm = self.permission[name]
+        if not perm['state']:
+            return False
+        if level:
+            if not perm['level'] or perm['level'] < level:
+                return False
+        return perm['value'] if perm['value'] else True
