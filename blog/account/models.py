@@ -18,7 +18,7 @@ class User(models.Model):
     username = models.SlugField()
     password = models.CharField(max_length=50)
     nick = models.CharField(max_length=200, null=True)
-    role = models.ForeignKey('Role')
+    role = models.ForeignKey('Role', null=True)
     groups = models.ManyToManyField('Group')
     gender = models.NullBooleanField(choices=GENDER_CHOICES, null=True)
     email = models.EmailField(null=True)
@@ -43,20 +43,32 @@ class UserSign(models.Model):
 
 class Role(models.Model):
     id = models.AutoField(primary_key=True)
-    name = models.CharField(max_length=200)
+    name = models.CharField(max_length=50)
     nick = models.CharField(max_length=200, null=True)
-    login_perm = models.BooleanField(default=True)
-    stealth_perm = models.BooleanField(default=True)
-    search_perm = models.BooleanField(default=True)
-    custom_title_perm = models.BooleanField(default=False)
-    read_perm = models.IntegerField(default=1)
-    report_perm = models.IntegerField(default=0)
-    reply_perm = models.IntegerField(default=1)
-    message_perm = models.IntegerField(default=1)
-    operate_perm = models.IntegerField(default=0)
+    permissions = models.ManyToManyField('Permission', through='RolePermission')
 
     class Meta:
         db_table = 'role'
+
+
+class Permission(models.Model):
+    id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=50)
+    nick = models.CharField(max_length=200, null=True)
+
+    class Meta:
+        db_table = 'permission'
+
+
+class RolePermission(models.Model):
+    role = models.ForeignKey('Role')
+    permission = models.ForeignKey('Permission')
+    state = models.NullBooleanField(null=True)
+    level = models.IntegerField(default=0, null=True)
+    value = models.IntegerField(null=True)
+
+    class Meta:
+        db_table = 'role_permission'
 
 
 class Group(models.Model):

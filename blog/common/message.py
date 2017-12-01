@@ -1,24 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-class _Const(object):
-    class ConstError(TypeError):
+
+class ErrorMsg:
+    REQUEST_ERROR = 'Request error'
+
+    def __init__(self):
         pass
 
-    def __setattr__(self, name, value):
-        if name in self.__dict__:
-            raise self.ConstError("Cannot change const %s" % name)
-        self.__dict__[name] = value
 
+class AccountErrorMsg:
+    UNEXPECTED_TOKEN = 'Unexpected token'
+    UNEXPECTED_FLAG = 'Unexpected token mark bit'
+    TOKEN_TIMEOUT = 'Token timeout'
+    PASSWORD_ERROR = 'Username and password do not match'
+    DUPLICATE_USERNAME = 'Duplicate username'
 
-ERROR_MSG = _Const()
-
-ERROR_MSG.REQUEST_ERROR = 'Request error'
-
-ACCOUNT_ERROR_MSG = _Const()
-
-ACCOUNT_ERROR_MSG.UNEXPECTED_TOKEN = 'Unexpected token'
-ACCOUNT_ERROR_MSG.UNEXPECTED_FLAG = 'Unexpected token mark bit'
-ACCOUNT_ERROR_MSG.TOKEN_TIMEOUT = 'Token timeout'
-ACCOUNT_ERROR_MSG.PASSWORD_ERROR = 'Username and password do not match'
-ACCOUNT_ERROR_MSG.DUPLICATE_USERNAME = 'Duplicate username'
+    def __init__(self):
+        pass

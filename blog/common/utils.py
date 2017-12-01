@@ -5,6 +5,16 @@ from django.http import JsonResponse
 from django.db.models.fields.related import ManyToManyField
 
 
+class _Const(object):
+    class ConstError(TypeError):
+        pass
+
+    def __setattr__(self, name, value):
+        if name in self.__dict__:
+            raise self.ConstError("Cannot change const %s" % name)
+        self.__dict__[name] = value
+
+
 class Dictable(object):
     def __init__(self, *args, **kwargs):
         for key, value in kwargs.items():
