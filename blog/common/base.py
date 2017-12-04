@@ -11,10 +11,9 @@ from Crypto.Hash import MD5
 
 from blog.account.models import User, Role
 from blog.common.error import AuthError
-from blog.common.message import AccountErrorMsg
-from blog.common.permission import PermissionName
-from blog.settings import MEMCACHED_HOSTS, SESSION_LIMIT, \
-                          TOKEN_EXPIRATION, TOKEN_EXPIRATION_TIME
+from blog.common.message import ErrorMsg, AccountErrorMsg
+from blog.common.setting import Setting, PermissionName
+from blog.settings import MEMCACHED_HOSTS
 
 
 class MemcachedClient(object):
@@ -36,7 +35,7 @@ class MemcachedClient(object):
 
 class Authorize(object):
     def gen_token(self, uuid):
-        if not SESSION_LIMIT and MemcachedClient().get(key=uuid):
+        if not Setting.SESSION_LIMIT and MemcachedClient().get(key=uuid):
             token = self.update_token(uuid=uuid)
         else:
             rand = MD5.new()
@@ -59,7 +58,7 @@ class Authorize(object):
 
     def auth_token(self, token):
         uuid, role_id, md5_stamp, time_stamp = self._auth_token_md5(token=token)
-        if TOKEN_EXPIRATION and time.time() - int(time_stamp) > TOKEN_EXPIRATION_TIME:
+        if Setting.TOKEN_EXPIRATION and time.time() - int(time_stamp) > Setting.TOKEN_EXPIRATION_TIME:
             MemcachedClient().delete(uuid)
             raise AuthError(code=419, message=AccountErrorMsg.TOKEN_TIMEOUT)
         self._save_token(uuid=uuid, md5=md5_stamp, role_id=role_id)
@@ -132,7 +131,7 @@ class Grant(object):
                 role = Role.objects.get(id=role_id)
             except Role.DoesNotExist:
                 return None
-        perm = {}
+        perm = {'_role_level': role.role_level}
         for k, v in PermissionName():
             try:
                 grant = role.rolepermission_set.get(permission__name=v)
@@ -157,12 +156,27 @@ class Service(object):
         self.token = request.META.get('HTTP_AUTH_TOKEN')
         self.uuid, self.role_id = Authorize().auth_token(self.token)
         self.permission = Grant().get_permission(role_id=self.role_id)
+        try:
+            self.role_level = self.permission['_role_level']
+        except KeyError:
+            raise AuthError(code=503, message=ErrorMsg.PERMISSION_KEY_ERROR + '_role_level')
 
-    def auth_permission(self, name, level=None):
-        perm = self.permission[name]
-        if not perm['state']:
-            return False
-        if level:
-            if not perm['level'] or perm['level'] < level:
-                return False
-        return perm['value'] if perm['value'] else True
+    def has_permission(self, perm_name):
+        try:
+            if not self.permission[perm_name]['state']:
+                raise AuthError(code=403, message=ErrorMsg.PERMISSION_DENIED)
+        except KeyError:
+            raise AuthError(code=503, message=ErrorMsg.PERMISSION_KEY_ERROR + perm_name)
+        return True
+
+    def get_permission_level(self, perm_name):
+        self.has_permission(perm_name)
+        level = self.permission[perm_name]['level']
+        if not level:
+            raise AuthError(code=403, message=ErrorMsg.PERMISSION_DENIED)
+        return level
+
+    def get_permission_value(self, perm_name):
+        self.has_permission(perm_name)
+        value = self.permission[perm_name]['value']
+        return value if value else 0

@@ -44,6 +44,8 @@ def user_create(request):
     username = request.POST.get('username')
     password = request.POST.get('password')
     nick = request.POST.get('nick')
+    role_id = request.POST.get('role_id')
+    group_ids = request.POST.get('group_ids')
     gender = request.POST.get('gender')
     email = request.POST.get('email')
     phone = request.POST.get('phone')
@@ -51,9 +53,16 @@ def user_create(request):
     address = request.POST.get('address')
     remark = request.POST.get('remark')
     try:
+        if isinstance(group_ids, str):
+            group_ids = [id for id in group_ids.split(';') if id]
+        else:
+            group_ids = []
         code, data = UserService(request).user_create(username=username,
                                                       password=password,
-                                                      nick=nick, gender=gender,
+                                                      nick=nick,
+                                                      role_id=role_id,
+                                                      group_ids=group_ids,
+                                                      gender=gender,
                                                       email=email, phone=phone,
                                                       qq=qq, address=address,
                                                       remark=remark)

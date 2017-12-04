@@ -28,7 +28,7 @@ sys.setdefaultencoding('utf8')
 url = 'http://0.0.0.0:8000/blog/account/user_create/'
 
 headers = {
-    'Auth-Token': 'RVRFNzJhZmM5OTdiODAyN2ZiY2YzZWYyNTY2M2JlZjA1ZWRZbUZqWlRBM01ERXRNVFZsTXkwMU1UUTBMVGszWXpVdE5EYzBPRGRrTlRRek1ETXk'
+    'Auth-Token': 'RVRFMGEwNGI1YjIzYWFjOTc4ODQ3N2Q1NDlmYTRlYjU2Y2VZbUZqWlRBM01ERXRNVFZsTXkwMU1UUTBMVGszWXpVdE5EYzBPRGRrTlRRek1ETXk'
 }
 
 # params = {

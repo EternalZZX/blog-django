@@ -15,6 +15,16 @@ class _Const(object):
         self.__dict__[name] = value
 
 
+class StaticObject(object):
+    def __init__(self):
+        pass
+
+    @classmethod
+    def __iter__(cls):
+        properties = filter(lambda item: item[0][:1] != '_', cls.__dict__.items())
+        return iter(properties)
+
+
 class Dictable(object):
     def __init__(self, *args, **kwargs):
         for key, value in kwargs.items():

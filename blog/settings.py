@@ -89,9 +89,3 @@ STATIC_URL = '/static/'
 # Memcached
 MEMCACHED_HOSTS = ['127.0.0.1:11211']
 
-# Session limit
-SESSION_LIMIT = True
-
-# Token expiration
-TOKEN_EXPIRATION = True
-TOKEN_EXPIRATION_TIME = 604800

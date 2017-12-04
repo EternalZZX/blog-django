@@ -45,6 +45,7 @@ class Role(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=50)
     nick = models.CharField(max_length=200, null=True)
+    role_level = models.IntegerField(default=0)
     permissions = models.ManyToManyField('Permission', through='RolePermission')
 
     class Meta:
@@ -77,3 +78,11 @@ class Group(models.Model):
 
     class Meta:
         db_table = 'group'
+
+
+class ServerSetting(models.Model):
+    key = models.CharField(primary_key=True, max_length=200)
+    value = models.CharField(max_length=200)
+
+    class Meta:
+        db_table = 'server_setting'
