@@ -10,7 +10,7 @@ from blog.common.utils import model_to_dict
 from blog.common.base import Service
 from blog.common.error import ServiceError
 from blog.common.message import AccountErrorMsg
-from blog.common.setting import PermissionName
+from blog.common.setting import PermissionName, PermissionLevel
 
 
 class UserService(Service):
@@ -22,11 +22,13 @@ class UserService(Service):
         if role_id:
             try:
                 role = Role.objects.get(id=role_id)
-                if perm_level < 1000 and role.role_level >= self.role_level:
+                if perm_level < PermissionLevel.ADMIN_LEVEL and role.role_level >= self.role_level:
                     raise ServiceError(code=403,
                                        message=AccountErrorMsg.ROLE_PERMISSION_DENIED)
             except Role.DoesNotExist:
-                pass
+                default_roles = Role.objects.filter(default=True)
+                role = default_roles[0] if default_roles else None
+
         if User.objects.filter(username=username):
             raise ServiceError(message=AccountErrorMsg.DUPLICATE_USERNAME)
         md5 = MD5.new()

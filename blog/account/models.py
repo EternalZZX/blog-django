@@ -46,6 +46,7 @@ class Role(models.Model):
     name = models.CharField(max_length=50)
     nick = models.CharField(max_length=200, null=True)
     role_level = models.IntegerField(default=0)
+    default = models.BooleanField(default=False)
     permissions = models.ManyToManyField('Permission', through='RolePermission')
 
     class Meta:

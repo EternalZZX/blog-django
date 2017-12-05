@@ -69,3 +69,13 @@ class PermissionName(StaticObject):
     USER_DELETE = 'user_delete'
     USER_UPDATE = 'user_update'
     USER_SELECT = 'user_select'
+
+
+class PermissionLevel(StaticObject):
+    ADMIN_LEVEL = 1000
+    ASSISTANT_LEVEL = 900
+    MODERATOR_LEVEL = 500
+    SENIOR_LEVEL = 300
+    JUNIOR_LEVEL = 200
+    DEFAULT_LEVEL = 100
+    BAN_LEVEL = 0
