@@ -72,7 +72,7 @@ def user_create(request):
     address = request.POST.get('address')
     remark = request.POST.get('remark')
     try:
-        if isinstance(group_ids, str):
+        if isinstance(group_ids, (unicode, str)):
             group_ids = [id for id in group_ids.split(';') if id]
         else:
             group_ids = []

@@ -39,9 +39,12 @@ class UserService(Service):
         user = User.objects.create(uuid=user_uuid, username=username, password=md5,
                                    nick=nick, role=role, gender=gender, email=email,
                                    phone=phone, qq=qq, address=address, remark=remark)
+        user_dict = model_to_dict(user)
+        del user_dict['password']
         for group_id in group_ids:
             try:
                 user.groups.add(Group.objects.get(id=group_id))
+                user_dict['groups'].append(int(group_id))
             except Group.DoesNotExist:
                 pass
-        return 200, model_to_dict(user)
+        return 200, user_dict
