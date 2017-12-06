@@ -4,6 +4,7 @@
 
 class ErrorMsg:
     REQUEST_ERROR = 'Request error'
+    REQUEST_METHOD_ERROR = 'Request method error'
     PERMISSION_DENIED = 'Permission denied'
     PERMISSION_KEY_ERROR = 'No permission named '
 

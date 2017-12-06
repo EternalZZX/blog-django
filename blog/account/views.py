@@ -4,6 +4,7 @@
 from Crypto.Hash import MD5
 
 from django.views.decorators.http import require_POST
+from django.http import QueryDict
 
 from blog.account.models import User
 from blog.account.services import UserService
@@ -39,7 +40,25 @@ def auth(request):
 
 
 @json_response
-@require_POST
+def user_operate(request, uuid=None):
+    if request.method == 'GET':
+        response = user_list(request, uuid)
+    elif request.method == 'POST':
+        response = user_create(request)
+    elif request.method == 'PUT':
+        response = user_update(request, uuid)
+    elif request.method == 'DELETE':
+        response = user_delete(request, uuid)
+    else:
+        response = Response(code=405, data=ErrorMsg.REQUEST_METHOD_ERROR)
+    return response
+
+
+def user_list(request, uuid):
+    id = request.GET.get('id')
+    return Response()
+
+
 def user_create(request):
     username = request.POST.get('username')
     password = request.POST.get('password')
@@ -72,7 +91,13 @@ def user_create(request):
     return Response(code=code, data=data)
 
 
-@json_response
-@require_POST
-def user_delete(request):
+def user_update(request, uuid):
+    data = QueryDict(request.body)
+    id = data.get('id')
     return Response()
+
+
+def user_delete(request, uuid):
+    data = QueryDict(request.body)
+    id = data.get('id')
+    return Response(code=200, data=uuid)

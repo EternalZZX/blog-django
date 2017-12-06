@@ -25,7 +25,7 @@ reload(sys)
 sys.setdefaultencoding('utf8')
 
 # url = 'http://0.0.0.0:8000/blog/account/auth/'
-url = 'http://0.0.0.0:8000/blog/account/user_create/'
+url = 'http://0.0.0.0:8000/blog/account/users/'
 
 headers = {
     'Auth-Token': 'RVRFMGEwNGI1YjIzYWFjOTc4ODQ3N2Q1NDlmYTRlYjU2Y2VZbUZqWlRBM01ERXRNVFZsTXkwMU1UUTBMVGszWXpVdE5EYzBPRGRrTlRRek1ETXk'

@@ -26,9 +26,10 @@ class UserService(Service):
                     raise ServiceError(code=403,
                                        message=AccountErrorMsg.ROLE_PERMISSION_DENIED)
             except Role.DoesNotExist:
-                default_roles = Role.objects.filter(default=True)
-                role = default_roles[0] if default_roles else None
-
+                pass
+        if not role:
+            default_roles = Role.objects.filter(default=True)
+            role = default_roles[0] if default_roles else None
         if User.objects.filter(username=username):
             raise ServiceError(message=AccountErrorMsg.DUPLICATE_USERNAME)
         md5 = MD5.new()

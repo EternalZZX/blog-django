@@ -86,6 +86,8 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
+APPEND_SLASH = False
+
 # Memcached
 MEMCACHED_HOSTS = ['127.0.0.1:11211']
 
