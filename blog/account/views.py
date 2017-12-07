@@ -42,7 +42,7 @@ def auth(request):
 @json_response
 def user_operate(request, uuid=None):
     if request.method == 'GET':
-        response = user_list(request, uuid)
+        response = user_select(request, uuid)
     elif request.method == 'POST':
         response = user_create(request)
     elif request.method == 'PUT':
@@ -54,8 +54,23 @@ def user_operate(request, uuid=None):
     return response
 
 
-def user_list(request, uuid):
-    id = request.GET.get('id')
+def user_select(request, uuid):
+    if not uuid:
+        page = request.GET.get('page')
+        page_size = request.GET.get('page_size')
+        order_field = request.GET.get('order_field')
+        query = request.GET.get('query')
+        query_field = request.GET.get('query_field')
+        try:
+            code, data = UserService(request).user_select(page=page,
+                                                          page_size=page_size,
+                                                          order_field=order_field,
+                                                          query=query,
+                                                          query_field=query_field)
+        except Exception as e:
+            code, data = getattr(e, 'code', 400), \
+                         getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
+        return Response(code=code, data=data)
     return Response()
 
 

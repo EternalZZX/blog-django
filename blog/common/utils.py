@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from django.http import JsonResponse
+from django.core.paginator import Paginator, EmptyPage, InvalidPage, PageNotAnInteger
 from django.db.models.fields.related import ManyToManyField
 
 
@@ -70,6 +71,20 @@ def json_response(fun):
         return JsonResponse({'data': data}, status=status_code)
     wrapper.__name__ = fun.__name__
     return wrapper
+
+
+def paging(object_list, page=0, page_size=10):
+    total = len(object_list)
+    if page <= 0:
+        return object_list, total
+    try:
+        paginator = Paginator(object_list, page_size)
+        if page > paginator.num_pages:
+            page = paginator.num_pages
+        page_list = paginator.page(page).object_list
+    except (EmptyPage, InvalidPage, PageNotAnInteger):
+        page_list = object_list
+    return page_list, total
 
 
 def model_to_dict(instance, **kwargs):

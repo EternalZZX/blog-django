@@ -72,10 +72,14 @@ class PermissionName(StaticObject):
 
 
 class PermissionLevel(StaticObject):
-    ADMIN_LEVEL = 1000
-    ASSISTANT_LEVEL = 900
-    MODERATOR_LEVEL = 500
-    SENIOR_LEVEL = 300
-    JUNIOR_LEVEL = 200
-    DEFAULT_LEVEL = 100
-    BAN_LEVEL = 0
+    LEVEL_10 = 1000
+    LEVEL_9 = 900
+    LEVEL_8 = 800
+    LEVEL_7 = 700
+    LEVEL_6 = 600
+    LEVEL_5 = 500
+    LEVEL_4 = 400
+    LEVEL_3 = 300
+    LEVEL_2 = 200
+    LEVEL_1 = 100
+    LEVEL_0 = 0
