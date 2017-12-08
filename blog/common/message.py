@@ -17,8 +17,13 @@ class AccountErrorMsg:
     UNEXPECTED_FLAG = 'Unexpected token mark bit'
     TOKEN_TIMEOUT = 'Token timeout'
     PASSWORD_ERROR = 'Username and password do not match'
+
+    ORDER_PERMISSION_DENIED = 'Order field permission denied'
+    QUERY_PERMISSION_DENIED = 'Query permission denied'
+
     DUPLICATE_USERNAME = 'Duplicate username'
     ROLE_PERMISSION_DENIED = 'Role permission denied'
+
     SIGN_UP_DENIED = 'Sign up denied'
 
     def __init__(self):

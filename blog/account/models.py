@@ -68,7 +68,8 @@ class RolePermission(models.Model):
     role = models.ForeignKey('Role')
     permission = models.ForeignKey('Permission')
     state = models.NullBooleanField(null=True)
-    level = models.IntegerField(default=0, null=True)
+    major_level = models.IntegerField(null=True)
+    minor_level = models.IntegerField(null=True)
     value = models.IntegerField(null=True)
 
     class Meta:

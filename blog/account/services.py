@@ -16,21 +16,41 @@ from blog.common.setting import PermissionName, PermissionLevel
 
 
 class UserService(Service):
-    def user_select(self, page=0, page_size=10, order_field=None,
-                    query=None, query_field=None):
-        perm_level = self.get_permission_level(PermissionName.USER_SELECT)
-        users = User.objects.all()
-        if order_field and perm_level >= PermissionLevel.LEVEL_2:
-            users = users.order_by(order_field)
-        if query and perm_level >= PermissionLevel.LEVEL_1:
-            if not query_field:
+    USER_PUBLIC_FIELD = ['nick', 'role', 'groups', 'create_at']
+    USER_ALL_FIELD = ['id', 'uuid', 'username', 'nick', 'role', 'groups', 'gender',
+                      'email', 'phone', 'qq', 'address', 'remark', 'create_at']
+
+    def user_list(self, page=0, page_size=10, order_field=None, order='desc',
+                  query=None, query_field=None):
+        query_level, order_level = self.get_permission_level(PermissionName.USER_SELECT)
+        return_field = self.USER_PUBLIC_FIELD if \
+            query_level < PermissionLevel.LEVEL_10 else self.USER_ALL_FIELD
+        users = User.objects.values(*return_field).all()
+        if order_field:
+            if (order_level >= PermissionLevel.LEVEL_1 and
+                    order_field in self.USER_PUBLIC_FIELD) \
+                    or order_level >= PermissionLevel.LEVEL_10:
+                if order == 'desc':
+                    order_field = '-' + order_field
+                users = users.order_by(order_field)
+            else:
+                raise ServiceError(code=403,
+                                   message=AccountErrorMsg.ORDER_PERMISSION_DENIED)
+        if query:
+            if not query_field and query_level >= PermissionLevel.LEVEL_2:
                 users = users.filter(Q(nick__icontains=query) |
+                                     Q(role__nick__icontains=query) |
                                      Q(groups__name__icontains=query))
-            elif query_field == 'nick':
-                users = users.filter(nick__icontains=query)
-            elif query_field == 'group':
-                users = users.filter(groups__name__icontains=query)
-            elif query_field and perm_level >= PermissionLevel.LEVEL_10:
+            elif query_level >= PermissionLevel.LEVEL_1:
+                if query_field == 'nick':
+                    query_field = 'nick__icontains'
+                elif query_field == 'role':
+                    query_field = 'role__nick__icontains'
+                elif query_field == 'group':
+                    query_field = 'groups__name__icontains'
+                elif query_level < PermissionLevel.LEVEL_10:
+                    raise ServiceError(code=403,
+                                       message=AccountErrorMsg.QUERY_PERMISSION_DENIED)
                 query_dict = {query_field: query}
                 users = users.filter(Q(**query_dict))
         users, total = paging(users, page=page, page_size=page_size)
@@ -39,12 +59,12 @@ class UserService(Service):
     def user_create(self, username, password, nick=None, role_id=None,
                     group_ids=None, gender=None, email=None, phone=None,
                     qq=None, address=None, remark=None):
-        perm_level = self.get_permission_level(PermissionName.USER_CREATE)
+        create_level, _ = self.get_permission_level(PermissionName.USER_CREATE)
         role = None
         if role_id:
             try:
                 role = Role.objects.get(id=role_id)
-                if perm_level < PermissionLevel.LEVEL_10 and role.role_level >= self.role_level:
+                if create_level < PermissionLevel.LEVEL_10 and role.role_level >= self.role_level:
                     raise ServiceError(code=403,
                                        message=AccountErrorMsg.ROLE_PERMISSION_DENIED)
             except Role.DoesNotExist:

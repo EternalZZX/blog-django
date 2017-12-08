@@ -135,17 +135,15 @@ class Grant(object):
         for k, v in PermissionName():
             try:
                 grant = role.rolepermission_set.get(permission__name=v)
-                perm[v] = {
-                    'state': grant.state,
-                    'level': grant.level,
-                    'value': grant.value
-                }
+                perm[v] = {'state': grant.state}
+                if grant.major_level is not None:
+                    perm[v]['major_level'] = int(grant.major_level)
+                if grant.minor_level is not None:
+                    perm[v]['minor_level'] = int(grant.minor_level)
+                if grant.value is not None:
+                    perm[v]['value'] = int(grant.value)
             except role.rolepermission.DoesNotExist:
-                perm[v] = {
-                    'state': False,
-                    'level': None,
-                    'value': None
-                }
+                perm[v] = {'state': False}
         MemcachedClient().set('PERMISSION_' + str(role.id), json.dumps(perm))
         return perm
 
@@ -171,12 +169,19 @@ class Service(object):
 
     def get_permission_level(self, perm_name):
         self.has_permission(perm_name)
-        level = self.permission[perm_name]['level']
-        if not level:
-            raise AuthError(code=403, message=ErrorMsg.PERMISSION_DENIED)
-        return level
+        try:
+            major_level = self.permission[perm_name]['major_level']
+        except KeyError:
+            major_level = 0
+        try:
+            minor_level = self.permission[perm_name]['minor_level']
+        except KeyError:
+            minor_level = 0
+        return major_level, minor_level
 
     def get_permission_value(self, perm_name):
         self.has_permission(perm_name)
-        value = self.permission[perm_name]['value']
-        return value if value else 0
+        try:
+            return self.permission[perm_name]['value']
+        except KeyError:
+            return 0

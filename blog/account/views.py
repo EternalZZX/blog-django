@@ -59,14 +59,16 @@ def user_select(request, uuid):
         page = request.GET.get('page')
         page_size = request.GET.get('page_size')
         order_field = request.GET.get('order_field')
+        order = request.GET.get('order')
         query = request.GET.get('query')
         query_field = request.GET.get('query_field')
         try:
-            code, data = UserService(request).user_select(page=page,
-                                                          page_size=page_size,
-                                                          order_field=order_field,
-                                                          query=query,
-                                                          query_field=query_field)
+            code, data = UserService(request).user_list(page=page,
+                                                        page_size=page_size,
+                                                        order_field=order_field,
+                                                        order=order,
+                                                        query=query,
+                                                        query_field=query_field)
         except Exception as e:
             code, data = getattr(e, 'code', 400), \
                          getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
@@ -88,7 +90,7 @@ def user_create(request):
     remark = request.POST.get('remark')
     try:
         if isinstance(group_ids, (unicode, str)):
-            group_ids = [id for id in group_ids.split(';') if id]
+            group_ids = [group_id for group_id in group_ids.split(';') if group_id]
         else:
             group_ids = []
         code, data = UserService(request).user_create(username=username,
