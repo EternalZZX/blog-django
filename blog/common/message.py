@@ -18,6 +18,7 @@ class AccountErrorMsg:
     TOKEN_TIMEOUT = 'Token timeout'
     PASSWORD_ERROR = 'Username and password do not match'
 
+    USER_NOT_FOUND = 'User not found'
     ORDER_PERMISSION_DENIED = 'Order field permission denied'
     QUERY_PERMISSION_DENIED = 'Query permission denied'
 

@@ -32,6 +32,18 @@ class User(models.Model):
         db_table = 'user'
 
 
+class UserPrivacySetting(models.Model):
+    user = models.ForeignKey('User', primary_key=True)
+    gender = models.BooleanField(default=False)
+    email = models.BooleanField(default=False)
+    phone = models.BooleanField(default=False)
+    qq = models.BooleanField(default=False)
+    address = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = 'user_privacy_setting'
+
+
 class UserSign(models.Model):
     user = models.ForeignKey('User', primary_key=True)
     sign_up_at = models.DateTimeField(auto_now_add=True)

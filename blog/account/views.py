@@ -72,8 +72,13 @@ def user_select(request, uuid):
         except Exception as e:
             code, data = getattr(e, 'code', 400), \
                          getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
-        return Response(code=code, data=data)
-    return Response()
+    else:
+        try:
+            code, data = UserService(request).user_get(user_uuid=uuid)
+        except Exception as e:
+            code, data = getattr(e, 'code', 400), \
+                         getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
+    return Response(code=code, data=data)
 
 
 def user_create(request):

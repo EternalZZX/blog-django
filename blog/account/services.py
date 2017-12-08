@@ -16,9 +16,22 @@ from blog.common.setting import PermissionName, PermissionLevel
 
 
 class UserService(Service):
-    USER_PUBLIC_FIELD = ['nick', 'role', 'groups', 'create_at']
+    USER_PUBLIC_FIELD = ['nick', 'role', 'groups', 'remark', 'create_at']
     USER_ALL_FIELD = ['id', 'uuid', 'username', 'nick', 'role', 'groups', 'gender',
                       'email', 'phone', 'qq', 'address', 'remark', 'create_at']
+
+    def user_get(self, user_uuid):
+        query_level, _ = self.get_permission_level(PermissionName.USER_SELECT)
+        if user_uuid != self.uuid and query_level < PermissionLevel.LEVEL_10:
+            return_field = self.USER_PUBLIC_FIELD
+        else:
+            return_field = self.USER_ALL_FIELD
+        try:
+            user = User.objects.values(*return_field).get(uuid=user_uuid)
+        except User.DoesNotExist:
+            raise ServiceError(code=404,
+                               message=AccountErrorMsg.USER_NOT_FOUND)
+        return 200, user
 
     def user_list(self, page=0, page_size=10, order_field=None, order='desc',
                   query=None, query_field=None):
@@ -40,7 +53,8 @@ class UserService(Service):
             if not query_field and query_level >= PermissionLevel.LEVEL_2:
                 users = users.filter(Q(nick__icontains=query) |
                                      Q(role__nick__icontains=query) |
-                                     Q(groups__name__icontains=query))
+                                     Q(groups__name__icontains=query) |
+                                     Q(remark__icontains=query))
             elif query_level >= PermissionLevel.LEVEL_1:
                 if query_field == 'nick':
                     query_field = 'nick__icontains'
@@ -48,6 +62,8 @@ class UserService(Service):
                     query_field = 'role__nick__icontains'
                 elif query_field == 'group':
                     query_field = 'groups__name__icontains'
+                elif query_field == 'remark':
+                    query_field = 'remark__icontains'
                 elif query_level < PermissionLevel.LEVEL_10:
                     raise ServiceError(code=403,
                                        message=AccountErrorMsg.QUERY_PERMISSION_DENIED)
@@ -90,4 +106,4 @@ class UserService(Service):
                 user_dict['groups'].append(int(group_id))
             except Group.DoesNotExist:
                 pass
-        return 200, user_dict
+        return 201, user_dict
