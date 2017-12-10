@@ -33,7 +33,7 @@ class User(models.Model):
 
 
 class UserPrivacySetting(models.Model):
-    user = models.ForeignKey('User', primary_key=True)
+    user = models.OneToOneField('User', primary_key=True)
     gender = models.BooleanField(default=False)
     email = models.BooleanField(default=False)
     phone = models.BooleanField(default=False)
@@ -45,7 +45,7 @@ class UserPrivacySetting(models.Model):
 
 
 class UserSign(models.Model):
-    user = models.ForeignKey('User', primary_key=True)
+    user = models.OneToOneField('User', primary_key=True)
     sign_up_at = models.DateTimeField(auto_now_add=True)
     sign_in_last = models.DateTimeField(null=True)
     sign_in_err = models.IntegerField(default=0)
