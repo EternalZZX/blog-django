@@ -24,13 +24,17 @@ class UserService(Service):
 
     def user_get(self, user_uuid):
         query_level, _ = self.get_permission_level(PermissionName.USER_SELECT)
-        if user_uuid != self.uuid and query_level < PermissionLevel.LEVEL_10:
-            return_field = self.USER_PUBLIC_FIELD
-        else:
-            return_field = self.USER_ALL_FIELD
         try:
+            if user_uuid != self.uuid and query_level < PermissionLevel.LEVEL_10:
+                return_field = self.USER_PUBLIC_FIELD
+                user_privacy_setting = UserPrivacySetting.objects.get(user__uuid=user_uuid)
+                for key in self.USER_PRIVACY_FIELD:
+                    if getattr(user_privacy_setting, key) == UserPrivacySetting.PUBLIC:
+                        return_field.append(key[:-8])
+            else:
+                return_field = self.USER_ALL_FIELD
             user = User.objects.values(*return_field).get(uuid=user_uuid)
-        except User.DoesNotExist:
+        except (User.DoesNotExist, UserPrivacySetting.DoesNotExist):
             raise ServiceError(code=404,
                                message=AccountErrorMsg.USER_NOT_FOUND)
         return 200, user
