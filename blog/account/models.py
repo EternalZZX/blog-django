@@ -1,5 +1,7 @@
 import uuid
+
 from django.db import models
+from django.dispatch import receiver
 
 
 class User(models.Model):
@@ -33,12 +35,21 @@ class User(models.Model):
 
 
 class UserPrivacySetting(models.Model):
+    PUBLIC = 2
+    PROTECTED = 1
+    PRIVATE = 0
+    PRIVACY_CHOICES = (
+        (PUBLIC, 'public'),
+        (PROTECTED, 'protected'),
+        (PRIVATE, 'private')
+    )
+
     user = models.OneToOneField('User', primary_key=True)
-    gender = models.BooleanField(default=False)
-    email = models.BooleanField(default=False)
-    phone = models.BooleanField(default=False)
-    qq = models.BooleanField(default=False)
-    address = models.BooleanField(default=False)
+    gender_privacy = models.IntegerField(choices=PRIVACY_CHOICES, default=PUBLIC)
+    email_privacy = models.IntegerField(choices=PRIVACY_CHOICES, default=PRIVATE)
+    phone_privacy = models.IntegerField(choices=PRIVACY_CHOICES, default=PRIVATE)
+    qq_privacy = models.IntegerField(choices=PRIVACY_CHOICES, default=PRIVATE)
+    address_privacy = models.IntegerField(choices=PRIVACY_CHOICES, default=PRIVATE)
 
     class Meta:
         db_table = 'user_privacy_setting'
@@ -52,6 +63,13 @@ class UserSign(models.Model):
 
     class Meta:
         db_table = 'user_sign'
+
+
+@receiver(models.signals.post_save, sender=User, dispatch_uid='models.user_obj_create')
+def user_obj_create(sender, instance, created, **kwargs):
+    if created:
+        UserPrivacySetting.objects.create(user=instance)
+        UserSign.objects.create(user=instance)
 
 
 class Role(models.Model):

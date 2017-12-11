@@ -22,12 +22,15 @@ def auth(request):
     token = request.META.get('HTTP_AUTH_TOKEN')
     code, data = 400, ErrorMsg.REQUEST_ERROR
     if username and password:
-        md5 = MD5.new()
-        md5.update(password)
-        md5 = md5.hexdigest()
         try:
-            uuid = User.objects.get(username=username, password=md5).uuid
-            code, data = 200, Authorize().gen_token(uuid=uuid)
+            user = User.objects.get(username=username)
+            md5 = MD5.new()
+            md5.update(user.uuid)
+            md5.update(password + md5.hexdigest())
+            md5 = md5.hexdigest()
+            if md5 != user.password:
+                raise AuthError()
+            code, data = 200, Authorize().gen_token(uuid=user.uuid)
         except (User.DoesNotExist, AuthError):
             code, data = 403, AccountErrorMsg.PASSWORD_ERROR
     elif token:
@@ -93,6 +96,9 @@ def user_create(request):
     qq = request.POST.get('qq')
     address = request.POST.get('address')
     remark = request.POST.get('remark')
+    kwargs = {}
+    for key in UserService.USER_PRIVACY_FIELD:
+        kwargs[key] = request.POST.get(key)
     try:
         if isinstance(group_ids, (unicode, str)):
             group_ids = [group_id for group_id in group_ids.split(';') if group_id]
@@ -106,7 +112,7 @@ def user_create(request):
                                                       gender=gender,
                                                       email=email, phone=phone,
                                                       qq=qq, address=address,
-                                                      remark=remark)
+                                                      remark=remark, **kwargs)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)

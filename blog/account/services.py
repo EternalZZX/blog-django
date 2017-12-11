@@ -7,7 +7,7 @@ from Crypto.Hash import MD5
 
 from django.db.models import Q
 
-from blog.account.models import User, Role, Group
+from blog.account.models import User, UserPrivacySetting, Role, Group
 from blog.common.utils import paging, model_to_dict
 from blog.common.base import Service
 from blog.common.error import ServiceError
@@ -19,6 +19,8 @@ class UserService(Service):
     USER_PUBLIC_FIELD = ['nick', 'role', 'groups', 'remark', 'create_at']
     USER_ALL_FIELD = ['id', 'uuid', 'username', 'nick', 'role', 'groups', 'gender',
                       'email', 'phone', 'qq', 'address', 'remark', 'create_at']
+    USER_PRIVACY_FIELD = ['gender_privacy', 'email_privacy', 'phone_privacy',
+                          'qq_privacy', 'address_privacy']
 
     def user_get(self, user_uuid):
         query_level, _ = self.get_permission_level(PermissionName.USER_SELECT)
@@ -74,7 +76,7 @@ class UserService(Service):
 
     def user_create(self, username, password, nick=None, role_id=None,
                     group_ids=None, gender=None, email=None, phone=None,
-                    qq=None, address=None, remark=None):
+                    qq=None, address=None, remark=None, **kwargs):
         create_level, _ = self.get_permission_level(PermissionName.USER_CREATE)
         role = None
         if role_id:
@@ -90,14 +92,23 @@ class UserService(Service):
             role = default_roles[0] if default_roles else None
         if User.objects.filter(username=username):
             raise ServiceError(message=AccountErrorMsg.DUPLICATE_USERNAME)
-        md5 = MD5.new()
-        md5.update(password)
-        md5 = md5.hexdigest()
         user_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, username.encode('utf-8')))
+        md5 = MD5.new()
+        md5.update(user_uuid)
+        md5.update(password + md5.hexdigest())
+        md5 = md5.hexdigest()
         nick = nick if nick else username
         user = User.objects.create(uuid=user_uuid, username=username, password=md5,
                                    nick=nick, role=role, gender=gender, email=email,
                                    phone=phone, qq=qq, address=address, remark=remark)
+        user_privacy_setting = None
+        for key in kwargs:
+            if key in self.USER_PRIVACY_FIELD and kwargs[key]:
+                if not user_privacy_setting:
+                    user_privacy_setting = UserPrivacySetting.objects.get(user=user)
+                setattr(user_privacy_setting, key, kwargs[key])
+        if user_privacy_setting:
+            user_privacy_setting.save()
         user_dict = model_to_dict(user)
         del user_dict['password']
         for group_id in group_ids:
