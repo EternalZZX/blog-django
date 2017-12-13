@@ -23,19 +23,10 @@ class UserService(Service):
                           'qq_privacy', 'address_privacy']
 
     def user_get(self, user_uuid):
-        """
-        获取用户详情
-        - user_select(major: private)
-        - 查询用户主权限LEVEL10可获取所有字段
-        - 查询用户自身可获取所有字段
-        - 其余用户查询可获取所有公开字段
-        :param user_uuid: 用户UUID
-        :return: 用户信息
-        """
         query_level, _ = self.get_permission_level(PermissionName.USER_SELECT)
         try:
             if user_uuid != self.uuid and query_level < PermissionLevel.LEVEL_10:
-                return_field = self.USER_PUBLIC_FIELD
+                return_field = self.USER_PUBLIC_FIELD[:]
                 user_privacy_setting = UserPrivacySetting.objects.get(user__uuid=user_uuid)
                 for key in self.USER_PRIVACY_FIELD:
                     if getattr(user_privacy_setting, key) == UserPrivacySetting.PUBLIC:
@@ -50,23 +41,6 @@ class UserService(Service):
 
     def user_list(self, page=0, page_size=10, order_field=None, order='desc',
                   query=None, query_field=None):
-        """
-        获取用户列表
-        - user_select(major: query, minor: order)
-        - 查询用户主权限LEVEL10可获取所有字段
-        - 查询用户主权限LEVEL10可自定义搜索所有字段
-        - 查询用户主权限LEVEL02可模糊搜索所有公开字段
-        - 查询用户主权限LEVEL01可精确搜索所有公开字段
-        - 查询用户副权限LEVEL10可排序所有字段
-        - 查询用户副权限LEVEL01可排序所有公开字段
-        :param page: 页数
-        :param page_size: 条数
-        :param order_field: 排序字段
-        :param order: 排序方向
-        :param query: 搜索内容
-        :param query_field: 搜索字段
-        :return: 用户信息列表
-        """
         query_level, order_level = self.get_permission_level(PermissionName.USER_SELECT)
         return_field = self.USER_PUBLIC_FIELD if \
             query_level < PermissionLevel.LEVEL_10 else self.USER_ALL_FIELD

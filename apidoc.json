@@ -1,0 +1,7 @@
+{
+    "name": "Blog-Django",
+    "version": "0.1.0",
+    "description": "EternalZZX Django Blog API",
+    "title": "Django Blog API-EternalZZX",
+    "url": "blog/v1"
+}
