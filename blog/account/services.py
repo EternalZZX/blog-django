@@ -8,11 +8,11 @@ from Crypto.Hash import MD5
 from django.db.models import Q
 
 from blog.account.models import User, UserPrivacySetting, Role, Group
-from blog.common.utils import paging, model_to_dict
+from blog.common.utils import paging, model_to_dict, encode
 from blog.common.base import Service
 from blog.common.error import ServiceError
 from blog.common.message import AccountErrorMsg
-from blog.common.setting import PermissionName, PermissionLevel
+from blog.common.setting import Setting, PermissionName, PermissionLevel
 
 
 class UserService(Service):
@@ -81,24 +81,6 @@ class UserService(Service):
     def user_create(self, username, password, nick=None, role_id=None,
                     group_ids=None, gender=None, email=None, phone=None,
                     qq=None, address=None, remark=None, **kwargs):
-        """
-        创建用户
-        - user_create(major: permission)
-        - 创建用户主权限LEVEL10可创建大于自身角色权限的用户
-        :param username: 用户名
-        :param password: 密码
-        :param nick: 昵称
-        :param role_id: 用户角色ID
-        :param group_ids: 用户组ID
-        :param gender: 性别
-        :param email: 电子邮件地址
-        :param phone: 电话
-        :param qq: QQ
-        :param address: 地址
-        :param remark: 备注
-        :param kwargs: 隐私设置
-        :return: 创建用户信息
-        """
         create_level, _ = self.get_permission_level(PermissionName.USER_CREATE)
         role = None
         if role_id:
@@ -115,12 +97,9 @@ class UserService(Service):
         if User.objects.filter(username=username):
             raise ServiceError(message=AccountErrorMsg.DUPLICATE_USERNAME)
         user_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, username.encode('utf-8')))
-        md5 = MD5.new()
-        md5.update(user_uuid)
-        md5.update(password + md5.hexdigest())
-        md5 = md5.hexdigest()
+        password_code = encode(password, user_uuid)
         nick = nick if nick else username
-        user = User.objects.create(uuid=user_uuid, username=username, password=md5,
+        user = User.objects.create(uuid=user_uuid, username=username, password=password_code,
                                    nick=nick, role=role, gender=gender, email=email,
                                    phone=phone, qq=qq, address=address, remark=remark)
         user_privacy_setting = None
@@ -140,3 +119,52 @@ class UserService(Service):
             except Group.DoesNotExist:
                 pass
         return 201, user_dict
+
+    def user_update(self, user_uuid, username=None, old_password=None,
+                    new_password=None, nick=None, role_id=None, group_ids=None,
+                    gender=None, email=None, phone=None, qq=None, address=None,
+                    remark=None, **kwargs):
+        update_level, update_password_level = self.get_permission_level(PermissionName.USER_UPDATE)
+        try:
+            user = User.objects.get(uuid=user_uuid)
+        except User.DoesNotExist:
+            raise ServiceError(code=404,
+                               message=AccountErrorMsg.USER_NOT_FOUND)
+        if new_password and (self.uuid == user_uuid or
+                             update_password_level >= PermissionLevel.LEVEL_9):
+            if update_password_level < PermissionLevel.LEVEL_10:
+                password_code = encode(old_password, user_uuid)
+                if password_code != user.password:
+                    raise ServiceError(code=403,
+                                       message=AccountErrorMsg.PASSWORD_ERROR)
+            user.password = encode(new_password, user_uuid)
+        if nick and Setting.NICK_UPDATE:
+            user.nick = nick
+        if gender is not None:
+            user.gender = gender if gender else None
+        if email is not None:
+            user.email = email if email else None
+        if phone is not None:
+            user.phone = phone if phone else None
+        if qq is not None:
+            user.qq = qq if qq else None
+        if address is not None:
+            user.address = address if address else None
+        if remark is not None:
+            user.remark = remark if remark else None
+        if role_id:
+            user.role_id = role_id
+        is_not_clear = True
+        for group_id in group_ids:
+            try:
+                group = Group.objects.get(id=group_id)
+                if is_not_clear:
+                    user.groups.clear()
+                    is_not_clear = False
+                user.groups.add(group)
+            except Group.DoesNotExist:
+                pass
+        user.save()
+        user_dict = model_to_dict(user)
+        del user_dict['password']
+        return 200, user_dict

@@ -9,7 +9,7 @@ from django.http import QueryDict
 from blog.account.models import User
 from blog.account.services import UserService
 from blog.common.base import Authorize
-from blog.common.utils import Response, json_response
+from blog.common.utils import Response, json_response, encode
 from blog.common.error import AuthError
 from blog.common.message import ErrorMsg, AccountErrorMsg
 
@@ -47,11 +47,7 @@ def auth(request):
     if username and password:
         try:
             user = User.objects.get(username=username)
-            md5 = MD5.new()
-            md5.update(user.uuid)
-            md5.update(password + md5.hexdigest())
-            md5 = md5.hexdigest()
-            if md5 != user.password:
+            if encode(password, user.uuid) != user.password:
                 raise AuthError()
             code, data = 200, Authorize().gen_token(uuid=user.uuid)
         except (User.DoesNotExist, AuthError):
@@ -192,13 +188,14 @@ def user_create(request):
     @apiParam {string} password 密码
     @apiParam {string} [nick={username}] 昵称
     @apiParam {number} [role_id] 用户角色ID
-    @apiParam {string} [group_ids] 用户组ID列表，e.g."2;9;32;43"
+    @apiParam {string} [group_ids] 用户组ID列表，e.g.'2;9;32;43'
     @apiParam {number=0, 1} [gender] 性别, male=0, female=1
     @apiParam {string} [email] 电子邮箱地址
     @apiParam {string} [phone] 电话号码
     @apiParam {string} [qq] QQ号码
     @apiParam {string} [address] 收货地址
     @apiParam {string} [remark] 备注
+    @apiParam {bool} [kwargs] 隐私设置, 参数名'gender_privacy', 'email_privacy', 'phone_privacy', 'qq_privacy', 'address_privacy'
     @apiSuccess {string} data 创建用户信息详情
     @apiSuccessExample {json} Success-Response:
     HTTP/1.1 200 OK

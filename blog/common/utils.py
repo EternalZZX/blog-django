@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from Crypto.Hash import MD5
+
 from django.http import JsonResponse
 from django.core.paginator import Paginator, EmptyPage, InvalidPage, PageNotAnInteger
 from django.db.models.fields.related import ManyToManyField
@@ -104,3 +106,10 @@ def model_to_dict(instance, **kwargs):
         if key:
             data[key] = value
     return data
+
+
+def encode(data, salt):
+    md5 = MD5.new()
+    md5.update(salt)
+    md5.update(data + md5.hexdigest())
+    return md5.hexdigest()

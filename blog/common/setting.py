@@ -11,6 +11,7 @@ class Setting(StaticObject):
     TOKEN_EXPIRATION_TIME = 604800
     SIGN_UP_POLICY = True
     SIGN_UP_KEY = False
+    NICK_UPDATE = True
 
     __instance = True
 
@@ -26,6 +27,7 @@ class Setting(StaticObject):
         cls.TOKEN_EXPIRATION_TIME = cls._format_value(settings.get(key=SettingKey.TOKEN_EXPIRATION_TIME).value, 'int')
         cls.SIGN_UP_POLICY = cls._format_value(settings.get(key=SettingKey.SIGN_UP_POLICY).value)
         cls.SIGN_UP_KEY = cls._format_value(settings.get(key=SettingKey.SIGN_UP_KEY).value)
+        cls.NICK_UPDATE = cls._format_value(settings.get(key=SettingKey.NICK_UPDATE).value)
 
     @classmethod
     def _init_setting(cls):
@@ -49,6 +51,7 @@ class SettingKey(StaticObject):
     TOKEN_EXPIRATION_TIME = 'token_expiration_time'
     SIGN_UP_POLICY = 'sign_up_policy'
     SIGN_UP_KEY = 'sign_up_key'
+    NICK_UPDATE = 'nick_update'
 
 
 class PermissionName(StaticObject):
