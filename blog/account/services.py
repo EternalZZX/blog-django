@@ -138,32 +138,34 @@ class UserService(Service):
                     raise ServiceError(code=403,
                                        message=AccountErrorMsg.PASSWORD_ERROR)
             user.password = encode(new_password, user_uuid)
-        if nick and Setting.NICK_UPDATE:
-            user.nick = nick
-        if gender is not None:
-            user.gender = gender if gender else None
-        if email is not None:
-            user.email = email if email else None
-        if phone is not None:
-            user.phone = phone if phone else None
-        if qq is not None:
-            user.qq = qq if qq else None
-        if address is not None:
-            user.address = address if address else None
-        if remark is not None:
-            user.remark = remark if remark else None
-        if role_id:
+        if self.uuid == user_uuid or update_level >= PermissionLevel.LEVEL_10:
+            if nick and Setting.NICK_UPDATE:
+                user.nick = nick
+            if gender is not None:
+                user.gender = gender if gender else None
+            if email is not None:
+                user.email = email if email else None
+            if phone is not None:
+                user.phone = phone if phone else None
+            if qq is not None:
+                user.qq = qq if qq else None
+            if address is not None:
+                user.address = address if address else None
+            if remark is not None:
+                user.remark = remark if remark else None
+        if role_id and update_level >= PermissionLevel.LEVEL_10:
             user.role_id = role_id
-        is_not_clear = True
-        for group_id in group_ids:
-            try:
-                group = Group.objects.get(id=group_id)
-                if is_not_clear:
-                    user.groups.clear()
-                    is_not_clear = False
-                user.groups.add(group)
-            except Group.DoesNotExist:
-                pass
+        if update_level >= PermissionLevel.LEVEL_9:
+            is_not_clear = True
+            for group_id in group_ids:
+                try:
+                    group = Group.objects.get(id=group_id)
+                    if is_not_clear:
+                        user.groups.clear()
+                        is_not_clear = False
+                    user.groups.add(group)
+                except Group.DoesNotExist:
+                    pass
         user.save()
         user_dict = model_to_dict(user)
         del user_dict['password']
