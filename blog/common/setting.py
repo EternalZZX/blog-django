@@ -3,6 +3,8 @@
 
 from blog.account.models import ServerSetting
 from blog.common.utils import StaticObject
+from blog.common.error import ServerError
+from blog.common.message import ErrorMsg
 
 
 class Setting(StaticObject):
@@ -11,6 +13,7 @@ class Setting(StaticObject):
     TOKEN_EXPIRATION_TIME = 604800
     SIGN_UP_POLICY = True
     SIGN_UP_KEY = False
+    USERNAME_UPDATE = False
     NICK_UPDATE = True
 
     __instance = True
@@ -22,12 +25,16 @@ class Setting(StaticObject):
     @classmethod
     def load_setting(cls):
         settings = ServerSetting.objects.all()
-        cls.SESSION_LIMIT = cls._format_value(settings.get(key=SettingKey.SESSION_LIMIT).value)
-        cls.TOKEN_EXPIRATION = cls._format_value(settings.get(key=SettingKey.TOKEN_EXPIRATION).value)
-        cls.TOKEN_EXPIRATION_TIME = cls._format_value(settings.get(key=SettingKey.TOKEN_EXPIRATION_TIME).value, 'int')
-        cls.SIGN_UP_POLICY = cls._format_value(settings.get(key=SettingKey.SIGN_UP_POLICY).value)
-        cls.SIGN_UP_KEY = cls._format_value(settings.get(key=SettingKey.SIGN_UP_KEY).value)
-        cls.NICK_UPDATE = cls._format_value(settings.get(key=SettingKey.NICK_UPDATE).value)
+        try:
+            cls.SESSION_LIMIT = cls._format_value(settings.get(key=SettingKey.SESSION_LIMIT).value)
+            cls.TOKEN_EXPIRATION = cls._format_value(settings.get(key=SettingKey.TOKEN_EXPIRATION).value)
+            cls.TOKEN_EXPIRATION_TIME = cls._format_value(settings.get(key=SettingKey.TOKEN_EXPIRATION_TIME).value, 'int')
+            cls.SIGN_UP_POLICY = cls._format_value(settings.get(key=SettingKey.SIGN_UP_POLICY).value)
+            cls.SIGN_UP_KEY = cls._format_value(settings.get(key=SettingKey.SIGN_UP_KEY).value)
+            cls.USERNAME_UPDATE = cls._format_value(settings.get(key=SettingKey.USERNAME_UPDATE).value)
+            cls.NICK_UPDATE = cls._format_value(settings.get(key=SettingKey.NICK_UPDATE).value)
+        except ServerSetting.DoesNotExist:
+            raise ServerError(code=503, message=ErrorMsg.SETTING_ERROR)
 
     @classmethod
     def _init_setting(cls):
@@ -51,6 +58,7 @@ class SettingKey(StaticObject):
     TOKEN_EXPIRATION_TIME = 'token_expiration_time'
     SIGN_UP_POLICY = 'sign_up_policy'
     SIGN_UP_KEY = 'sign_up_key'
+    USERNAME_UPDATE = 'username_update'
     NICK_UPDATE = 'nick_update'
 
 

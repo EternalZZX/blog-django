@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from Crypto.Hash import MD5
-
 from django.views.decorators.http import require_POST
 from django.http import QueryDict
 
@@ -103,7 +101,7 @@ def user_get(request, uuid):
     }
     @apiUse ErrorData
     @apiErrorExample {json} Error-Response:
-    HTTP/1.1 403 Forbidden
+    HTTP/1.1 404 Not Found
     {
         "data": "User not found"
     }
@@ -195,25 +193,32 @@ def user_create(request):
     @apiParam {string} [qq] QQ号码
     @apiParam {string} [address] 收货地址
     @apiParam {string} [remark] 备注
-    @apiParam {bool} [kwargs] 隐私设置, 参数名'gender_privacy', 'email_privacy', 'phone_privacy', 'qq_privacy', 'address_privacy'
+    @apiParam {bool} [kwargs] 隐私设置, 参数名'gender_privacy', 'email_privacy',
+                              'phone_privacy', 'qq_privacy', 'address_privacy'
     @apiSuccess {string} data 创建用户信息详情
     @apiSuccessExample {json} Success-Response:
     HTTP/1.1 200 OK
     {
         "data": {
+            "email_privacy": 0,
             "username": "user",
-            "qq": null,
             "remark": null,
-            "uuid": "9e556479-7003-5916-9cd6-33f4227cec9b",
-            "phone": null,
-            "gender": null,
-            "create_at": "2017-12-13T08:34:59.425Z",
-            "email": null,
+            "phone_privacy": 0,
+            "uuid": "19890105-81dd-55fc-a202-914fbf1e88a1",
             "nick": "user",
-            "role": 2,
-            "groups": [],
+            "qq": null,
             "address": null,
-            "id": 29
+            "qq_privacy": 0,
+            "create_at": "2017-12-15T03:18:25.564Z",
+            "phone": null,
+            "role": 2,
+            "user": 33,
+            "groups": [],
+            "gender": null,
+            "id": 33,
+            "gender_privacy": 2,
+            "address_privacy": 0,
+            "email": null
         }
     }
     @apiUse ErrorData
@@ -258,9 +263,97 @@ def user_create(request):
 
 
 def user_update(request, uuid):
+    """
+    @api {put} /account/user/{uuid}/ user update
+    @apiVersion 0.1.0
+    @apiName user_update
+    @apiGroup account
+    @apiDescription 编辑用户
+    @apiPermission USER_UPDATE
+    @apiUse Header
+    @apiParam {string} [username] 用户名
+    @apiParam {string} [old_password] 旧密码
+    @apiParam {string} [new_password] 新密码
+    @apiParam {string} [nick] 昵称
+    @apiParam {number} [role_id] 用户角色ID
+    @apiParam {string} [group_ids] 用户组ID列表，e.g.'2;9;32;43'
+    @apiParam {number=0, 1} [gender] 性别, male=0, female=1
+    @apiParam {string} [email] 电子邮箱地址
+    @apiParam {string} [phone] 电话号码
+    @apiParam {string} [qq] QQ号码
+    @apiParam {string} [address] 收货地址
+    @apiParam {string} [remark] 备注
+    @apiParam {bool} [kwargs] 隐私设置, 参数名'gender_privacy', 'email_privacy',
+                              'phone_privacy', 'qq_privacy', 'address_privacy'
+    @apiSuccess {string} data 编辑用户信息详情
+    @apiSuccessExample {json} Success-Response:
+    HTTP/1.1 200 OK
+    {
+        "data": {
+            "email_privacy": 0,
+            "username": "user",
+            "remark": null,
+            "phone_privacy": 0,
+            "uuid": "19890105-81dd-55fc-a202-914fbf1e88a1",
+            "nick": "user",
+            "qq": null,
+            "address": null,
+            "qq_privacy": 0,
+            "create_at": "2017-12-15T03:18:25.564Z",
+            "phone": null,
+            "role": 2,
+            "user": 33,
+            "groups": [],
+            "gender": null,
+            "id": 33,
+            "gender_privacy": 2,
+            "address_privacy": 0,
+            "email": null
+        }
+    }
+    @apiUse ErrorData
+    @apiErrorExample {json} Error-Response:
+    HTTP/1.1 404 Not Found
+    {
+        "data": "User not found"
+    }
+    """
     data = QueryDict(request.body)
-    id = data.get('id')
-    return Response()
+    username = data.get('username')
+    old_password = data.get('old_password')
+    new_password = data.get('new_password')
+    nick = data.get('nick')
+    role_id = data.get('role_id')
+    group_ids = data.get('group_ids')
+    gender = data.get('gender')
+    email = data.get('email')
+    phone = data.get('phone')
+    qq = data.get('qq')
+    address = data.get('address')
+    remark = data.get('remark')
+    kwargs = {}
+    for key in UserService.USER_PRIVACY_FIELD:
+        kwargs[key] = data.get(key)
+    try:
+        if isinstance(group_ids, (unicode, str)):
+            group_ids = [group_id for group_id in group_ids.split(';') if group_id]
+        else:
+            group_ids = None
+        code, data = UserService(request).user_update(user_uuid=uuid,
+                                                      username=username,
+                                                      old_password=old_password,
+                                                      new_password=new_password,
+                                                      nick=nick,
+                                                      role_id=role_id,
+                                                      group_ids=group_ids,
+                                                      gender=gender,
+                                                      email=email, phone=phone,
+                                                      qq=qq, address=address,
+                                                      remark=remark, **kwargs)
+    except Exception as e:
+        code, data = getattr(e, 'code', 400), \
+                     getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
+    return Response(code=code, data=data)
 
 
 def user_delete(request, uuid):

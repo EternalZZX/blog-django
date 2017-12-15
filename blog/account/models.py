@@ -23,8 +23,8 @@ class User(models.Model):
     role = models.ForeignKey('Role', null=True)
     groups = models.ManyToManyField('Group')
     gender = models.NullBooleanField(choices=GENDER_CHOICES, null=True)
-    email = models.EmailField(null=True)
-    phone = models.CharField(max_length=50, null=True)
+    email = models.EmailField(unique=True, null=True)
+    phone = models.CharField(unique=True, max_length=50, null=True)
     qq = models.CharField(max_length=50, null=True)
     address = models.CharField(max_length=1000, null=True)
     remark = models.TextField(null=True)
@@ -32,6 +32,13 @@ class User(models.Model):
 
     class Meta:
         db_table = 'user'
+
+    def update_char_field(self, key, value):
+        if value is not None:
+            if value == '':
+                setattr(self, key, None)
+            else:
+                setattr(self, key, value)
 
 
 class UserPrivacySetting(models.Model):

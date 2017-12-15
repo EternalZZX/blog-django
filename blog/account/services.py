@@ -3,8 +3,6 @@
 
 import uuid
 
-from Crypto.Hash import MD5
-
 from django.db.models import Q
 
 from blog.account.models import User, UserPrivacySetting, Role, Group
@@ -26,13 +24,13 @@ class UserService(Service):
         query_level, _ = self.get_permission_level(PermissionName.USER_SELECT)
         try:
             if user_uuid != self.uuid and query_level < PermissionLevel.LEVEL_10:
-                return_field = self.USER_PUBLIC_FIELD[:]
+                return_field = UserService.USER_PUBLIC_FIELD[:]
                 user_privacy_setting = UserPrivacySetting.objects.get(user__uuid=user_uuid)
-                for key in self.USER_PRIVACY_FIELD:
+                for key in UserService.USER_PRIVACY_FIELD:
                     if getattr(user_privacy_setting, key) == UserPrivacySetting.PUBLIC:
                         return_field.append(key[:-8])
             else:
-                return_field = self.USER_ALL_FIELD
+                return_field = UserService.USER_ALL_FIELD
             user = User.objects.values(*return_field).get(uuid=user_uuid)
         except (User.DoesNotExist, UserPrivacySetting.DoesNotExist):
             raise ServiceError(code=404,
@@ -42,12 +40,12 @@ class UserService(Service):
     def user_list(self, page=0, page_size=10, order_field=None, order='desc',
                   query=None, query_field=None):
         query_level, order_level = self.get_permission_level(PermissionName.USER_SELECT)
-        return_field = self.USER_PUBLIC_FIELD if \
-            query_level < PermissionLevel.LEVEL_10 else self.USER_ALL_FIELD
+        return_field = UserService.USER_PUBLIC_FIELD if \
+            query_level < PermissionLevel.LEVEL_10 else UserService.USER_ALL_FIELD
         users = User.objects.values(*return_field).all()
         if order_field:
             if (order_level >= PermissionLevel.LEVEL_1 and
-                    order_field in self.USER_PUBLIC_FIELD) \
+                    order_field in UserService.USER_PUBLIC_FIELD) \
                     or order_level >= PermissionLevel.LEVEL_10:
                 if order == 'desc':
                     order_field = '-' + order_field
@@ -94,23 +92,19 @@ class UserService(Service):
         if not role:
             default_roles = Role.objects.filter(default=True)
             role = default_roles[0] if default_roles else None
-        if User.objects.filter(username=username):
-            raise ServiceError(message=AccountErrorMsg.DUPLICATE_USERNAME)
+        UserService._is_unique(username=username)
         user_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, username.encode('utf-8')))
         password_code = encode(password, user_uuid)
         nick = nick if nick else username
+        if gender is not None:
+            gender = UserService._gender_format(gender)
+        email = None if email in (None, '') else UserService._is_unique(email=email)
+        phone = None if phone in (None, '') else UserService._is_unique(phone=phone)
         user = User.objects.create(uuid=user_uuid, username=username, password=password_code,
                                    nick=nick, role=role, gender=gender, email=email,
                                    phone=phone, qq=qq, address=address, remark=remark)
-        user_privacy_setting = None
-        for key in kwargs:
-            if key in self.USER_PRIVACY_FIELD and kwargs[key]:
-                if not user_privacy_setting:
-                    user_privacy_setting = UserPrivacySetting.objects.get(user=user)
-                setattr(user_privacy_setting, key, kwargs[key])
-        if user_privacy_setting:
-            user_privacy_setting.save()
-        user_dict = model_to_dict(user)
+        user_dict = model_to_dict(UserService._user_privacy_update(user, **kwargs))
+        user_dict.update(model_to_dict(user))
         del user_dict['password']
         for group_id in group_ids:
             try:
@@ -125,6 +119,9 @@ class UserService(Service):
                     gender=None, email=None, phone=None, qq=None, address=None,
                     remark=None, **kwargs):
         update_level, update_password_level = self.get_permission_level(PermissionName.USER_UPDATE)
+        if self.uuid != user_uuid and update_level < PermissionLevel.LEVEL_10:
+            raise ServiceError(code=403,
+                               message=AccountErrorMsg.UPDATE_PERMISSION_DENIED)
         try:
             user = User.objects.get(uuid=user_uuid)
         except User.DoesNotExist:
@@ -138,35 +135,72 @@ class UserService(Service):
                     raise ServiceError(code=403,
                                        message=AccountErrorMsg.PASSWORD_ERROR)
             user.password = encode(new_password, user_uuid)
-        if self.uuid == user_uuid or update_level >= PermissionLevel.LEVEL_10:
-            if nick and Setting.NICK_UPDATE:
-                user.nick = nick
-            if gender is not None:
-                user.gender = gender if gender else None
-            if email is not None:
-                user.email = email if email else None
-            if phone is not None:
-                user.phone = phone if phone else None
-            if qq is not None:
-                user.qq = qq if qq else None
-            if address is not None:
-                user.address = address if address else None
-            if remark is not None:
-                user.remark = remark if remark else None
+        if username and Setting.USERNAME_UPDATE and UserService._is_unique(username=username):
+            user.username = username
+        if nick and Setting.NICK_UPDATE:
+            user.nick = nick
+        if gender is not None:
+            user.gender = UserService._gender_format(gender)
+        if email is not None:
+            if email == '':
+                user.email = None
+            elif UserService._is_unique(email=email):
+                user.email = email
+        if phone is not None:
+            if phone == '':
+                user.phone = None
+            elif UserService._is_unique(phone=phone):
+                user.phone = phone
+        user.update_char_field('qq', qq)
+        user.update_char_field('address', address)
+        user.update_char_field('remark', remark)
         if role_id and update_level >= PermissionLevel.LEVEL_10:
-            user.role_id = role_id
-        if update_level >= PermissionLevel.LEVEL_9:
-            is_not_clear = True
+            try:
+                user.role = Role.objects.get(id=role_id)
+            except Role.DoesNotExist:
+                raise ServiceError(code=404, message=AccountErrorMsg.ROLE_NOT_FOUND)
+        if group_ids is not None and update_level >= PermissionLevel.LEVEL_10:
+            user.groups.clear()
             for group_id in group_ids:
                 try:
-                    group = Group.objects.get(id=group_id)
-                    if is_not_clear:
-                        user.groups.clear()
-                        is_not_clear = False
-                    user.groups.add(group)
+                    user.groups.add(Group.objects.get(id=group_id))
                 except Group.DoesNotExist:
                     pass
         user.save()
-        user_dict = model_to_dict(user)
+        user_dict = model_to_dict(UserService._user_privacy_update(user, **kwargs))
+        user_dict.update(model_to_dict(user))
         del user_dict['password']
         return 200, user_dict
+
+    @staticmethod
+    def _gender_format(gender):
+        if gender == '':
+            return None
+        else:
+            gender = int(gender)
+            return None if gender not in dict(User.GENDER_CHOICES) else gender
+
+    @staticmethod
+    def _is_unique(**kwargs):
+        try:
+            if User.objects.get(**kwargs):
+                raise ServiceError(message=AccountErrorMsg.DUPLICATE_IDENTITY)
+        except User.MultipleObjectsReturned:
+            raise ServiceError(code=500, message=AccountErrorMsg.DUPLICATE_IDENTITY)
+        except User.DoesNotExist:
+            return kwargs.values()[0]
+
+    @staticmethod
+    def _user_privacy_update(user, **kwargs):
+        user_privacy_setting = None
+        for key in kwargs:
+            if key in UserService.USER_PRIVACY_FIELD and kwargs[key]:
+                if not user_privacy_setting:
+                    user_privacy_setting = UserPrivacySetting.objects.get(user=user)
+                value = int(kwargs[key])
+                if value not in dict(UserPrivacySetting.PRIVACY_CHOICES):
+                    value = UserPrivacySetting.PRIVATE
+                setattr(user_privacy_setting, key, value)
+        if user_privacy_setting:
+            user_privacy_setting.save()
+        return user_privacy_setting
