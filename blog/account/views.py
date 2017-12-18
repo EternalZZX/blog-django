@@ -8,7 +8,7 @@ from blog.account.models import User
 from blog.account.services import UserService
 from blog.common.base import Authorize
 from blog.common.utils import Response, json_response, encode
-from blog.common.error import AuthError
+from blog.common.error import AuthError, ParamsError
 from blog.common.message import ErrorMsg, AccountErrorMsg
 
 
@@ -335,7 +335,7 @@ def user_update(request, uuid):
     for key in UserService.USER_PRIVACY_FIELD:
         kwargs[key] = data.get(key)
     try:
-        if isinstance(group_ids, (unicode, str)):
+        if not isinstance(group_ids, (unicode, str)):
             group_ids = [group_id for group_id in group_ids.split(';') if group_id]
         else:
             group_ids = None
@@ -357,6 +357,21 @@ def user_update(request, uuid):
 
 
 def user_delete(request, uuid):
-    data = QueryDict(request.body)
-    id = data.get('id')
-    return Response(code=200, data=uuid)
+    try:
+        if uuid:
+            id_list = [uuid]
+        else:
+            data = QueryDict(request.body)
+            id_list = data.get('id_list')
+            if not isinstance(id_list, (unicode, str)):
+                raise ParamsError()
+            id_list = [id for id in id_list.split(';') if id]
+        code, data = 404, map(UserService(request).user_delete, id_list)
+        for result in data:
+            if result['status'] == 'SUCCESS':
+                code = 200
+                break
+    except Exception as e:
+        code, data = getattr(e, 'code', 400), \
+                     getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
+    return Response(code=code, data=data)

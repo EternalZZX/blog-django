@@ -96,8 +96,7 @@ class UserService(Service):
         user_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, username.encode('utf-8')))
         password_code = encode(password, user_uuid)
         nick = nick if nick else username
-        if gender is not None:
-            gender = UserService._gender_format(gender)
+        gender = UserService._gender_format(gender)
         email = None if email in (None, '') else UserService._is_unique(email=email)
         phone = None if phone in (None, '') else UserService._is_unique(phone=phone)
         user = User.objects.create(uuid=user_uuid, username=username, password=password_code,
@@ -172,13 +171,23 @@ class UserService(Service):
         del user_dict['password']
         return 200, user_dict
 
+    def user_delete(self, user_uuid):
+        delete_level = self.get_permission_level(PermissionName.USER_DELETE)
+        result = {'id': user_uuid}
+        try:
+            user = User.objects.get(uuid=user_uuid)
+            result['name'], result['status'] = user.username, 'SUCCESS'
+            user.delete()
+        except User.DoesNotExist:
+            result['status'] = 'NOT_FOUND'
+        return result
+
     @staticmethod
     def _gender_format(gender):
-        if gender == '':
+        if gender in (None, ''):
             return None
-        else:
-            gender = int(gender)
-            return None if gender not in dict(User.GENDER_CHOICES) else gender
+        gender = int(gender)
+        return None if gender not in dict(User.GENDER_CHOICES) else gender
 
     @staticmethod
     def _is_unique(**kwargs):

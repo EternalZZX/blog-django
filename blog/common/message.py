@@ -7,6 +7,7 @@ class ErrorMsg:
     SETTING_ERROR = 'Server setting uninitialized'
     REQUEST_ERROR = 'Request error'
     REQUEST_METHOD_ERROR = 'Request method error'
+    REQUEST_PARAMS_ERROR = 'Request params error'
     PERMISSION_DENIED = 'Permission denied'
     PERMISSION_KEY_ERROR = 'No permission named '
 
