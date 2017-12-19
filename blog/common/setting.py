@@ -13,6 +13,7 @@ class Setting(StaticObject):
     TOKEN_EXPIRATION_TIME = 604800
     SIGN_UP_POLICY = True
     SIGN_UP_KEY = False
+    USER_CANCEL = True
     USERNAME_UPDATE = False
     NICK_UPDATE = True
 
@@ -31,6 +32,7 @@ class Setting(StaticObject):
             cls.TOKEN_EXPIRATION_TIME = cls._format_value(settings.get(key=SettingKey.TOKEN_EXPIRATION_TIME).value, 'int')
             cls.SIGN_UP_POLICY = cls._format_value(settings.get(key=SettingKey.SIGN_UP_POLICY).value)
             cls.SIGN_UP_KEY = cls._format_value(settings.get(key=SettingKey.SIGN_UP_KEY).value)
+            cls.USER_CANCEL = cls._format_value(settings.get(key=SettingKey.USER_CANCEL).value)
             cls.USERNAME_UPDATE = cls._format_value(settings.get(key=SettingKey.USERNAME_UPDATE).value)
             cls.NICK_UPDATE = cls._format_value(settings.get(key=SettingKey.NICK_UPDATE).value)
         except ServerSetting.DoesNotExist:
@@ -58,6 +60,7 @@ class SettingKey(StaticObject):
     TOKEN_EXPIRATION_TIME = 'token_expiration_time'
     SIGN_UP_POLICY = 'sign_up_policy'
     SIGN_UP_KEY = 'sign_up_key'
+    USER_CANCEL = 'user_cancel'
     USERNAME_UPDATE = 'username_update'
     NICK_UPDATE = 'nick_update'
 

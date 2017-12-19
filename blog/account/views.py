@@ -192,6 +192,7 @@ def user_create(request):
     @apiParam {string} [phone] 电话号码
     @apiParam {string} [qq] QQ号码
     @apiParam {string} [address] 收货地址
+    @apiParam {number=0, 1} [status=1] 账号状态, Cancel=0, Active=1
     @apiParam {string} [remark] 备注
     @apiParam {bool} [kwargs] 隐私设置, 参数名'gender_privacy', 'email_privacy',
                               'phone_privacy', 'qq_privacy', 'address_privacy'
@@ -238,6 +239,7 @@ def user_create(request):
     phone = request.POST.get('phone')
     qq = request.POST.get('qq')
     address = request.POST.get('address')
+    status = request.POST.get('status')
     remark = request.POST.get('remark')
     kwargs = {}
     for key in UserService.USER_PRIVACY_FIELD:
@@ -255,6 +257,7 @@ def user_create(request):
                                                       gender=gender,
                                                       email=email, phone=phone,
                                                       qq=qq, address=address,
+                                                      status=status,
                                                       remark=remark, **kwargs)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
@@ -335,7 +338,7 @@ def user_update(request, uuid):
     for key in UserService.USER_PRIVACY_FIELD:
         kwargs[key] = data.get(key)
     try:
-        if not isinstance(group_ids, (unicode, str)):
+        if isinstance(group_ids, (unicode, str)):
             group_ids = [group_id for group_id in group_ids.split(';') if group_id]
         else:
             group_ids = None
@@ -357,11 +360,12 @@ def user_update(request, uuid):
 
 
 def user_delete(request, uuid):
+    data = QueryDict(request.body)
+    force = data.get('force')
     try:
         if uuid:
             id_list = [uuid]
         else:
-            data = QueryDict(request.body)
             id_list = data.get('id_list')
             if not isinstance(id_list, (unicode, str)):
                 raise ParamsError()

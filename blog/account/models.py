@@ -12,6 +12,13 @@ class User(models.Model):
         (FEMALE, 'female')
     )
 
+    CANCEL = 0
+    ACTIVE = 1
+    STATUS_CHOICES = (
+        (CANCEL, 'cancel'),
+        (ACTIVE, 'female')
+    )
+
     id = models.AutoField(primary_key=True)
     uuid = models.CharField(max_length=36,
                             default=str(uuid.uuid4()),
@@ -28,6 +35,7 @@ class User(models.Model):
     qq = models.CharField(max_length=50, null=True)
     address = models.CharField(max_length=1000, null=True)
     remark = models.TextField(null=True)
+    status = models.IntegerField(choices=STATUS_CHOICES, default=ACTIVE)
     create_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -42,9 +50,9 @@ class User(models.Model):
 
 
 class UserPrivacySetting(models.Model):
-    PUBLIC = 2
-    PROTECTED = 1
     PRIVATE = 0
+    PROTECTED = 1
+    PUBLIC = 2
     PRIVACY_CHOICES = (
         (PUBLIC, 'public'),
         (PROTECTED, 'protected'),

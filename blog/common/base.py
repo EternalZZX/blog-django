@@ -45,14 +45,18 @@ class Authorize(object):
             self._save_token(uuid=uuid, md5=md5)
         return token
 
-    def update_token(self, token=None, uuid=None):
-        if uuid:
-            role_id, md5_stamp, time_stamp = self._parse_memcached_value(uuid=uuid)
+    def update_token(self, token=None, uuid=None, role_id=None):
+        if uuid and MemcachedClient().get(key=uuid):
+            role_id_stamp, md5_stamp, time_stamp = self._parse_memcached_value(uuid=uuid)
             token = base64.b64encode('ETE' + md5_stamp + base64.b64encode(uuid)).rstrip('=')
+        elif token:
+            uuid, role_id_stamp, md5_stamp, time_stamp = self._auth_token_md5(token=token)
         else:
-            uuid, role_id, md5_stamp, time_stamp = self._auth_token_md5(token=token)
+            return None
+        time_stamp = time_stamp if role_id else None
+        role_id = role_id if role_id else role_id_stamp
         if uuid and md5_stamp:
-            self._save_token(uuid=uuid, md5=md5_stamp, role_id=role_id)
+            self._save_token(uuid=uuid, md5=md5_stamp, time_stamp=time_stamp, role_id=role_id)
             return token
         return None
 
@@ -76,8 +80,9 @@ class Authorize(object):
         return uuid, role_id, md5_stamp, time_stamp
 
     @staticmethod
-    def _save_token(uuid, md5, role_id=None):
-        time_stamp = str(time.time()).split('.')[0]
+    def _save_token(uuid, md5, time_stamp=None, role_id=None):
+        if not time_stamp:
+            time_stamp = str(time.time()).split('.')[0]
         if not role_id:
             try:
                 role_id = User.objects.get(uuid=uuid).role.id
