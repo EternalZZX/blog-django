@@ -194,8 +194,8 @@ def user_create(request):
     @apiParam {string} [address] 收货地址
     @apiParam {number=0, 1} [status=1] 账号状态, Cancel=0, Active=1
     @apiParam {string} [remark] 备注
-    @apiParam {bool} [kwargs] 隐私设置, 参数名'gender_privacy', 'email_privacy',
-                              'phone_privacy', 'qq_privacy', 'address_privacy'
+    @apiParam {number=0, 1, 2} [kwargs] 隐私设置, 参数名'gender_privacy', 'email_privacy',
+                                        'phone_privacy', 'qq_privacy', 'address_privacy'
     @apiSuccess {string} data 创建用户信息详情
     @apiSuccessExample {json} Success-Response:
     HTTP/1.1 200 OK
@@ -286,8 +286,8 @@ def user_update(request, uuid):
     @apiParam {string} [qq] QQ号码
     @apiParam {string} [address] 收货地址
     @apiParam {string} [remark] 备注
-    @apiParam {bool} [kwargs] 隐私设置, 参数名'gender_privacy', 'email_privacy',
-                              'phone_privacy', 'qq_privacy', 'address_privacy'
+    @apiParam {number=0, 1, 2} [kwargs] 隐私设置, 参数名'gender_privacy', 'email_privacy',
+                                        'phone_privacy', 'qq_privacy', 'address_privacy'
     @apiSuccess {string} data 编辑用户信息详情
     @apiSuccessExample {json} Success-Response:
     HTTP/1.1 200 OK
@@ -360,8 +360,38 @@ def user_update(request, uuid):
 
 
 def user_delete(request, uuid):
+    """
+    @api {put} /account/user/{uuid}/ user delete
+    @apiVersion 0.1.0
+    @apiName user_delete
+    @apiGroup account
+    @apiDescription 删除用户
+    @apiPermission USER_DELETE
+    @apiUse Header
+    @apiParam {string} id_list 删除用户名uuid列表，e.g.'7357d28a-a611-5efd-ae6e-a550a5b95487;
+                               3cd43d89-ab0b-54ac-811c-1f4bb9b3fab6', 当使用URL uuid时该参数忽略
+    @apiParam {string=true, false} [force=false] 强制删除
+    @apiSuccess {string} data 用户删除信息详情
+    @apiSuccessExample {json} Success-Response:
+    HTTP/1.1 200 OK
+    {
+        "data": [
+            {
+                "status": "SUCCESS",
+                "id": "7357d28a-a611-5efd-ae6e-a550a5b95487",
+                "name": "test"
+            }
+        ]
+    }
+    @apiUse ErrorData
+    @apiErrorExample {json} Error-Response:
+    HTTP/1.1 403 Forbidden
+    {
+        "data": "Permission denied"
+    }
+    """
     data = QueryDict(request.body)
-    force = data.get('force')
+    force = data.get('force') == 'true'
     try:
         if uuid:
             id_list = [uuid]
@@ -369,8 +399,8 @@ def user_delete(request, uuid):
             id_list = data.get('id_list')
             if not isinstance(id_list, (unicode, str)):
                 raise ParamsError()
-            id_list = [id for id in id_list.split(';') if id]
-        code, data = 404, map(UserService(request).user_delete, id_list)
+            id_list = [{'delete_id': id, 'force': force} for id in id_list.split(';') if id]
+        code, data = 400, map(lambda params: UserService(request).user_delete(**params), id_list)
         for result in data:
             if result['status'] == 'SUCCESS':
                 code = 200

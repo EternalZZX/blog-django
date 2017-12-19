@@ -196,15 +196,25 @@ class UserService(Service):
         del user_dict['password']
         return 200, user_dict
 
-    def user_delete(self, user_uuid):
-        delete_level = self.get_permission_level(PermissionName.USER_DELETE)
-        result = {'id': user_uuid}
+    def user_delete(self, delete_id, force):
+        delete_level, force_level = self.get_permission_level(PermissionName.USER_DELETE)
+        result = {'id': delete_id}
         try:
-            user = User.objects.get(uuid=user_uuid)
+            user = User.objects.get(uuid=delete_id)
             result['name'], result['status'] = user.username, 'SUCCESS'
-            user.delete()
+            if delete_id != self.uuid and delete_level < PermissionLevel.LEVEL_10 \
+                    and user.role.role_level >= self.role_level:
+                raise ServiceError()
+            if not Setting.USER_CANCEL or \
+                    (force and force_level >= PermissionLevel.LEVEL_10):
+                user.delete()
+            else:
+                user.status = User.CANCEL
+                user.save()
         except User.DoesNotExist:
             result['status'] = 'NOT_FOUND'
+        except ServiceError:
+            result['status'] = 'PERMISSION_DENIED'
         return result
 
     @staticmethod

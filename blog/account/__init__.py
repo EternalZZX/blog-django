@@ -25,7 +25,7 @@
 @apiDefine USER_CREATE
 用户创建权限
 1. MAJOR LEVEL10
-- User Create 可创建大于自身角色权限的用户
+- User Create 可创建大于等于自身角色权限的用户
 """
 
 """
@@ -39,4 +39,13 @@
 - User Update 可修改其他用户密码无原密码
 3. MINOR LEVEL9
 - User Update 可修改其他用户密码
+"""
+
+"""
+@apiDefine USER_DELETE
+用户删除权限
+1. MAJOR LEVEL10
+- User Delete 可删除大于等于自身角色权限的用户
+2. MINOR LEVEL10
+- User Delete 可强制删除用户
 """
