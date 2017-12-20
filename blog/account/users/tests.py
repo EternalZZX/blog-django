@@ -18,17 +18,15 @@
 #         print response
 
 import requests
-import sys
-
-
-reload(sys)
-sys.setdefaultencoding('utf8')
+# import sys
+# reload(sys)
+# sys.setdefaultencoding('utf8')
 
 # url = 'http://0.0.0.0:8000/blog/account/auth/'
 url = 'http://0.0.0.0:8000/blog/account/users/'
 
 headers = {
-    'Auth-Token': 'RVRFMGEwNGI1YjIzYWFjOTc4ODQ3N2Q1NDlmYTRlYjU2Y2VZbUZqWlRBM01ERXRNVFZsTXkwMU1UUTBMVGszWXpVdE5EYzBPRGRrTlRRek1ETXk'
+    'Auth-Token': ''
 }
 
 # params = {
@@ -36,12 +34,12 @@ headers = {
 #     'password': 'admin'
 # }
 params = {
-    'username': 'test-user',
+    'username': 'test',
     'password': 'password'
 }
 
 
 response = requests.post(url, params, headers=headers)
 
-print "code:", response.status_code
-print 'body:', response.content
+print("code:", response.status_code)
+print('body:', response.content)
