@@ -37,6 +37,9 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'blog.account',
+    'blog.account.users',
+    'blog.account.roles',
+    'blog.account.groups',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -90,4 +93,3 @@ APPEND_SLASH = False
 
 # Memcached
 MEMCACHED_HOSTS = ['127.0.0.1:11211']
-

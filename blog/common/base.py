@@ -9,7 +9,8 @@ import json
 
 from Crypto.Hash import MD5
 
-from blog.account.models import User, Role
+from blog.account.users.models import User
+from blog.account.roles.models import Role
 from blog.common.error import AuthError
 from blog.common.message import ErrorMsg, AccountErrorMsg
 from blog.common.setting import Setting, PermissionName
@@ -67,6 +68,10 @@ class Authorize(object):
             raise AuthError(code=419, message=AccountErrorMsg.TOKEN_TIMEOUT)
         self._save_token(uuid=uuid, md5=md5_stamp, role_id=role_id)
         return uuid, role_id
+
+    @staticmethod
+    def cancel_token(uuid):
+        MemcachedClient().delete(key=uuid)
 
     def _auth_token_md5(self, token):
         uuid, md5 = self._parse_token(token=token)

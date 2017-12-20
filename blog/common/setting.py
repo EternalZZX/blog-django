@@ -67,17 +67,6 @@ class SettingKey(StaticObject):
 
 class PermissionName(StaticObject):
     LOGIN = 'login'
-    STEALTH = 'stealth'
-    SEARCH = 'search'
-    CUSTOM_TITLE = 'custom_title'
-
-    READ = 'read'
-    REPORT = 'report'
-    REPLY = 'reply'
-    APPRAISE = 'appraise'
-    MESSAGE = 'message'
-
-    OPERATE = 'operate'
 
     USER_CREATE = 'user_create'
     USER_DELETE = 'user_delete'

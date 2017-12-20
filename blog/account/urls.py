@@ -1,9 +1,8 @@
-from django.conf.urls import patterns, url
+from django.conf.urls import patterns, include, url
 
-from blog.account import views
 
-urlpatterns = patterns('',
-    url(r'^auth/$', views.auth),
-    url(r'^users/$', views.user_operate),
-    url(r'^users/(?P<uuid>[a-f0-9]{8}-([a-f0-9]{4}-){3}[a-f0-9]{12})/$', views.user_operate),
+urlpatterns = patterns('blog.account.views',
+    url(r'^auth/$', 'auth'),
+    url(r'^users/', include('blog.account.users.urls')),
+    url(r'^roles/', include('blog.account.roles.urls')),
 )

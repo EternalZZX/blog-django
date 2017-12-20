@@ -5,7 +5,9 @@ import uuid
 
 from django.db.models import Q
 
-from blog.account.models import User, UserPrivacySetting, Role, Group
+from blog.account.users.models import User, UserPrivacySetting
+from blog.account.roles.models import Role
+from blog.account.groups.models import Group
 from blog.common.utils import paging, model_to_dict, encode
 from blog.common.base import Authorize, Service
 from blog.common.error import ServiceError
@@ -25,14 +27,16 @@ class UserService(Service):
     def user_get(self, user_uuid):
         query_level, _ = self.get_permission_level(PermissionName.USER_SELECT)
         try:
+            user_dict = {}
+            user_privacy_setting = UserPrivacySetting.objects.get(user__uuid=user_uuid)
             if user_uuid != self.uuid and query_level < PermissionLevel.LEVEL_9:
                 return_field = UserService.USER_PUBLIC_FIELD[:]
-                user_privacy_setting = UserPrivacySetting.objects.get(user__uuid=user_uuid)
                 for key in UserService.USER_PRIVACY_FIELD:
                     if getattr(user_privacy_setting, key) == UserPrivacySetting.PUBLIC:
                         return_field.append(key[:-8])
             else:
                 return_field = UserService.USER_ALL_FIELD[:]
+                user_dict = model_to_dict(user_privacy_setting)
                 if query_level >= PermissionLevel.LEVEL_10:
                     for key in UserService.USER_MANAGE_FIELD:
                         return_field.append(key)
@@ -40,10 +44,11 @@ class UserService(Service):
             if query_level < PermissionLevel.LEVEL_10:
                 query_dict['status'] = User.ACTIVE
             user = User.objects.values(*return_field).get(**query_dict)
+            user_dict.update(user)
         except (User.DoesNotExist, UserPrivacySetting.DoesNotExist):
             raise ServiceError(code=404,
                                message=AccountErrorMsg.USER_NOT_FOUND)
-        return 200, user
+        return 200, user_dict
 
     def user_list(self, page=0, page_size=10, order_field=None, order='desc',
                   query=None, query_field=None):
@@ -164,6 +169,8 @@ class UserService(Service):
             user.gender = UserService._choices_format(gender, User.GENDER_CHOICES)
         if status is not None:
             user.status = UserService._choices_format(status, User.STATUS_CHOICES, User.ACTIVE)
+            if user.status == User.CANCEL:
+                Authorize().cancel_token(uuid=user_uuid)
         if email is not None:
             if email == '':
                 user.email = None
@@ -211,6 +218,7 @@ class UserService(Service):
             else:
                 user.status = User.CANCEL
                 user.save()
+                Authorize().cancel_token(uuid=delete_id)
         except User.DoesNotExist:
             result['status'] = 'NOT_FOUND'
         except ServiceError:
@@ -220,7 +228,7 @@ class UserService(Service):
     @staticmethod
     def _choices_format(value, choices, default=None):
         if value in (None, ''):
-            return None
+            return default
         value = int(value)
         return value if value in dict(choices) else default
 
@@ -236,15 +244,12 @@ class UserService(Service):
 
     @staticmethod
     def _user_privacy_update(user, **kwargs):
-        user_privacy_setting = None
+        user_privacy_setting = UserPrivacySetting.objects.get(user=user)
         for key in kwargs:
             if key in UserService.USER_PRIVACY_FIELD and kwargs[key]:
-                if not user_privacy_setting:
-                    user_privacy_setting = UserPrivacySetting.objects.get(user=user)
                 value = int(kwargs[key])
                 if value not in dict(UserPrivacySetting.PRIVACY_CHOICES):
                     value = UserPrivacySetting.PRIVATE
                 setattr(user_privacy_setting, key, value)
-        if user_privacy_setting:
-            user_privacy_setting.save()
+        user_privacy_setting.save()
         return user_privacy_setting
