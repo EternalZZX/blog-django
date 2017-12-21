@@ -29,7 +29,7 @@ def user_operate(request, uuid=None):
 
 def user_get(request, uuid):
     """
-    @api {get} /account/user/{uuid}/ user get
+    @api {get} /account/users/{uuid}/ user get
     @apiVersion 0.1.0
     @apiName user_get
     @apiGroup account
@@ -57,7 +57,7 @@ def user_get(request, uuid):
     }
     """
     try:
-        code, data = UserService(request).user_get(user_uuid=uuid)
+        code, data = UserService(request).get(user_uuid=uuid)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
@@ -66,7 +66,7 @@ def user_get(request, uuid):
 
 def user_list(request):
     """
-    @api {get} /account/user/ user list
+    @api {get} /account/users/ user list
     @apiVersion 0.1.0
     @apiName user_list
     @apiGroup account
@@ -111,12 +111,12 @@ def user_list(request):
         order = request.GET.get('order')
         query = request.GET.get('query')
         query_field = request.GET.get('query_field')
-        code, data = UserService(request).user_list(page=page,
-                                                    page_size=page_size,
-                                                    order_field=order_field,
-                                                    order=order,
-                                                    query=query,
-                                                    query_field=query_field)
+        code, data = UserService(request).list(page=page,
+                                               page_size=page_size,
+                                               order_field=order_field,
+                                               order=order,
+                                               query=query,
+                                               query_field=query_field)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
@@ -125,7 +125,7 @@ def user_list(request):
 
 def user_create(request):
     """
-    @api {post} /account/user/ user create
+    @api {post} /account/users/ user create
     @apiVersion 0.1.0
     @apiName user_create
     @apiGroup account
@@ -177,7 +177,7 @@ def user_create(request):
     @apiErrorExample {json} Error-Response:
     HTTP/1.1 400 Bad Request
     {
-        "data": "Duplicate username"
+        "data": "Duplicate identity field"
     }
     """
     username = request.POST.get('username')
@@ -200,16 +200,16 @@ def user_create(request):
             group_ids = [group_id for group_id in group_ids.split(';') if group_id]
         else:
             group_ids = []
-        code, data = UserService(request).user_create(username=username,
-                                                      password=password,
-                                                      nick=nick,
-                                                      role_id=role_id,
-                                                      group_ids=group_ids,
-                                                      gender=gender,
-                                                      email=email, phone=phone,
-                                                      qq=qq, address=address,
-                                                      status=status,
-                                                      remark=remark, **kwargs)
+        code, data = UserService(request).create(username=username,
+                                                 password=password,
+                                                 nick=nick,
+                                                 role_id=role_id,
+                                                 group_ids=group_ids,
+                                                 gender=gender,
+                                                 email=email, phone=phone,
+                                                 qq=qq, address=address,
+                                                 status=status,
+                                                 remark=remark, **kwargs)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
@@ -218,7 +218,7 @@ def user_create(request):
 
 def user_update(request, uuid):
     """
-    @api {put} /account/user/{uuid}/ user update
+    @api {put} /account/users/{uuid}/ user update
     @apiVersion 0.1.0
     @apiName user_update
     @apiGroup account
@@ -294,17 +294,17 @@ def user_update(request, uuid):
             group_ids = [group_id for group_id in group_ids.split(';') if group_id]
         else:
             group_ids = None
-        code, data = UserService(request).user_update(user_uuid=uuid,
-                                                      username=username,
-                                                      old_password=old_password,
-                                                      new_password=new_password,
-                                                      nick=nick,
-                                                      role_id=role_id,
-                                                      group_ids=group_ids,
-                                                      gender=gender,
-                                                      email=email, phone=phone,
-                                                      qq=qq, address=address,
-                                                      remark=remark, **kwargs)
+        code, data = UserService(request).update(user_uuid=uuid,
+                                                 username=username,
+                                                 old_password=old_password,
+                                                 new_password=new_password,
+                                                 nick=nick,
+                                                 role_id=role_id,
+                                                 group_ids=group_ids,
+                                                 gender=gender,
+                                                 email=email, phone=phone,
+                                                 qq=qq, address=address,
+                                                 remark=remark, **kwargs)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
@@ -313,7 +313,7 @@ def user_update(request, uuid):
 
 def user_delete(request, uuid):
     """
-    @api {delete} /account/user/{uuid}/ user delete
+    @api {delete} /account/users/{uuid}/ user delete
     @apiVersion 0.1.0
     @apiName user_delete
     @apiGroup account
@@ -352,7 +352,7 @@ def user_delete(request, uuid):
             if not isinstance(id_list, (unicode, str)):
                 raise ParamsError()
             id_list = [{'delete_id': delete_id, 'force': force} for delete_id in id_list.split(';') if delete_id]
-        code, data = 400, map(lambda params: UserService(request).user_delete(**params), id_list)
+        code, data = 400, map(lambda params: UserService(request).delete(**params), id_list)
         for result in data:
             if result['status'] == 'SUCCESS':
                 code = 200

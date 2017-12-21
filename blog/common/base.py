@@ -174,7 +174,7 @@ class Service(object):
             if not self.permission[perm_name]['state']:
                 raise AuthError(code=403, message=ErrorMsg.PERMISSION_DENIED)
         except KeyError:
-            raise AuthError(code=503, message=ErrorMsg.PERMISSION_KEY_ERROR + perm_name)
+            raise AuthError(code=403, message=ErrorMsg.PERMISSION_DENIED)
         return True
 
     def get_permission_level(self, perm_name):

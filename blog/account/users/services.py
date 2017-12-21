@@ -24,7 +24,7 @@ class UserService(Service):
     USER_PRIVACY_FIELD = ['gender_privacy', 'email_privacy', 'phone_privacy',
                           'qq_privacy', 'address_privacy']
 
-    def user_get(self, user_uuid):
+    def get(self, user_uuid):
         query_level, _ = self.get_permission_level(PermissionName.USER_SELECT)
         try:
             user_dict = {}
@@ -50,8 +50,8 @@ class UserService(Service):
                                message=AccountErrorMsg.USER_NOT_FOUND)
         return 200, user_dict
 
-    def user_list(self, page=0, page_size=10, order_field=None, order='desc',
-                  query=None, query_field=None):
+    def list(self, page=0, page_size=10, order_field=None, order='desc',
+             query=None, query_field=None):
         query_level, order_level = self.get_permission_level(PermissionName.USER_SELECT)
         if query_level < PermissionLevel.LEVEL_9:
             return_field = UserService.USER_PUBLIC_FIELD
@@ -97,10 +97,10 @@ class UserService(Service):
         users, total = paging(users, page=page, page_size=page_size)
         return 200, {'users': [model_to_dict(user) for user in users], 'total': total}
 
-    def user_create(self, username, password, nick=None, role_id=None,
-                    group_ids=None, gender=None, email=None, phone=None,
-                    qq=None, address=None, status=User.ACTIVE, remark=None,
-                    **kwargs):
+    def create(self, username, password, nick=None, role_id=None,
+               group_ids=None, gender=None, email=None, phone=None,
+               qq=None, address=None, status=User.ACTIVE, remark=None,
+               **kwargs):
         create_level, _ = self.get_permission_level(PermissionName.USER_CREATE)
         role = None
         if role_id:
@@ -140,10 +140,10 @@ class UserService(Service):
                 pass
         return 201, user_dict
 
-    def user_update(self, user_uuid, username=None, old_password=None,
-                    new_password=None, nick=None, role_id=None, group_ids=None,
-                    gender=None, email=None, phone=None, qq=None, address=None,
-                    status=None, remark=None, **kwargs):
+    def update(self, user_uuid, username=None, old_password=None,
+               new_password=None, nick=None, role_id=None, group_ids=None,
+               gender=None, email=None, phone=None, qq=None, address=None,
+               status=None, remark=None, **kwargs):
         update_level, update_password_level = self.get_permission_level(PermissionName.USER_UPDATE)
         if self.uuid != user_uuid and update_level < PermissionLevel.LEVEL_10:
             raise ServiceError(code=403,
@@ -203,7 +203,7 @@ class UserService(Service):
         del user_dict['password']
         return 200, user_dict
 
-    def user_delete(self, delete_id, force):
+    def delete(self, delete_id, force):
         delete_level, force_level = self.get_permission_level(PermissionName.USER_DELETE)
         result = {'id': delete_id}
         try:

@@ -4,7 +4,7 @@ from django.db import models
 class Role(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=50)
-    nick = models.CharField(max_length=200, null=True)
+    nick = models.CharField(max_length=200)
     role_level = models.IntegerField(default=0)
     default = models.BooleanField(default=False)
     permissions = models.ManyToManyField('Permission', through='RolePermission')
@@ -17,7 +17,8 @@ class Role(models.Model):
 class Permission(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=50)
-    nick = models.CharField(max_length=200, null=True)
+    nick = models.CharField(max_length=200)
+    description = models.TextField(null=True)
 
     class Meta:
         db_table = 'permission'

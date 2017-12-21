@@ -73,6 +73,11 @@ class PermissionName(StaticObject):
     USER_UPDATE = 'user_update'
     USER_SELECT = 'user_select'
 
+    ROLE_CREATE = 'role_create'
+    ROLE_DELETE = 'role_delete'
+    ROLE_UPDATE = 'role_update'
+    ROLE_SELECT = 'role_select'
+
 
 class PermissionLevel(StaticObject):
     LEVEL_10 = 1000
