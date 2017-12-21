@@ -11,7 +11,7 @@ from Crypto.Hash import MD5
 
 from blog.account.users.models import User
 from blog.account.roles.models import Role
-from blog.common.error import AuthError
+from blog.common.error import AuthError, ServiceError
 from blog.common.message import ErrorMsg, AccountErrorMsg
 from blog.common.setting import Setting, PermissionName
 from blog.settings import MEMCACHED_HOSTS
@@ -195,3 +195,13 @@ class Service(object):
             return self.permission[perm_name]['value']
         except KeyError:
             return 0
+
+    @staticmethod
+    def is_unique(model_obj, **kwargs):
+        try:
+            if model_obj.objects.get(**kwargs):
+                raise ServiceError(message=ErrorMsg.DUPLICATE_IDENTITY)
+        except model_obj.MultipleObjectsReturned:
+            raise ServiceError(code=500, message=ErrorMsg.DUPLICATE_IDENTITY)
+        except model_obj.DoesNotExist:
+            return kwargs.values()[0]

@@ -5,11 +5,17 @@
 class ErrorMsg:
     SERVER_ERROR = 'Server error'
     SETTING_ERROR = 'Server setting uninitialized'
+
     REQUEST_ERROR = 'Request error'
     REQUEST_METHOD_ERROR = 'Request method error'
     REQUEST_PARAMS_ERROR = 'Request params error'
+
     PERMISSION_DENIED = 'Permission denied'
+    ORDER_PERMISSION_DENIED = 'Order field permission denied'
+    QUERY_PERMISSION_DENIED = 'Query permission denied'
     PERMISSION_KEY_ERROR = 'No permission named '
+
+    DUPLICATE_IDENTITY = 'Duplicate identity field'
 
     def __init__(self):
         pass
@@ -23,11 +29,8 @@ class AccountErrorMsg:
 
     USER_NOT_FOUND = 'User not found'
     ROLE_NOT_FOUND = 'Role not found'
-    ORDER_PERMISSION_DENIED = 'Order field permission denied'
-    QUERY_PERMISSION_DENIED = 'Query permission denied'
     UPDATE_PERMISSION_DENIED = 'Update permission denied'
 
-    DUPLICATE_IDENTITY = 'Duplicate identity field'
     ROLE_PERMISSION_DENIED = 'Role permission denied'
 
     SIGN_UP_DENIED = 'Sign up denied'

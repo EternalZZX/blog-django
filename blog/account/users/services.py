@@ -11,7 +11,7 @@ from blog.account.groups.models import Group
 from blog.common.utils import paging, model_to_dict, encode
 from blog.common.base import Authorize, Service
 from blog.common.error import ServiceError
-from blog.common.message import AccountErrorMsg
+from blog.common.message import ErrorMsg, AccountErrorMsg
 from blog.common.setting import Setting, PermissionName, PermissionLevel
 
 
@@ -73,7 +73,7 @@ class UserService(Service):
                 users = users.order_by(order_field)
             else:
                 raise ServiceError(code=403,
-                                   message=AccountErrorMsg.ORDER_PERMISSION_DENIED)
+                                   message=ErrorMsg.ORDER_PERMISSION_DENIED)
         if query:
             if not query_field and query_level >= PermissionLevel.LEVEL_2:
                 users = users.filter(Q(nick__icontains=query) |
@@ -91,7 +91,7 @@ class UserService(Service):
                     query_field = 'remark__icontains'
                 elif query_level < PermissionLevel.LEVEL_9:
                     raise ServiceError(code=403,
-                                       message=AccountErrorMsg.QUERY_PERMISSION_DENIED)
+                                       message=ErrorMsg.QUERY_PERMISSION_DENIED)
                 query_dict = {query_field: query}
                 users = users.filter(**query_dict)
         users, total = paging(users, page=page, page_size=page_size)
@@ -114,7 +114,7 @@ class UserService(Service):
         if not role:
             default_roles = Role.objects.filter(default=True)
             role = default_roles[0] if default_roles else None
-        UserService._is_unique(username=username)
+        UserService.is_unique(model_obj=User, username=username)
         user_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, username.encode('utf-8')))
         password_code = encode(password, user_uuid)
         nick = nick if nick else username
@@ -123,8 +123,8 @@ class UserService(Service):
             status = UserService._choices_format(status, User.STATUS_CHOICES, User.ACTIVE)
         else:
             status = User.ACTIVE
-        email = None if email in (None, '') else UserService._is_unique(email=email)
-        phone = None if phone in (None, '') else UserService._is_unique(phone=phone)
+        email = None if email in (None, '') else UserService.is_unique(model_obj=User, email=email)
+        phone = None if phone in (None, '') else UserService.is_unique(model_obj=User, phone=phone)
         user = User.objects.create(uuid=user_uuid, username=username, password=password_code,
                                    nick=nick, role=role, gender=gender, email=email,
                                    phone=phone, qq=qq, address=address, status=status,
@@ -161,7 +161,7 @@ class UserService(Service):
                     raise ServiceError(code=403,
                                        message=AccountErrorMsg.PASSWORD_ERROR)
             user.password = encode(new_password, user_uuid)
-        if username and Setting.USERNAME_UPDATE and UserService._is_unique(username=username):
+        if username and Setting.USERNAME_UPDATE and UserService.is_unique(model_obj=User, username=username):
             user.username = username
         if nick and Setting.NICK_UPDATE:
             user.nick = nick
@@ -174,12 +174,12 @@ class UserService(Service):
         if email is not None:
             if email == '':
                 user.email = None
-            elif UserService._is_unique(email=email):
+            elif UserService.is_unique(model_obj=User, email=email):
                 user.email = email
         if phone is not None:
             if phone == '':
                 user.phone = None
-            elif UserService._is_unique(phone=phone):
+            elif UserService.is_unique(model_obj=User, phone=phone):
                 user.phone = phone
         user.update_char_field('qq', qq)
         user.update_char_field('address', address)
@@ -231,16 +231,6 @@ class UserService(Service):
             return default
         value = int(value)
         return value if value in dict(choices) else default
-
-    @staticmethod
-    def _is_unique(**kwargs):
-        try:
-            if User.objects.get(**kwargs):
-                raise ServiceError(message=AccountErrorMsg.DUPLICATE_IDENTITY)
-        except User.MultipleObjectsReturned:
-            raise ServiceError(code=500, message=AccountErrorMsg.DUPLICATE_IDENTITY)
-        except User.DoesNotExist:
-            return kwargs.values()[0]
 
     @staticmethod
     def _user_privacy_update(user, **kwargs):
