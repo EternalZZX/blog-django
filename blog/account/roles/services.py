@@ -70,32 +70,31 @@ class RoleService(Service):
                                    nick=nick,
                                    role_level=role_level,
                                    default=default)
-        permissions = Permission.objects.all()
         role_dict = model_to_dict(role)
-        for k, v in PermissionName():
-            json_str = kwargs.get(v)
-            if json_str:
-                item = json.loads(json_str)
-                permission = permissions.get(name=v)
-                state = item.get('state') == 'true'
-                major_level = item.get('major_level')
-                minor_level = item.get('minor_level')
-                value = item.get('value')
-                major_level = int(major_level) if major_level else None
-                minor_level = int(minor_level) if minor_level else None
-                value = int(value) if value else None
-                role_permission = RolePermission.objects.create(role=role,
-                                                                permission=permission,
-                                                                state=state,
-                                                                major_level=major_level,
-                                                                minor_level=minor_level,
-                                                                value=value)
-                role_permission_dic = RoleService._role_permission_to_dict(role_permission)
-                role_dict['permissions'].append(role_permission_dic)
+        role_dict['permissions'] = RoleService._permission_create(role=role, **kwargs)
         return 201, role_dict
 
-    def update(self):
-        pass
+    def update(self, role_id, name=None, nick=None, role_level=None,
+               default=None, **kwargs):
+        self.has_permission(PermissionName.USER_UPDATE)
+        try:
+            role = Role.objects.get(id=role_id)
+        except Role.DoesNotExist:
+            raise ServiceError(code=404,
+                               message=AccountErrorMsg.ROLE_NOT_FOUND)
+        if name and RoleService.is_unique(model_obj=Role, exclude_id=role_id, name=name):
+            role.name = name
+        if nick:
+            role.nick = nick
+        if role_level is not None:
+            role.role_level = role_level
+        if default is not None:
+            if default:
+                Role.objects.filter(default=True).update(default=False)
+            role.default = default
+        role.save()
+        role_dict = RoleService._permission_update(role=role, **kwargs)
+        return 200, role_dict
 
     def delete(self):
         pass
@@ -126,3 +125,61 @@ class RoleService(Service):
             role_permission_dic = RoleService._role_permission_to_dict(role_permission)
             role_dict['permissions'].append(role_permission_dic)
         return role_dict
+
+    @staticmethod
+    def _json_loads(json_str):
+        try:
+            item = json.loads(json_str)
+        except ValueError:
+            raise ServiceError(message=AccountErrorMsg.PERMISSION_JSON_ERROR)
+        state = item.get('state')
+        major_level = item.get('major_level')
+        minor_level = item.get('minor_level')
+        value = item.get('value')
+        state = state == 'true'
+        major_level = int(major_level) if major_level else None
+        minor_level = int(minor_level) if minor_level else None
+        value = int(value) if value else None
+        return state, major_level, minor_level, value
+
+    @staticmethod
+    def _permission_create(role, **kwargs):
+        permissions = Permission.objects.all()
+        permission_list = []
+        for k, v in PermissionName():
+            json_str = kwargs.get(v)
+            if json_str:
+                permission = permissions.get(name=v)
+                state, major_level, minor_level, value = RoleService._json_loads(json_str=json_str)
+                role_permission = RolePermission.objects.create(role=role,
+                                                                permission=permission,
+                                                                state=state,
+                                                                major_level=major_level,
+                                                                minor_level=minor_level,
+                                                                value=value)
+                role_permission_dict = RoleService._role_permission_to_dict(role_permission)
+                permission_list.append(role_permission_dict)
+        return permission_list
+
+    @staticmethod
+    def _permission_update(role, **kwargs):
+        permissions = Permission.objects.all()
+        for k, v in PermissionName():
+            json_str = kwargs.get(v)
+            if json_str:
+                state, major_level, minor_level, value = RoleService._json_loads(json_str=json_str)
+                try:
+                    role_permission = role.rolepermission_set.get(permission__name=v)
+                    role_permission.state = state
+                    role_permission.major_level = major_level
+                    role_permission.minor_level = minor_level
+                    role_permission.value = value
+                    role_permission.save()
+                except RolePermission.DoesNotExist:
+                    RolePermission.objects.create(role=role,
+                                                  permission=permissions.get(name=v),
+                                                  state=state,
+                                                  major_level=major_level,
+                                                  minor_level=minor_level,
+                                                  value=value)
+        return RoleService._role_to_dict(Role.objects.get(id=role.id))

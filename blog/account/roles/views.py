@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from django.http import QueryDict
+
 from blog.account.roles.services import RoleService
 from blog.common.message import ErrorMsg
 from blog.common.setting import PermissionName
@@ -152,7 +154,7 @@ def role_create(request):
     @apiPermission ROLE_CREATE
     @apiUse Header
     @apiParam {string} name 角色名
-    @apiParam {string} [nick={username}] 角色昵称
+    @apiParam {string} [nick={name}] 角色昵称
     @apiParam {number} [role_level=0] 角色等级
     @apiParam {string=true, false} [default=false] 是否用户默认角色
     @apiParam {string} [kwargs] 权限设置, e.g. '{"state": "true", "major_level": 100,
@@ -194,7 +196,9 @@ def role_create(request):
     default = request.POST.get('default') == 'true'
     kwargs = {}
     for k, v in PermissionName():
-        kwargs[v] = request.POST.get(v)
+        json_str = request.POST.get(v)
+        if json_str:
+            kwargs[v] = json_str
     try:
         code, data = RoleService(request).create(name=name,
                                                  nick=nick,
@@ -208,7 +212,74 @@ def role_create(request):
 
 
 def role_update(request, role_id):
-    return Response(code=200, data={})
+    """
+    @api {put} /account/roles/{id}/ role update
+    @apiVersion 0.1.0
+    @apiName role_update
+    @apiGroup account
+    @apiDescription 编辑角色
+    @apiPermission ROLE_UPDATE
+    @apiUse Header
+    @apiParam {string} name 角色名
+    @apiParam {string} [nick={name}] 角色昵称
+    @apiParam {number} [role_level=0] 角色等级
+    @apiParam {string=true, false} [default=false] 是否用户默认角色
+    @apiParam {string} [kwargs] 权限设置, e.g. '{"state": "true", "major_level": 100,
+                                "minor_level": 100, "value": 3}', 参数名为权限名称,
+                                e.g."create_user"
+    @apiSuccess {string} data 编辑用户信息详情
+    @apiSuccessExample {json} Success-Response:
+    HTTP/1.1 200 OK
+    {
+        "data": {
+            "name": "op",
+            "default": false,
+            "create_at": "2017-12-22T02:59:50Z",
+            "role_level": 900,
+            "nick": "管理员",
+            "id": 25,
+            "permissions": [
+                {
+                    "status": true,
+                    "description": null,
+                    "name": "login",
+                    "nick": "登陆权限",
+                    "id": 32,
+                    "major_level": 1000
+                }
+            ]
+        }
+    }
+    @apiUse ErrorData
+    @apiErrorExample {json} Error-Response:
+    HTTP/1.1 404 Not Found
+    {
+        "data": "Role not found"
+    }
+    """
+    data = QueryDict(request.body)
+    name = data.get('name')
+    nick = data.get('nick')
+    role_level = data.get('role_level')
+    default = data.get('default')
+    kwargs = {}
+    for k, v in PermissionName():
+        json_str = data.get(v)
+        if json_str:
+            kwargs[v] = json_str
+    try:
+        if default is not None:
+            default = default == 'true'
+        code, data = RoleService(request).update(role_id=role_id,
+                                                 name=name,
+                                                 nick=nick,
+                                                 role_level=role_level,
+                                                 default=default,
+                                                 **kwargs)
+    except Exception as e:
+        code, data = getattr(e, 'code', 400), \
+                     getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
+    return Response(code=code, data=data)
 
 
 def role_delete(request, role_id):

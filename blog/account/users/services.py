@@ -161,7 +161,9 @@ class UserService(Service):
                     raise ServiceError(code=403,
                                        message=AccountErrorMsg.PASSWORD_ERROR)
             user.password = encode(new_password, user_uuid)
-        if username and Setting.USERNAME_UPDATE and UserService.is_unique(model_obj=User, username=username):
+        if username and Setting.USERNAME_UPDATE and UserService.is_unique(model_obj=User,
+                                                                          exclude_id=user.id,
+                                                                          username=username):
             user.username = username
         if nick and Setting.NICK_UPDATE:
             user.nick = nick
@@ -174,12 +176,12 @@ class UserService(Service):
         if email is not None:
             if email == '':
                 user.email = None
-            elif UserService.is_unique(model_obj=User, email=email):
+            elif UserService.is_unique(model_obj=User, exclude_id=user.id, email=email):
                 user.email = email
         if phone is not None:
             if phone == '':
                 user.phone = None
-            elif UserService.is_unique(model_obj=User, phone=phone):
+            elif UserService.is_unique(model_obj=User, exclude_id=user.id, phone=phone):
                 user.phone = phone
         user.update_char_field('qq', qq)
         user.update_char_field('address', address)

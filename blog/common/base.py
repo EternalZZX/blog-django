@@ -197,9 +197,9 @@ class Service(object):
             return 0
 
     @staticmethod
-    def is_unique(model_obj, **kwargs):
+    def is_unique(model_obj, exclude_id=None, **kwargs):
         try:
-            if model_obj.objects.get(**kwargs):
+            if model_obj.objects.exclude(id=exclude_id).get(**kwargs):
                 raise ServiceError(message=ErrorMsg.DUPLICATE_IDENTITY)
         except model_obj.MultipleObjectsReturned:
             raise ServiceError(code=500, message=ErrorMsg.DUPLICATE_IDENTITY)

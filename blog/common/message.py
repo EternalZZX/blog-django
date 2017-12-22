@@ -32,6 +32,7 @@ class AccountErrorMsg:
     UPDATE_PERMISSION_DENIED = 'Update permission denied'
 
     ROLE_PERMISSION_DENIED = 'Role permission denied'
+    PERMISSION_JSON_ERROR = 'Permission JSON syntax error'
 
     SIGN_UP_DENIED = 'Sign up denied'
 

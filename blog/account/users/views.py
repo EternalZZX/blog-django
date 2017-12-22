@@ -194,7 +194,9 @@ def user_create(request):
     remark = request.POST.get('remark')
     kwargs = {}
     for key in UserService.USER_PRIVACY_FIELD:
-        kwargs[key] = request.POST.get(key)
+        value = request.POST.get(key)
+        if value is not None:
+            kwargs[key] = value
     try:
         if isinstance(group_ids, (unicode, str)):
             group_ids = [group_id for group_id in group_ids.split(';') if group_id]
@@ -288,7 +290,9 @@ def user_update(request, uuid):
     remark = data.get('remark')
     kwargs = {}
     for key in UserService.USER_PRIVACY_FIELD:
-        kwargs[key] = data.get(key)
+        value = data.get(key)
+        if value is not None:
+            kwargs[key] = value
     try:
         if isinstance(group_ids, (unicode, str)):
             group_ids = [group_id for group_id in group_ids.split(';') if group_id]
