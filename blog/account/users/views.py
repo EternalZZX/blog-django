@@ -317,15 +317,16 @@ def user_update(request, uuid):
 
 def user_delete(request, uuid):
     """
-    @api {delete} /account/users/{uuid}/ user delete
+    @api {delete} /account/users/[uuid]/ user delete
     @apiVersion 0.1.0
     @apiName user_delete
     @apiGroup account
     @apiDescription 删除用户
     @apiPermission USER_DELETE
     @apiUse Header
-    @apiParam {string} id_list 删除用户名uuid列表，e.g.'7357d28a-a611-5efd-ae6e-a550a5b95487;
-                               3cd43d89-ab0b-54ac-811c-1f4bb9b3fab6', 当使用URL uuid时该参数忽略
+    @apiParam {string} [id_list] 删除用户uuid列表，e.g.'7357d28a-a611-5efd-ae6e-a550a5b95487;
+                                 3cd43d89-ab0b-54ac-811c-1f4bb9b3fab6', 当使用URL参数uuid时
+                                 该参数忽略
     @apiParam {bool=true, false} [force=false] 强制删除
     @apiSuccess {string} data 用户删除信息详情
     @apiSuccessExample {json} Success-Response:

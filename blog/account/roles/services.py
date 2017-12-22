@@ -5,8 +5,9 @@ import json
 
 from django.db.models import Q
 
+from blog.account.users.models import User
 from blog.account.roles.models import Role, Permission, RolePermission
-from blog.common.base import Service
+from blog.common.base import Service, Authorize, Grant
 from blog.common.setting import PermissionName, PermissionLevel
 from blog.common.error import ServiceError
 from blog.common.message import ErrorMsg, AccountErrorMsg
@@ -93,11 +94,29 @@ class RoleService(Service):
                 Role.objects.filter(default=True).update(default=False)
             role.default = default
         role.save()
-        role_dict = RoleService._permission_update(role=role, **kwargs)
-        return 200, role_dict
+        role = RoleService._permission_update(role=role, **kwargs)
+        Grant().load_permission(role=role)
+        return 200, RoleService._role_to_dict(role)
 
-    def delete(self):
-        pass
+    def delete(self, delete_id):
+        self.has_permission(PermissionName.ROLE_DELETE)
+        result = {'id': delete_id}
+        try:
+            role = Role.objects.get(id=delete_id)
+            result['name'], result['status'] = role.name, 'SUCCESS'
+            users = User.objects.filter(role_id=delete_id)
+            if users:
+                default_roles = Role.objects.exclude(id=delete_id).filter(default=True)
+                if default_roles:
+                    users.update(role=default_roles[0])
+                    for user in users:
+                        Authorize().update_token(uuid=user.uuid, role_id=default_roles[0].id)
+                else:
+                    raise ServiceError(code=403, message=AccountErrorMsg.NO_DEFAULT_ROLE)
+            role.delete()
+        except Role.DoesNotExist:
+            result['status'] = 'NOT_FOUND'
+        return result
 
     @staticmethod
     def _role_permission_to_dict(role_permission):
@@ -182,4 +201,4 @@ class RoleService(Service):
                                                   major_level=major_level,
                                                   minor_level=minor_level,
                                                   value=value)
-        return RoleService._role_to_dict(Role.objects.get(id=role.id))
+        return Role.objects.get(id=role.id)

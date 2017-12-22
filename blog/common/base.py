@@ -93,6 +93,8 @@ class Authorize(object):
                 role_id = User.objects.get(uuid=uuid).role.id
             except User.DoesNotExist:
                 raise AuthError()
+        if not role_id:
+            raise AuthError()
         value = md5 + '&' + time_stamp + '&' + str(role_id)
         MemcachedClient().set(key=uuid, value=value)
 
@@ -122,10 +124,13 @@ class Authorize(object):
 
 
 class Grant(object):
-    def load_permission(self):
-        roles = Role.objects.all()
-        for role in roles:
+    def load_permission(self, role=None):
+        if role:
             self.set_permission(role=role)
+        else:
+            roles = Role.objects.all()
+            for role in roles:
+                self.set_permission(role=role)
 
     def get_permission(self, role_id):
         value = MemcachedClient().get(key='PERMISSION_' + str(role_id))

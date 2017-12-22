@@ -6,6 +6,7 @@ from django.http import QueryDict
 from blog.account.roles.services import RoleService
 from blog.common.message import ErrorMsg
 from blog.common.setting import PermissionName
+from blog.common.error import ParamsError
 from blog.common.utils import Response, json_response
 
 
@@ -283,4 +284,49 @@ def role_update(request, role_id):
 
 
 def role_delete(request, role_id):
-    return Response(code=200, data={})
+    """
+    @api {delete} /account/roles/[id]/ role delete
+    @apiVersion 0.1.0
+    @apiName role_delete
+    @apiGroup account
+    @apiDescription 删除角色
+    @apiPermission ROLE_DELETE
+    @apiUse Header
+    @apiParam {string} [id_list] 删除角色id列表，e.g.'12;43;2', 当使用URL参数id时该参数忽略
+    @apiSuccess {string} data 角色删除信息详情
+    @apiSuccessExample {json} Success-Response:
+    HTTP/1.1 200 OK
+    {
+        "data": [
+            {
+                "status": "SUCCESS",
+                "id": "32",
+                "name": "op"
+            }
+        ]
+    }
+    @apiUse ErrorData
+    @apiErrorExample {json} Error-Response:
+    HTTP/1.1 403 Forbidden
+    {
+        "data": "Permission denied"
+    }
+    """
+    data = QueryDict(request.body)
+    try:
+        if role_id:
+            id_list = [{'delete_id': role_id}]
+        else:
+            id_list = data.get('id_list')
+            if not isinstance(id_list, (unicode, str)):
+                raise ParamsError()
+            id_list = [{'delete_id': delete_id} for delete_id in id_list.split(';') if delete_id]
+        code, data = 400, map(lambda params: RoleService(request).delete(**params), id_list)
+        for result in data:
+            if result['status'] == 'SUCCESS':
+                code = 200
+                break
+    except Exception as e:
+        code, data = getattr(e, 'code', 400), \
+                     getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
+    return Response(code=code, data=data)
