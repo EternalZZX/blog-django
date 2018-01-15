@@ -23,7 +23,7 @@ class ErrorMsg:
 
 class AccountErrorMsg:
     UNEXPECTED_TOKEN = 'Unexpected token'
-    UNEXPECTED_FLAG = 'Unexpected token mark bit'
+    UNEXPECTED_FLAG = 'Unexpected token marks bit'
     TOKEN_TIMEOUT = 'Token timeout'
     PASSWORD_ERROR = 'Username and password do not match'
 

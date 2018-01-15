@@ -40,6 +40,9 @@ INSTALLED_APPS = (
     'blog.account.users',
     'blog.account.roles',
     'blog.account.groups',
+    'blog.content.albums',
+    'blog.content.articles',
+    'blog.content.marks',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -90,6 +93,9 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 APPEND_SLASH = False
+
+# Redis
+REDIS_HOSTS = ['127.0.0.1']
 
 # Memcached
 MEMCACHED_HOSTS = ['127.0.0.1:11211']

@@ -19,7 +19,7 @@ class User(models.Model):
     ACTIVE = 1
     STATUS_CHOICES = (
         (CANCEL, 'cancel'),
-        (ACTIVE, 'female')
+        (ACTIVE, 'active')
     )
 
     id = models.AutoField(primary_key=True)

@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import base64
+import redis
 import memcache
 import random
 import time
@@ -14,7 +15,31 @@ from blog.account.roles.models import Role
 from blog.common.error import AuthError, ServiceError
 from blog.common.message import ErrorMsg, AccountErrorMsg
 from blog.common.setting import Setting, PermissionName
-from blog.settings import MEMCACHED_HOSTS
+from blog.settings import REDIS_HOSTS, MEMCACHED_HOSTS
+
+
+class RedisClient(object):
+    def __init__(self):
+        pool = redis.ConnectionPool(host=REDIS_HOSTS, port=6379, db=0)
+        self.client = redis.Redis(connection_pool=pool)
+
+    def set(self, name, value):
+        return self.client.set(name, value)
+
+    def get(self, name):
+        return self.client.get(name)
+
+    def delete(self, name):
+        return self.client.delete(name)
+
+    def hash_set(self, name, key, value):
+        return self.client.hset(name, key, value)
+
+    def hash_get(self, name, key):
+        return self.client.hget(name, key)
+
+    def hash_delete(self, name, key):
+        return self.client.hdel(name, key)
 
 
 class MemcachedClient(object):
