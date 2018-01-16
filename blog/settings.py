@@ -43,6 +43,7 @@ INSTALLED_APPS = (
     'blog.content.albums',
     'blog.content.articles',
     'blog.content.marks',
+    'blog.content.sections',
 )
 
 MIDDLEWARE_CLASSES = (

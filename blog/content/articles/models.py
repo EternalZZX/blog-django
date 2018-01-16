@@ -4,6 +4,7 @@ from datetime import datetime
 from django.db import models
 
 from blog.account.users.models import User
+from blog.content.sections.models import Section
 
 
 class Article(models.Model):
@@ -37,6 +38,7 @@ class Article(models.Model):
     content = models.TextField(null=True)
     author = models.ForeignKey(to=User, related_name='author')
     actors = models.ManyToManyField(to=User, related_name='actor')
+    section = models.ForeignKey(Section, null=True)
     status = models.IntegerField(choices=STATUS_CHOICES, default=ACTIVE)
     privacy = models.IntegerField(choices=PRIVACY_CHOICES, default=PUBLIC)
     read_level = models.IntegerField(default=100)
