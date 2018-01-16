@@ -83,6 +83,11 @@ class PermissionName(StaticObject):
     ARTICLE_UPDATE = 'article_update'
     ARTICLE_SELECT = 'article_select'
 
+    SECTION_CREATE = 'section_create'
+    SECTION_DELETE = 'section_delete'
+    SECTION_UPDATE = 'section_update'
+    SECTION_SELECT = 'section_select'
+
 
 class PermissionLevel(StaticObject):
     LEVEL_10 = 1000

@@ -108,6 +108,13 @@ def model_to_dict(instance, **kwargs):
     return data
 
 
+def str_to_list(data):
+    if isinstance(data, (unicode, str)):
+        return [item for item in data.split(';') if item]
+    else:
+        return []
+
+
 def encode(data, salt):
     md5 = MD5.new()
     md5.update(salt)

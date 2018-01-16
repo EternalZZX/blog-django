@@ -16,8 +16,9 @@ class Section(models.Model):
     )
 
     id = models.AutoField(primary_key=True)
-    name = models.CharField(max_length=200)
-    description = models.TextField()
+    name = models.CharField(max_length=50)
+    nick = models.CharField(max_length=200)
+    description = models.TextField(null=True)
     moderators = models.ManyToManyField(to=User, related_name='moderator')
     assistants = models.ManyToManyField(to=User, related_name='assistant')
     status = models.IntegerField(choices=STATUS_CHOICES, default=ACTIVE)

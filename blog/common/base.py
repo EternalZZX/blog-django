@@ -11,7 +11,7 @@ import json
 from Crypto.Hash import MD5
 
 from blog.account.users.models import User
-from blog.account.roles.models import Role
+from blog.account.roles.models import Role, RolePermission
 from blog.common.error import AuthError, ServiceError
 from blog.common.message import ErrorMsg, AccountErrorMsg
 from blog.common.setting import Setting, PermissionName
@@ -131,7 +131,10 @@ class Authorize(object):
             if num < 4:
                 for i in range(num):
                     code += '='
-            code = base64.b64decode(code)
+            try:
+                code = base64.b64decode(code)
+            except TypeError:
+                return None, None
             if len(code) > 35 and code[:3] == 'ETE':
                 return base64.b64decode(code[35:]), code[3:35]
         return None, None
@@ -182,7 +185,7 @@ class Grant(object):
                     perm[v]['minor_level'] = int(grant.minor_level)
                 if grant.value is not None:
                     perm[v]['value'] = int(grant.value)
-            except role.rolepermission.DoesNotExist:
+            except RolePermission.DoesNotExist:
                 perm[v] = {'state': False}
         MemcachedClient().set('PERMISSION_' + str(role.id), json.dumps(perm))
         return perm
@@ -227,7 +230,14 @@ class Service(object):
             return 0
 
     @staticmethod
-    def is_unique(model_obj, exclude_id=None, **kwargs):
+    def _choices_format(value, choices, default=None):
+        if value in (None, ''):
+            return default
+        value = int(value)
+        return value if value in dict(choices) else default
+
+    @staticmethod
+    def _is_unique(model_obj, exclude_id=None, **kwargs):
         try:
             if model_obj.objects.exclude(id=exclude_id).get(**kwargs):
                 raise ServiceError(message=ErrorMsg.DUPLICATE_IDENTITY)

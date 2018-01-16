@@ -6,7 +6,7 @@ from django.http import QueryDict
 from blog.account.users.services import UserService
 from blog.common.error import ParamsError
 from blog.common.message import ErrorMsg
-from blog.common.utils import Response, json_response
+from blog.common.utils import Response, json_response, str_to_list
 
 
 @json_response
@@ -198,10 +198,7 @@ def user_create(request):
         if value is not None:
             kwargs[key] = value
     try:
-        if isinstance(group_ids, (unicode, str)):
-            group_ids = [group_id for group_id in group_ids.split(';') if group_id]
-        else:
-            group_ids = []
+        group_ids = str_to_list(group_ids)
         code, data = UserService(request).create(username=username,
                                                  password=password,
                                                  nick=nick,
@@ -294,10 +291,7 @@ def user_update(request, uuid):
         if value is not None:
             kwargs[key] = value
     try:
-        if isinstance(group_ids, (unicode, str)):
-            group_ids = [group_id for group_id in group_ids.split(';') if group_id]
-        else:
-            group_ids = None
+        group_ids = str_to_list(group_ids)
         code, data = UserService(request).update(user_uuid=uuid,
                                                  username=username,
                                                  old_password=old_password,

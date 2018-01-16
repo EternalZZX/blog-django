@@ -102,6 +102,7 @@ ENV/
 
 # idea
 .idea
-.idea/
 
-00*
+# migrations
+migrations/
+!migrations/__init__.py

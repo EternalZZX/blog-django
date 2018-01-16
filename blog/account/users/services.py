@@ -114,7 +114,7 @@ class UserService(Service):
         if not role:
             default_roles = Role.objects.filter(default=True)
             role = default_roles[0] if default_roles else None
-        UserService.is_unique(model_obj=User, username=username)
+        UserService._is_unique(model_obj=User, username=username)
         user_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, username.encode('utf-8')))
         password_code = encode(password, user_uuid)
         nick = nick if nick else username
@@ -123,8 +123,8 @@ class UserService(Service):
             status = UserService._choices_format(status, User.STATUS_CHOICES, User.ACTIVE)
         else:
             status = User.ACTIVE
-        email = None if email in (None, '') else UserService.is_unique(model_obj=User, email=email)
-        phone = None if phone in (None, '') else UserService.is_unique(model_obj=User, phone=phone)
+        email = None if email in (None, '') else UserService._is_unique(model_obj=User, email=email)
+        phone = None if phone in (None, '') else UserService._is_unique(model_obj=User, phone=phone)
         user = User.objects.create(uuid=user_uuid, username=username, password=password_code,
                                    nick=nick, role=role, gender=gender, email=email,
                                    phone=phone, qq=qq, address=address, status=status,
@@ -161,7 +161,7 @@ class UserService(Service):
                     raise ServiceError(code=403,
                                        message=AccountErrorMsg.PASSWORD_ERROR)
             user.password = encode(new_password, user_uuid)
-        if username and Setting.USERNAME_UPDATE and UserService.is_unique(model_obj=User,
+        if username and Setting.USERNAME_UPDATE and UserService._is_unique(model_obj=User,
                                                                           exclude_id=user.id,
                                                                           username=username):
             user.username = username
@@ -176,12 +176,12 @@ class UserService(Service):
         if email is not None:
             if email == '':
                 user.email = None
-            elif UserService.is_unique(model_obj=User, exclude_id=user.id, email=email):
+            elif UserService._is_unique(model_obj=User, exclude_id=user.id, email=email):
                 user.email = email
         if phone is not None:
             if phone == '':
                 user.phone = None
-            elif UserService.is_unique(model_obj=User, exclude_id=user.id, phone=phone):
+            elif UserService._is_unique(model_obj=User, exclude_id=user.id, phone=phone):
                 user.phone = phone
         user.update_char_field('qq', qq)
         user.update_char_field('address', address)
@@ -226,13 +226,6 @@ class UserService(Service):
         except ServiceError:
             result['status'] = 'PERMISSION_DENIED'
         return result
-
-    @staticmethod
-    def _choices_format(value, choices, default=None):
-        if value in (None, ''):
-            return default
-        value = int(value)
-        return value if value in dict(choices) else default
 
     @staticmethod
     def _user_privacy_update(user, **kwargs):
