@@ -90,7 +90,7 @@ def paging(object_list, page=0, page_size=10):
 
 
 def model_to_dict(instance, **kwargs):
-    if not instance or isinstance(instance, dict):
+    if not hasattr(instance, '_meta'):
         return instance
     opts = instance._meta
     data = {}

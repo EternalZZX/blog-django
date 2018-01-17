@@ -162,8 +162,8 @@ class UserService(Service):
                                        message=AccountErrorMsg.PASSWORD_ERROR)
             user.password = encode(new_password, user_uuid)
         if username and Setting.USERNAME_UPDATE and UserService._is_unique(model_obj=User,
-                                                                          exclude_id=user.id,
-                                                                          username=username):
+                                                                           exclude_id=user.id,
+                                                                           username=username):
             user.username = username
         if nick and Setting.NICK_UPDATE:
             user.nick = nick

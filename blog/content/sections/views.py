@@ -29,7 +29,57 @@ def section_operate(request, section_id=None):
 
 
 def section_get(request, section_id):
-    pass
+    """
+    @api {get} /content/sections/{id}/ section get
+    @apiVersion 0.1.0
+    @apiName section_get
+    @apiGroup content
+    @apiDescription 获取版块信息详情
+    @apiPermission SECTION_SELECT
+    @apiUse Header
+    @apiSuccess {string} data 版块信息详情
+    @apiSuccessExample {json} Success-Response:
+    HTTP/1.1 200 OK
+    {
+        "data": {
+            "status": 2,
+            "description": null,
+            "roles": [
+                1,
+                2
+            ],
+            "level": 0,
+            "nick": "JavaScript",
+            "moderators": [
+                {
+                    "nick": "test",
+                    "remark": null,
+                    "role": 2,
+                    "create_at": "2017-12-20T06:00:07Z",
+                    "groups": null
+                }
+            ],
+            "only_groups": false,
+            "assistants": [],
+            "only_roles": false,
+            "groups": [],
+            "id": 5,
+            "name": "javascript"
+        }
+    }
+    @apiUse ErrorData
+    @apiErrorExample {json} Error-Response:
+    HTTP/1.1 404 Not Found
+    {
+        "data": "Section not found"
+    }
+    """
+    try:
+        code, data = SectionService(request).get(section_id=section_id)
+    except Exception as e:
+        code, data = getattr(e, 'code', 400), \
+                     getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
+    return Response(code=code, data=data)
 
 
 def section_list(request):

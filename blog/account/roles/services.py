@@ -201,4 +201,4 @@ class RoleService(Service):
                                                   major_level=major_level,
                                                   minor_level=minor_level,
                                                   value=value)
-        return Role.objects.get(id=role.id)
+        return role

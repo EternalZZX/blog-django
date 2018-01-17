@@ -39,3 +39,10 @@ class AccountErrorMsg:
 
     def __init__(self):
         pass
+
+
+class ContentErrorMsg:
+    SECTION_NOT_FOUND = 'Section not found'
+
+    def __init__(self):
+        pass
