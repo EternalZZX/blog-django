@@ -67,6 +67,7 @@ class SettingKey(StaticObject):
 
 class PermissionName(StaticObject):
     LOGIN = 'login'
+    READ = 'read'
 
     USER_CREATE = 'user_create'
     USER_DELETE = 'user_delete'

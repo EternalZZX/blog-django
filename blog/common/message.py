@@ -11,6 +11,7 @@ class ErrorMsg:
     REQUEST_PARAMS_ERROR = 'Request params error'
 
     PERMISSION_DENIED = 'Permission denied'
+    ORDER_PARAMS_ERROR = 'Order field error'
     ORDER_PERMISSION_DENIED = 'Order field permission denied'
     QUERY_PERMISSION_DENIED = 'Query permission denied'
     PERMISSION_KEY_ERROR = 'No permission named '

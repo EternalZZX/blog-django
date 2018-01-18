@@ -10,47 +10,77 @@ from blog.account.users.services import UserService
 from blog.content.sections.models import Section
 from blog.common.base import Service
 from blog.common.error import ServiceError
-from blog.common.message import ContentErrorMsg
+from blog.common.message import ErrorMsg, ContentErrorMsg
 from blog.common.utils import paging, model_to_dict
-from blog.common.setting import Setting, PermissionName, PermissionLevel
+from blog.common.setting import PermissionName, PermissionLevel
 
 
 class SectionService(Service):
+    SECTION_ALL_FIELD = ['id', 'name', 'nick', 'description', 'level',
+                         'status', 'moderators', 'assistants', 'only_roles',
+                         'roles', 'only_groups', 'groups', 'create_at']
+
     def get(self, section_id):
         get_level, _ = self.get_permission_level(PermissionName.SECTION_SELECT)
         try:
             section = Section.objects.get(id=section_id)
-            if section.status == Section.CANCEL and get_level < PermissionLevel.LEVEL_10:
+            get_permission, _ = self._has_section_permission(section=section, get_level=get_level)
+            if not get_permission:
                 raise Section.DoesNotExist
-            if section.status == Section.VISIBLE_ONLY and get_level < PermissionLevel.LEVEL_10:
-                not_in_roles, not_in_groups = True, True
-                if section.only_roles:
-                    not_in_roles = len(section.roles.filter(id=self.role_id)) == 0
-                if not_in_roles and section.only_groups:
-                    section_groups = section.groups.values('id').all()
-                    user_groups = User.objects.get(uuid=self.uuid).groups.values('id').all()
-                    not_in_groups = len(set(section_groups) & set(user_groups)) == 0
-                if (section.only_roles or section.only_groups) and \
-                        not_in_roles and not_in_groups:
-                    raise Section.DoesNotExist
-            section_dict = model_to_dict(section)
-            moderators = section.moderators.values(*UserService.USER_PUBLIC_FIELD).all()
-            section_dict['moderators'] = [model_to_dict(moderator) for moderator in moderators]
-            assistants = section.assistants.values(*UserService.USER_PUBLIC_FIELD).all()
-            section_dict['assistants'] = [model_to_dict(assistant) for assistant in assistants]
+            section_dict = SectionService._section_to_dict(section=section)
         except Section.DoesNotExist:
             raise ServiceError(code=404,
                                message=ContentErrorMsg.SECTION_NOT_FOUND)
         return 200, section_dict
 
+    def list(self, page=0, page_size=10, order_field=None, order='desc',
+             query=None, query_field=None):
+        query_level, order_level = self.get_permission_level(PermissionName.SECTION_SELECT)
+        sections = Section.objects.all()
+        if order_field:
+            if order_level >= PermissionLevel.LEVEL_1 and \
+                            order_field in SectionService.SECTION_ALL_FIELD:
+                if order == 'desc':
+                    order_field = '-' + order_field
+                    sections = sections.order_by(order_field)
+            else:
+                raise ServiceError(code=403,
+                                   message=ErrorMsg.ORDER_PARAMS_ERROR)
+        if query:
+            if not query_field and query_level >= PermissionLevel.LEVEL_2:
+                sections = sections.filter(Q(name__icontains=query) |
+                                           Q(nick__icontains=query) |
+                                           Q(description__icontains=query))
+            elif query_level >= PermissionLevel.LEVEL_1:
+                if query_field == 'name':
+                    query_field = 'name__icontains'
+                elif query_field == 'nick':
+                    query_field = 'nick__icontains'
+                elif query_field == 'description':
+                    query_field = 'description__icontains'
+                elif query_level < PermissionLevel.LEVEL_9:
+                    raise ServiceError(code=403,
+                                       message=ErrorMsg.QUERY_PERMISSION_DENIED)
+                query_dict = {query_field: query}
+                sections = sections.filter(**query_dict)
+        for section in sections:
+            get_permission, rw_permission = self._has_section_permission(section=section, get_level=query_level)
+            if not get_permission:
+                sections = sections.exclude(id=section.id)
+        sections, total = paging(sections, page=page, page_size=page_size)
+        section_dict_list = []
+        for section in sections:
+            section_dict_list.append(SectionService._section_to_dict(section=section))
+        return 200, {'roles': section_dict_list, 'total': total}
+
     def create(self, name, nick=None, description=None, moderator_uuids=None,
-               assistant_uuids=None, status=Section.ACTIVE, level=0,
+               assistant_uuids=None, status=Section.NORMAL, level=0,
                only_roles=False, role_ids=None, only_groups=False,
                group_ids=None):
         self.has_permission(PermissionName.SECTION_CREATE)
         SectionService._is_unique(model_obj=Section, name=name)
         nick = nick if nick else name
-        status = SectionService._choices_format(status, Section.STATUS_CHOICES, Section.ACTIVE)
+        status = SectionService._choices_format(status, Section.STATUS_CHOICES, Section.NORMAL)
         level = int(level) if level else 0
         section = Section.objects.create(name=name,
                                          nick=nick,
@@ -86,3 +116,32 @@ class SectionService(Service):
             except Group.DoesNotExist:
                 pass
         return 201, section_dict
+
+    def _has_section_permission(self, section, get_level):
+        if section.status == Section.CANCEL and get_level < PermissionLevel.LEVEL_10:
+            return False, False
+        if get_level < PermissionLevel.LEVEL_10:
+            not_in_roles, not_in_groups = True, True
+            if section.only_roles:
+                not_in_roles = len(section.roles.filter(id=self.role_id)) == 0
+            if not_in_roles and section.only_groups:
+                section_groups = section.groups.values('id').all()
+                user_groups = User.objects.get(uuid=self.uuid).groups.values('id').all()
+                not_in_groups = len(set(section_groups) & set(user_groups)) == 0
+            if (section.only_roles or section.only_groups) and \
+                    not_in_roles and not_in_groups:
+                return section.status != Section.HIDE, False
+            else:
+                read_level, _ = self.get_permission_level(PermissionName.READ)
+                if section.level > read_level:
+                    return section.status != Section.HIDE, False
+        return True, True
+
+    @staticmethod
+    def _section_to_dict(section):
+        section_dict = model_to_dict(section)
+        moderators = section.moderators.values(*UserService.USER_PUBLIC_FIELD).all()
+        section_dict['moderators'] = [model_to_dict(moderator) for moderator in moderators]
+        assistants = section.assistants.values(*UserService.USER_PUBLIC_FIELD).all()
+        section_dict['assistants'] = [model_to_dict(assistant) for assistant in assistants]
+        return section_dict

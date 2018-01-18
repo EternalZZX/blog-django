@@ -83,7 +83,73 @@ def section_get(request, section_id):
 
 
 def section_list(request):
-    pass
+    """
+    @api {get} /content/sections/ section list
+    @apiVersion 0.1.0
+    @apiName section_list
+    @apiGroup content
+    @apiDescription 获取版块信息列表
+    @apiPermission SECTION_SELECT
+    @apiUse Header
+    @apiParam {number} [page=0] 版块信息列表页码, 页码为0时返回所有数据
+    @apiParam {number} [page_size=10] 版块信息列表页长
+    @apiParam {string} [order_field] 版块信息列表排序字段
+    @apiParam {string=desc, asc} [order="desc"] 版块信息列表排序方向
+    @apiParam {string} [query] 搜索内容，若无搜索字段则全局搜索name, nick, description
+    @apiParam {string=name, nick, DjangoFilterParams} [query_field] 搜索字段, 支持Django filter参数
+    @apiSuccess {String} total 版块信息列表总数
+    @apiSuccess {String} roles 版块信息列表
+    @apiSuccessExample {json} Success-Response:
+    HTTP/1.1 200 OK
+    {
+        "data": {
+            "total": 3,
+            "roles": [
+                {
+                    "name": "admin",
+                    "default": false,
+                    "create_at": "2017-12-20T11:19:17Z",
+                    "role_level": 1000,
+                    "nick": "系统管理员",
+                    "id": 1,
+                    "permissions": [
+                        {
+                            "status": true,
+                            "description": null,
+                            "name": "login",
+                            "nick": "登陆权限",
+                            "id": 1,
+                            "major_level": 1000
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+    @apiUse ErrorData
+    @apiErrorExample {json} Error-Response:
+    HTTP/1.1 403 Forbidden
+    {
+        "data": "Order field permission denied"
+    }
+    """
+    try:
+        page = request.GET.get('page')
+        page_size = request.GET.get('page_size')
+        order_field = request.GET.get('order_field')
+        order = request.GET.get('order')
+        query = request.GET.get('query')
+        query_field = request.GET.get('query_field')
+        code, data = SectionService(request).list(page=page,
+                                                  page_size=page_size,
+                                                  order_field=order_field,
+                                                  order=order,
+                                                  query=query,
+                                                  query_field=query_field)
+    except Exception as e:
+        code, data = getattr(e, 'code', 400), \
+                     getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
+    return Response(code=code, data=data)
 
 
 def section_create(request):

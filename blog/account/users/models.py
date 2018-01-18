@@ -8,11 +8,11 @@ from blog.account.groups.models import Group
 
 
 class User(models.Model):
-    MALE = 0
-    FEMALE = 1
+    FEMALE = 0
+    MALE = 1
     GENDER_CHOICES = (
-        (MALE, 'male'),
-        (FEMALE, 'female')
+        (FEMALE, 'female'),
+        (MALE, 'male')
     )
 
     CANCEL = 0
@@ -54,12 +54,12 @@ class User(models.Model):
 
 class UserPrivacySetting(models.Model):
     PRIVATE = 0
-    PROTECTED = 1
-    PUBLIC = 2
+    PUBLIC = 1
+    PROTECTED = 2
     PRIVACY_CHOICES = (
+        (PRIVATE, 'private'),
         (PUBLIC, 'public'),
-        (PROTECTED, 'protected'),
-        (PRIVATE, 'private')
+        (PROTECTED, 'protected')
     )
 
     user = models.OneToOneField(User, primary_key=True)

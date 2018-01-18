@@ -9,23 +9,23 @@ from blog.content.sections.models import Section
 
 class Article(models.Model):
     CANCEL = 0
-    DRAFT = 1
-    REVIEW = 2
-    ACTIVE = 3
+    ACTIVE = 1
+    DRAFT = 2
+    REVIEW = 3
     STATUS_CHOICES = (
         (CANCEL, 'cancel'),
+        (ACTIVE, 'active'),
         (DRAFT, 'draft'),
-        (REVIEW, 'review'),
-        (ACTIVE, 'active')
+        (REVIEW, 'review')
     )
 
     PRIVATE = 0
-    PROTECTED = 1
-    PUBLIC = 2
+    PUBLIC = 1
+    PROTECTED = 2
     PRIVACY_CHOICES = (
+        (PRIVATE, 'private'),
         (PUBLIC, 'public'),
-        (PROTECTED, 'protected'),
-        (PRIVATE, 'private')
+        (PROTECTED, 'protected')
     )
 
     id = models.AutoField(primary_key=True)
