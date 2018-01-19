@@ -3,11 +3,12 @@ import uuid
 from django.db import models
 from django.dispatch import receiver
 
+from blog.common.tools import BaseModel
 from blog.account.roles.models import Role
 from blog.account.groups.models import Group
 
 
-class User(models.Model):
+class User(models.Model, BaseModel):
     FEMALE = 0
     MALE = 1
     GENDER_CHOICES = (
@@ -43,13 +44,6 @@ class User(models.Model):
 
     class Meta:
         db_table = 'user'
-
-    def update_char_field(self, key, value):
-        if value is not None:
-            if value == '':
-                setattr(self, key, None)
-            else:
-                setattr(self, key, value)
 
 
 class UserPrivacySetting(models.Model):

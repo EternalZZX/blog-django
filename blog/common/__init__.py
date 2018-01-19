@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from blog.common.setting import Setting
 
 """
 @apiDefine Header
@@ -13,4 +12,3 @@ from blog.common.setting import Setting
 @apiError {String} data 错误信息
 """
 
-Setting()

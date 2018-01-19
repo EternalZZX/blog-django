@@ -137,14 +137,14 @@ def user_create(request):
     @apiParam {string} [nick={username}] 昵称
     @apiParam {number} [role_id] 用户角色ID
     @apiParam {string} [group_ids] 用户组ID列表，e.g.'2;9;32;43'
-    @apiParam {number=0, 1} [gender] 性别, male=0, female=1
+    @apiParam {number=0, 1} [gender] 性别, Female=0, Male=1
     @apiParam {string} [email] 电子邮箱地址
     @apiParam {string} [phone] 电话号码
     @apiParam {string} [qq] QQ号码
     @apiParam {string} [address] 收货地址
     @apiParam {number=0, 1} [status=1] 账号状态, Cancel=0, Active=1
     @apiParam {string} [remark] 备注
-    @apiParam {number=0, 1, 2} [kwargs] 隐私设置, Private=0, Protected=1, Public=2
+    @apiParam {number=0, 1, 2} [kwargs] 隐私设置, Private=0, Public=1, Protected=2
                                         参数名'gender_privacy', 'email_privacy',
                                         'phone_privacy', 'qq_privacy', 'address_privacy'
     @apiSuccess {string} data 创建用户信息详情
@@ -230,13 +230,13 @@ def user_update(request, uuid):
     @apiParam {string} [nick] 昵称
     @apiParam {number} [role_id] 用户角色ID
     @apiParam {string} [group_ids] 用户组ID列表，e.g.'2;9;32;43'
-    @apiParam {number=0, 1} [gender] 性别, male=0, female=1
+    @apiParam {number=0, 1} [gender] 性别, Female=0, Male=1
     @apiParam {string} [email] 电子邮箱地址
     @apiParam {string} [phone] 电话号码
     @apiParam {string} [qq] QQ号码
     @apiParam {string} [address] 收货地址
     @apiParam {string} [remark] 备注
-    @apiParam {number=0, 1, 2} [kwargs] 隐私设置, Private=0, Protected=1, Public=2
+    @apiParam {number=0, 1, 2} [kwargs] 隐私设置, Private=0, Public=1, Protected=2
                                         参数名'gender_privacy', 'email_privacy',
                                         'phone_privacy', 'qq_privacy', 'address_privacy'
     @apiSuccess {string} data 编辑用户信息详情
@@ -284,6 +284,7 @@ def user_update(request, uuid):
     phone = data.get('phone')
     qq = data.get('qq')
     address = data.get('address')
+    status = data.get('status')
     remark = data.get('remark')
     kwargs = {}
     for key in UserService.USER_PRIVACY_FIELD:
@@ -291,7 +292,8 @@ def user_update(request, uuid):
         if value is not None:
             kwargs[key] = value
     try:
-        group_ids = str_to_list(group_ids)
+        if group_ids is not None:
+            group_ids = str_to_list(group_ids)
         code, data = UserService(request).update(user_uuid=uuid,
                                                  username=username,
                                                  old_password=old_password,
@@ -302,7 +304,8 @@ def user_update(request, uuid):
                                                  gender=gender,
                                                  email=email, phone=phone,
                                                  qq=qq, address=address,
-                                                 remark=remark, **kwargs)
+                                                 status=status, remark=remark,
+                                                 **kwargs)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)

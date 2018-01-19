@@ -59,6 +59,7 @@ def section_get(request, section_id):
                     "groups": null
                 }
             ],
+            "rw_permission": true,
             "only_groups": false,
             "assistants": [],
             "only_roles": false,
@@ -144,7 +145,7 @@ def section_list(request):
     @apiErrorExample {json} Error-Response:
     HTTP/1.1 403 Forbidden
     {
-        "data": "Order field permission denied"
+        "data": "Query permission denied"
     }
     """
     try:
@@ -180,7 +181,7 @@ def section_create(request):
     @apiParam {string} [description] 版块描述
     @apiParam {string} [moderator_uuids] 版主UUID列表，e.g.'7357d28a-a611-5efd-ae6e-a550a5b95487'
     @apiParam {string} [assistant_uuids] 副版主UUID列表，e.g.'4be0643f-1d98-573b-97cd-ca98a65347dd'
-    @apiParam {number=0, 1, 2} [status=2] 版块状态, Cancel=0, Visible_only=1, Active=2
+    @apiParam {number=0, 1, 2} [status=2] 版块状态, Cancel=0, Normal=1, Hide=2
     @apiParam {number} [level=0] 版块需求等级
     @apiParam {only_roles=true, false} [default=false] 是否指定角色拥有阅读权限
     @apiParam {string} [role_ids] 角色ID列表，e.g.'1;2'
@@ -250,7 +251,95 @@ def section_create(request):
 
 
 def section_update(request, section_id):
-    pass
+    """
+    @api {put} /content/sections/{id}/ section update
+    @apiVersion 0.1.0
+    @apiName section_update
+    @apiGroup content
+    @apiDescription 编辑版块
+    @apiPermission SECTION_UPDATE
+    @apiUse Header
+    @apiParam {string} name 版块名
+    @apiParam {string} [nick={name}] 版块昵称
+    @apiParam {string} [description] 版块描述
+    @apiParam {string} [moderator_uuids] 版主UUID列表，e.g.'7357d28a-a611-5efd-ae6e-a550a5b95487'
+    @apiParam {string} [assistant_uuids] 副版主UUID列表，e.g.'4be0643f-1d98-573b-97cd-ca98a65347dd'
+    @apiParam {number=0, 1, 2} [status=2] 版块状态, Cancel=0, Normal=1, Hide=2
+    @apiParam {number} [level=0] 版块需求等级
+    @apiParam {only_roles=true, false} [default=false] 是否指定角色拥有阅读权限
+    @apiParam {string} [role_ids] 角色ID列表，e.g.'1;2'
+    @apiParam {only_groups=true, false} [default=false] 是否指定组拥有阅读权限
+    @apiParam {string} [group_ids] 用户组ID列表，e.g.'2;9;32;43'
+    @apiSuccess {string} data 编辑版块信息详情
+    @apiSuccessExample {json} Success-Response:
+    HTTP/1.1 200 OK
+    {
+        "data": {
+            "name": "op",
+            "default": false,
+            "create_at": "2017-12-22T02:59:50Z",
+            "role_level": 900,
+            "nick": "管理员",
+            "id": 25,
+            "permissions": [
+                {
+                    "status": true,
+                    "description": null,
+                    "name": "login",
+                    "nick": "登陆权限",
+                    "id": 32,
+                    "major_level": 1000
+                }
+            ]
+        }
+    }
+    @apiUse ErrorData
+    @apiErrorExample {json} Error-Response:
+    HTTP/1.1 404 Not Found
+    {
+        "data": "Section not found"
+    }
+    """
+    data = QueryDict(request.body)
+    name = data.get('name')
+    nick = data.get('nick')
+    description = data.get('description')
+    moderator_uuids = data.get('moderator_uuids')
+    assistant_uuids = data.get('assistant_uuids')
+    status = data.get('status')
+    level = data.get('level')
+    only_roles = data.get('only_roles')
+    role_ids = data.get('role_ids')
+    only_groups = data.get('only_groups')
+    group_ids = data.get('group_ids')
+    try:
+        if only_roles is not None:
+            only_roles = only_roles == 'true'
+        if only_groups is not None:
+            only_groups = only_groups == 'true'
+        if moderator_uuids is not None:
+            moderator_uuids = str_to_list(moderator_uuids)
+        if assistant_uuids is not None:
+            assistant_uuids = str_to_list(assistant_uuids)
+        if role_ids is not None:
+            role_ids = str_to_list(role_ids)
+        if group_ids is not None:
+            group_ids = str_to_list(group_ids)
+        code, data = SectionService(request).update(section_id=section_id,
+                                                    name=name,
+                                                    nick=nick,
+                                                    description=description,
+                                                    moderator_uuids=moderator_uuids,
+                                                    assistant_uuids=assistant_uuids,
+                                                    status=status, level=level,
+                                                    only_roles=only_roles,
+                                                    role_ids=role_ids,
+                                                    only_groups=only_groups,
+                                                    group_ids=group_ids)
+    except Exception as e:
+        code, data = getattr(e, 'code', 400), \
+                     getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
+    return Response(code=code, data=data)
 
 
 def section_delete(request, section_id):

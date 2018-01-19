@@ -14,6 +14,9 @@
 - Section List 可精确搜索名称字段
 5. MINOR LEVEL1
 - Section List 可排序字段
+6. VALUE
+- Section Get 可获取大于等于其Level的版块
+- Section List 可获取大于等于其Level的版块
 """
 
 """

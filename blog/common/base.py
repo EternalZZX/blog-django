@@ -61,7 +61,7 @@ class MemcachedClient(object):
 
 class Authorize(object):
     def gen_token(self, uuid):
-        if not Setting.SESSION_LIMIT and MemcachedClient().get(key=uuid):
+        if not Setting().SESSION_LIMIT and MemcachedClient().get(key=uuid):
             token = self.update_token(uuid=uuid)
         else:
             rand = MD5.new()
@@ -73,26 +73,30 @@ class Authorize(object):
 
     def update_token(self, token=None, uuid=None, role_id=None):
         if uuid and MemcachedClient().get(key=uuid):
-            role_id_stamp, md5_stamp, time_stamp = self._parse_memcached_value(uuid=uuid)
+            user_id, role_id_stamp, md5_stamp, time_stamp = self._parse_memcached_value(uuid=uuid)
             token = base64.b64encode('ETE' + md5_stamp + base64.b64encode(uuid)).rstrip('=')
         elif token:
-            uuid, role_id_stamp, md5_stamp, time_stamp = self._auth_token_md5(token=token)
+            uuid, user_id, role_id_stamp, md5_stamp, time_stamp = self._auth_token_md5(token=token)
         else:
             return None
         time_stamp = time_stamp if role_id else None
         role_id = role_id if role_id else role_id_stamp
         if uuid and md5_stamp:
-            self._save_token(uuid=uuid, md5=md5_stamp, time_stamp=time_stamp, role_id=role_id)
+            self._save_token(uuid=uuid,
+                             md5=md5_stamp,
+                             time_stamp=time_stamp,
+                             user_id=user_id,
+                             role_id=role_id)
             return token
         return None
 
     def auth_token(self, token):
-        uuid, role_id, md5_stamp, time_stamp = self._auth_token_md5(token=token)
-        if Setting.TOKEN_EXPIRATION and time.time() - int(time_stamp) > Setting.TOKEN_EXPIRATION_TIME:
+        uuid, user_id, role_id, md5_stamp, time_stamp = self._auth_token_md5(token=token)
+        if Setting().TOKEN_EXPIRATION and time.time() - int(time_stamp) > Setting().TOKEN_EXPIRATION_TIME:
             MemcachedClient().delete(uuid)
             raise AuthError(code=419, message=AccountErrorMsg.TOKEN_TIMEOUT)
-        self._save_token(uuid=uuid, md5=md5_stamp, role_id=role_id)
-        return uuid, role_id
+        self._save_token(uuid=uuid, md5=md5_stamp, user_id=user_id, role_id=role_id)
+        return uuid, user_id, role_id
 
     @staticmethod
     def cancel_token(uuid):
@@ -102,25 +106,27 @@ class Authorize(object):
         uuid, md5 = self._parse_token(token=token)
         if not uuid:
             raise AuthError()
-        role_id, md5_stamp, time_stamp = self._parse_memcached_value(uuid=uuid)
+        user_id, role_id, md5_stamp, time_stamp = self._parse_memcached_value(uuid=uuid)
         if not md5_stamp:
             raise AuthError()
         if md5_stamp != md5:
             raise AuthError(code=418, message=AccountErrorMsg.UNEXPECTED_FLAG)
-        return uuid, role_id, md5_stamp, time_stamp
+        return uuid, user_id, role_id, md5_stamp, time_stamp
 
     @staticmethod
-    def _save_token(uuid, md5, time_stamp=None, role_id=None):
+    def _save_token(uuid, md5, time_stamp=None, user_id=None, role_id=None):
         if not time_stamp:
             time_stamp = str(time.time()).split('.')[0]
-        if not role_id:
+        if not user_id or not role_id:
             try:
-                role_id = User.objects.get(uuid=uuid).role.id
+                user = User.objects.get(uuid=uuid)
+                user_id = user.id
+                role_id = user.role.id
             except User.DoesNotExist:
                 raise AuthError()
-        if not role_id:
+        if not user_id or not role_id:
             raise AuthError()
-        value = md5 + '&' + time_stamp + '&' + str(role_id)
+        value = md5 + '&' + time_stamp + '&' + str(user_id) + '&' + str(role_id)
         MemcachedClient().set(key=uuid, value=value)
 
     @staticmethod
@@ -143,12 +149,12 @@ class Authorize(object):
     def _parse_memcached_value(uuid):
         value = MemcachedClient().get(key=uuid)
         if not value:
-            return None, None, None
+            return None, None, None, None
         value_list = value.split('&')
-        if len(value_list) != 3:
-            return None, None, None
-        [md5_stamp, time_stamp, role_id] = value_list
-        return role_id, md5_stamp, time_stamp
+        if len(value_list) != 4:
+            return None, None, None, None
+        [md5_stamp, time_stamp, user_id, role_id] = value_list
+        return int(user_id), int(role_id), md5_stamp, time_stamp
 
 
 class Grant(object):
@@ -195,7 +201,7 @@ class Service(object):
     def __init__(self, request):
         self.request = request
         self.token = request.META.get('HTTP_AUTH_TOKEN')
-        self.uuid, self.role_id = Authorize().auth_token(self.token)
+        self.uuid, self.uid, self.role_id = Authorize().auth_token(self.token)
         self.permission = Grant().get_permission(role_id=self.role_id)
         try:
             self.role_level = self.permission['_role_level']

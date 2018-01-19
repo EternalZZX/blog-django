@@ -119,7 +119,7 @@ class UserService(Service):
         password_code = encode(password, user_uuid)
         nick = nick if nick else username
         gender = UserService._choices_format(gender, User.GENDER_CHOICES)
-        if Setting.USER_CANCEL:
+        if Setting().USER_CANCEL:
             status = UserService._choices_format(status, User.STATUS_CHOICES, User.ACTIVE)
         else:
             status = User.ACTIVE
@@ -161,11 +161,11 @@ class UserService(Service):
                     raise ServiceError(code=403,
                                        message=AccountErrorMsg.PASSWORD_ERROR)
             user.password = encode(new_password, user_uuid)
-        if username and Setting.USERNAME_UPDATE and UserService._is_unique(model_obj=User,
+        if username and Setting().USERNAME_UPDATE and UserService._is_unique(model_obj=User,
                                                                            exclude_id=user.id,
                                                                            username=username):
             user.username = username
-        if nick and Setting.NICK_UPDATE:
+        if nick and Setting().NICK_UPDATE:
             user.nick = nick
         if gender is not None:
             user.gender = UserService._choices_format(gender, User.GENDER_CHOICES)
@@ -214,7 +214,7 @@ class UserService(Service):
             if delete_id != self.uuid and delete_level < PermissionLevel.LEVEL_10 \
                     and user.role.role_level >= self.role_level:
                 raise ServiceError()
-            if not Setting.USER_CANCEL or \
+            if not Setting().USER_CANCEL or \
                     (force and force_level >= PermissionLevel.LEVEL_10):
                 user.delete()
             else:

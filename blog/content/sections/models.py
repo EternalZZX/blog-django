@@ -1,11 +1,12 @@
 from django.db import models
 
+from blog.common.tools import BaseModel
 from blog.account.groups.models import Group
 from blog.account.roles.models import Role
 from blog.account.users.models import User
 
 
-class Section(models.Model):
+class Section(models.Model, BaseModel):
     CANCEL = 0
     NORMAL = 1
     HIDE = 2
@@ -27,6 +28,7 @@ class Section(models.Model):
     roles = models.ManyToManyField(to=Role, related_name='role')
     only_groups = models.BooleanField(default=False)
     groups = models.ManyToManyField(to=Group, related_name='group')
+    creator = models.ForeignKey(User)
     create_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

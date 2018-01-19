@@ -88,7 +88,7 @@ class RoleService(Service):
         if nick:
             role.nick = nick
         if role_level is not None:
-            role.role_level = role_level
+            role.role_level = int(role_level)
         if default is not None:
             if default:
                 Role.objects.filter(default=True).update(default=False)
