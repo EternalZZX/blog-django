@@ -24,10 +24,11 @@ class SectionService(Service):
         get_level, _ = self.get_permission_level(PermissionName.SECTION_SELECT)
         try:
             section = Section.objects.get(id=section_id)
-            get_permission, _ = self._has_section_permission(section=section, get_level=get_level)
+            get_permission, rw_permission = self._has_section_permission(section=section, get_level=get_level)
             if not get_permission:
                 raise Section.DoesNotExist
-            section_dict = SectionService._section_to_dict(section=section)
+            section_dict = SectionService._section_to_dict(section=section,
+                                                           rw_permission=rw_permission)
         except Section.DoesNotExist:
             raise ServiceError(code=404,
                                message=ContentErrorMsg.SECTION_NOT_FOUND)
@@ -63,15 +64,19 @@ class SectionService(Service):
                                        message=ErrorMsg.QUERY_PERMISSION_DENIED)
                 query_dict = {query_field: query}
                 sections = sections.filter(**query_dict)
+        section_rw_list = {}
         for section in sections:
             get_permission, rw_permission = self._has_section_permission(section=section, get_level=query_level)
             if not get_permission:
                 sections = sections.exclude(id=section.id)
+            else:
+                section_rw_list[section.id] = rw_permission
         sections, total = paging(sections, page=page, page_size=page_size)
         section_dict_list = []
         for section in sections:
-            section_dict_list.append(SectionService._section_to_dict(section=section))
-        return 200, {'roles': section_dict_list, 'total': total}
+            section_dict_list.append(SectionService._section_to_dict(section=section,
+                                                                     rw_permission=section_rw_list[section.id]))
+        return 200, {'sections': section_dict_list, 'total': total}
 
     def create(self, name, nick=None, description=None, moderator_uuids=None,
                assistant_uuids=None, status=Section.NORMAL, level=0,
@@ -138,10 +143,12 @@ class SectionService(Service):
         return True, True
 
     @staticmethod
-    def _section_to_dict(section):
+    def _section_to_dict(section, **kwargs):
         section_dict = model_to_dict(section)
         moderators = section.moderators.values(*UserService.USER_PUBLIC_FIELD).all()
         section_dict['moderators'] = [model_to_dict(moderator) for moderator in moderators]
         assistants = section.assistants.values(*UserService.USER_PUBLIC_FIELD).all()
         section_dict['assistants'] = [model_to_dict(assistant) for assistant in assistants]
+        for key in kwargs:
+            section_dict[key] = kwargs[key]
         return section_dict

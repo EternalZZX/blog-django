@@ -98,30 +98,44 @@ def section_list(request):
     @apiParam {string} [query] 搜索内容，若无搜索字段则全局搜索name, nick, description
     @apiParam {string=name, nick, DjangoFilterParams} [query_field] 搜索字段, 支持Django filter参数
     @apiSuccess {String} total 版块信息列表总数
-    @apiSuccess {String} roles 版块信息列表
+    @apiSuccess {String} sections 版块信息列表
     @apiSuccessExample {json} Success-Response:
     HTTP/1.1 200 OK
     {
         "data": {
-            "total": 3,
-            "roles": [
+            "total": 1,
+            "sections": [
                 {
-                    "name": "admin",
-                    "default": false,
-                    "create_at": "2017-12-20T11:19:17Z",
-                    "role_level": 1000,
-                    "nick": "系统管理员",
-                    "id": 1,
-                    "permissions": [
+                    "status": 1,
+                    "description": null,
+                    "roles": [],
+                    "level": 0,
+                    "create_at": "2018-01-18T08:26:26Z",
+                    "nick": "Python",
+                    "moderators": [
                         {
-                            "status": true,
-                            "description": null,
-                            "name": "login",
-                            "nick": "登陆权限",
-                            "id": 1,
-                            "major_level": 1000
+                            "nick": "admin",
+                            "remark": null,
+                            "role": 1,
+                            "create_at": "2017-12-20T11:19:17Z",
+                            "groups": null
                         }
-                    ]
+                    ],
+                    "rw_permission": true,
+                    "only_groups": false,
+                    "assistants": [
+                        {
+                            "nick": "test",
+                            "remark": null,
+                            "role": 2,
+                            "create_at": "2017-12-20T06:00:07Z",
+                            "groups": null
+                        }
+                    ],
+                    "only_roles": false,
+                    "groups": [],
+                    "id": 6,
+                    "name": "python"
                 }
             ]
         }
