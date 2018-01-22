@@ -8,7 +8,7 @@ from django.db.models import Q
 from blog.account.users.models import User
 from blog.account.roles.models import Role, Permission, RolePermission
 from blog.common.base import Service, Authorize, Grant
-from blog.common.setting import PermissionName, PermissionLevel
+from blog.common.setting import PermissionName
 from blog.common.error import ServiceError
 from blog.common.message import ErrorMsg, AccountErrorMsg
 from blog.common.utils import model_to_dict, paging
@@ -32,8 +32,7 @@ class RoleService(Service):
         query_level, order_level = self.get_permission_level(PermissionName.ROLE_SELECT)
         roles = Role.objects.all()
         if order_field:
-            if order_level >= PermissionLevel.LEVEL_1 and \
-                            order_field in RoleService.ROLE_ALL_FIELD:
+            if order_level.is_gt_lv1() and order_field in RoleService.ROLE_ALL_FIELD:
                 if order == 'desc':
                     order_field = '-' + order_field
                 roles = roles.order_by(order_field)
@@ -41,15 +40,15 @@ class RoleService(Service):
                 raise ServiceError(code=403,
                                    message=ErrorMsg.ORDER_PERMISSION_DENIED)
         if query:
-            if not query_field and query_level >= PermissionLevel.LEVEL_2:
+            if not query_field and query_level.is_gt_lv2():
                 roles = roles.filter(Q(name__icontains=query) |
                                      Q(nick__icontains=query))
-            elif query_level >= PermissionLevel.LEVEL_1:
+            elif query_level.is_gt_lv1():
                 if query_field == 'name':
                     query_field = 'name__icontains'
                 elif query_field == 'nick':
                     query_field = 'nick__icontains'
-                elif query_level < PermissionLevel.LEVEL_9:
+                elif query_level.is_lt_lv9():
                     raise ServiceError(code=403,
                                        message=ErrorMsg.QUERY_PERMISSION_DENIED)
                 query_dict = {query_field: query}

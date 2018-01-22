@@ -14,7 +14,7 @@ from blog.account.users.models import User
 from blog.account.roles.models import Role, RolePermission
 from blog.common.error import AuthError, ServiceError
 from blog.common.message import ErrorMsg, AccountErrorMsg
-from blog.common.setting import Setting, PermissionName
+from blog.common.setting import Setting, PermissionName, PermissionLevel
 from blog.settings import REDIS_HOSTS, MEMCACHED_HOSTS
 
 
@@ -197,6 +197,85 @@ class Grant(object):
         return perm
 
 
+class LevelObject(object):
+    def __init__(self, level=0):
+        self.level = int(level)
+
+    def __cmp__(self, other):
+        if isinstance(other, (int, float)):
+            value = other
+        elif isinstance(other, LevelObject):
+            value = other.level
+        else:
+            return -1
+        if self.level < value:
+            return -1
+        elif self.level > value:
+            return 1
+        else:
+            return 0
+
+    def is_gt_lv10(self):
+        return self.level >= PermissionLevel.LEVEL_10
+
+    def is_gt_lv9(self):
+        return self.level >= PermissionLevel.LEVEL_9
+
+    def is_gt_lv8(self):
+        return self.level >= PermissionLevel.LEVEL_8
+
+    def is_gt_lv7(self):
+        return self.level >= PermissionLevel.LEVEL_7
+
+    def is_gt_lv6(self):
+        return self.level >= PermissionLevel.LEVEL_6
+
+    def is_gt_lv5(self):
+        return self.level >= PermissionLevel.LEVEL_5
+
+    def is_gt_lv4(self):
+        return self.level >= PermissionLevel.LEVEL_4
+
+    def is_gt_lv3(self):
+        return self.level >= PermissionLevel.LEVEL_3
+
+    def is_gt_lv2(self):
+        return self.level >= PermissionLevel.LEVEL_2
+
+    def is_gt_lv1(self):
+        return self.level >= PermissionLevel.LEVEL_1
+
+    def is_lt_lv10(self):
+        return self.level < PermissionLevel.LEVEL_10
+
+    def is_lt_lv9(self):
+        return self.level < PermissionLevel.LEVEL_9
+
+    def is_lt_lv8(self):
+        return self.level < PermissionLevel.LEVEL_8
+
+    def is_lt_lv7(self):
+        return self.level < PermissionLevel.LEVEL_7
+
+    def is_lt_lv6(self):
+        return self.level < PermissionLevel.LEVEL_6
+
+    def is_lt_lv5(self):
+        return self.level < PermissionLevel.LEVEL_5
+
+    def is_lt_lv4(self):
+        return self.level < PermissionLevel.LEVEL_4
+
+    def is_lt_lv3(self):
+        return self.level < PermissionLevel.LEVEL_3
+
+    def is_lt_lv2(self):
+        return self.level < PermissionLevel.LEVEL_2
+
+    def is_lt_lv1(self):
+        return self.level < PermissionLevel.LEVEL_1
+
+
 class Service(object):
     def __init__(self, request):
         self.request = request
@@ -219,13 +298,13 @@ class Service(object):
     def get_permission_level(self, perm_name):
         self.has_permission(perm_name)
         try:
-            major_level = self.permission[perm_name]['major_level']
+            major_level = LevelObject(self.permission[perm_name]['major_level'])
         except KeyError:
-            major_level = 0
+            major_level = LevelObject(0)
         try:
-            minor_level = self.permission[perm_name]['minor_level']
+            minor_level = LevelObject(self.permission[perm_name]['minor_level'])
         except KeyError:
-            minor_level = 0
+            minor_level = LevelObject(0)
         return major_level, minor_level
 
     def get_permission_value(self, perm_name):

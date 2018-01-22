@@ -12,11 +12,11 @@ from blog.common.utils import paging, model_to_dict, encode
 from blog.common.base import Authorize, Service
 from blog.common.error import ServiceError
 from blog.common.message import ErrorMsg, AccountErrorMsg
-from blog.common.setting import Setting, PermissionName, PermissionLevel
+from blog.common.setting import Setting, PermissionName
 
 
 class UserService(Service):
-    USER_PUBLIC_FIELD = ['nick', 'role', 'groups', 'remark', 'create_at']
+    USER_PUBLIC_FIELD = ['uuid', 'nick', 'role', 'groups', 'remark', 'create_at']
     USER_ALL_FIELD = ['id', 'uuid', 'username', 'nick', 'role', 'groups',
                       'gender', 'email', 'phone', 'qq', 'address', 'remark',
                       'create_at']
@@ -29,7 +29,7 @@ class UserService(Service):
         try:
             user_dict = {}
             user_privacy_setting = UserPrivacySetting.objects.get(user__uuid=user_uuid)
-            if user_uuid != self.uuid and query_level < PermissionLevel.LEVEL_9:
+            if user_uuid != self.uuid and query_level.is_lt_lv9():
                 return_field = UserService.USER_PUBLIC_FIELD[:]
                 for key in UserService.USER_PRIVACY_FIELD:
                     if getattr(user_privacy_setting, key) == UserPrivacySetting.PUBLIC:
@@ -37,11 +37,11 @@ class UserService(Service):
             else:
                 return_field = UserService.USER_ALL_FIELD[:]
                 user_dict = model_to_dict(user_privacy_setting)
-                if query_level >= PermissionLevel.LEVEL_10:
+                if query_level.is_gt_lv10():
                     for key in UserService.USER_MANAGE_FIELD:
                         return_field.append(key)
             query_dict = {'uuid': user_uuid}
-            if query_level < PermissionLevel.LEVEL_10:
+            if query_level.is_lt_lv10():
                 query_dict['status'] = User.ACTIVE
             user = User.objects.values(*return_field).get(**query_dict)
             user_dict.update(user)
@@ -53,21 +53,21 @@ class UserService(Service):
     def list(self, page=0, page_size=10, order_field=None, order='desc',
              query=None, query_field=None):
         query_level, order_level = self.get_permission_level(PermissionName.USER_SELECT)
-        if query_level < PermissionLevel.LEVEL_9:
+        if query_level.is_lt_lv9():
             return_field = UserService.USER_PUBLIC_FIELD
-        elif query_level >= PermissionLevel.LEVEL_10:
+        elif query_level.is_gt_lv10():
             return_field = UserService.USER_ALL_FIELD[:]
             for key in UserService.USER_MANAGE_FIELD:
                 return_field.append(key)
         else:
             return_field = UserService.USER_ALL_FIELD
         users = User.objects.values(*return_field).all()
-        if query_level < PermissionLevel.LEVEL_10:
+        if query_level.is_lt_lv10():
             users = users.filter(status=User.ACTIVE)
         if order_field:
-            if (order_level >= PermissionLevel.LEVEL_1 and
+            if (order_level.is_gt_lv1() and
                     order_field in UserService.USER_PUBLIC_FIELD) \
-                    or order_level >= PermissionLevel.LEVEL_10:
+                    or order_level.is_gt_lv10():
                 if order == 'desc':
                     order_field = '-' + order_field
                 users = users.order_by(order_field)
@@ -75,12 +75,12 @@ class UserService(Service):
                 raise ServiceError(code=403,
                                    message=ErrorMsg.ORDER_PERMISSION_DENIED)
         if query:
-            if not query_field and query_level >= PermissionLevel.LEVEL_2:
+            if not query_field and query_level.is_gt_lv2():
                 users = users.filter(Q(nick__icontains=query) |
                                      Q(role__nick__icontains=query) |
                                      Q(groups__name__icontains=query) |
                                      Q(remark__icontains=query))
-            elif query_level >= PermissionLevel.LEVEL_1:
+            elif query_level.is_gt_lv1():
                 if query_field == 'nick':
                     query_field = 'nick__icontains'
                 elif query_field == 'role':
@@ -89,7 +89,7 @@ class UserService(Service):
                     query_field = 'groups__name__icontains'
                 elif query_field == 'remark':
                     query_field = 'remark__icontains'
-                elif query_level < PermissionLevel.LEVEL_9:
+                elif query_level.is_lt_lv9():
                     raise ServiceError(code=403,
                                        message=ErrorMsg.QUERY_PERMISSION_DENIED)
                 query_dict = {query_field: query}
@@ -106,7 +106,7 @@ class UserService(Service):
         if role_id:
             try:
                 role = Role.objects.get(id=role_id)
-                if create_level < PermissionLevel.LEVEL_10 and role.role_level >= self.role_level:
+                if create_level.is_lt_lv10() and role.role_level >= self.role_level:
                     raise ServiceError(code=403,
                                        message=AccountErrorMsg.ROLE_PERMISSION_DENIED)
             except Role.DoesNotExist:
@@ -145,7 +145,7 @@ class UserService(Service):
                gender=None, email=None, phone=None, qq=None, address=None,
                status=None, remark=None, **kwargs):
         update_level, update_password_level = self.get_permission_level(PermissionName.USER_UPDATE)
-        if self.uuid != user_uuid and update_level < PermissionLevel.LEVEL_10:
+        if self.uuid != user_uuid and update_level.is_lt_lv10():
             raise ServiceError(code=403,
                                message=AccountErrorMsg.UPDATE_PERMISSION_DENIED)
         try:
@@ -153,17 +153,16 @@ class UserService(Service):
         except User.DoesNotExist:
             raise ServiceError(code=404,
                                message=AccountErrorMsg.USER_NOT_FOUND)
-        if new_password and (self.uuid == user_uuid or
-                             update_password_level >= PermissionLevel.LEVEL_9):
-            if update_password_level < PermissionLevel.LEVEL_10:
+        if new_password and (self.uuid == user_uuid or update_password_level.is_gt_lv9()):
+            if update_password_level.is_lt_lv10():
                 password_code = encode(old_password, user_uuid)
                 if password_code != user.password:
                     raise ServiceError(code=403,
                                        message=AccountErrorMsg.PASSWORD_ERROR)
             user.password = encode(new_password, user_uuid)
         if username and Setting().USERNAME_UPDATE and UserService._is_unique(model_obj=User,
-                                                                           exclude_id=user.id,
-                                                                           username=username):
+                                                                             exclude_id=user.id,
+                                                                             username=username):
             user.username = username
         if nick and Setting().NICK_UPDATE:
             user.nick = nick
@@ -186,13 +185,13 @@ class UserService(Service):
         user.update_char_field('qq', qq)
         user.update_char_field('address', address)
         user.update_char_field('remark', remark)
-        if role_id and update_level >= PermissionLevel.LEVEL_10:
+        if role_id and update_level.is_gt_lv10():
             try:
                 user.role = Role.objects.get(id=role_id)
                 Authorize().update_token(uuid=user_uuid, role_id=role_id)
             except Role.DoesNotExist:
                 raise ServiceError(code=404, message=AccountErrorMsg.ROLE_NOT_FOUND)
-        if group_ids is not None and update_level >= PermissionLevel.LEVEL_10:
+        if group_ids is not None and update_level.is_gt_lv10():
             user.groups.clear()
             for group_id in group_ids:
                 try:
@@ -211,16 +210,15 @@ class UserService(Service):
         try:
             user = User.objects.get(uuid=delete_id)
             result['name'], result['status'] = user.username, 'SUCCESS'
-            if delete_id != self.uuid and delete_level < PermissionLevel.LEVEL_10 \
+            if delete_id != self.uuid and delete_level.is_lt_lv10() \
                     and user.role.role_level >= self.role_level:
                 raise ServiceError()
-            if not Setting().USER_CANCEL or \
-                    (force and force_level >= PermissionLevel.LEVEL_10):
+            if not Setting().USER_CANCEL or (force and force_level.is_gt_lv10()):
                 user.delete()
             else:
                 user.status = User.CANCEL
                 user.save()
-                Authorize().cancel_token(uuid=delete_id)
+            Authorize().cancel_token(uuid=delete_id)
         except User.DoesNotExist:
             result['status'] = 'NOT_FOUND'
         except ServiceError:

@@ -6,7 +6,7 @@ import uuid
 from django.db.models import Q
 
 from blog.common.base import Service
-from blog.common.setting import Setting, PermissionName, PermissionLevel
+from blog.common.setting import Setting, PermissionName
 
 
 class ArticleService(Service):

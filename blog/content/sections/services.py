@@ -12,7 +12,7 @@ from blog.common.base import Service
 from blog.common.error import ServiceError
 from blog.common.message import ErrorMsg, ContentErrorMsg
 from blog.common.utils import paging, model_to_dict
-from blog.common.setting import PermissionName, PermissionLevel
+from blog.common.setting import PermissionName
 
 
 class SectionService(Service):
@@ -40,8 +40,7 @@ class SectionService(Service):
         query_level, order_level = self.get_permission_level(PermissionName.SECTION_SELECT)
         sections = Section.objects.all()
         if order_field:
-            if order_level >= PermissionLevel.LEVEL_1 and \
-                            order_field in SectionService.SECTION_ALL_FIELD:
+            if order_level.is_gt_lv1() and order_field in SectionService.SECTION_ALL_FIELD:
                 if order == 'desc':
                     order_field = '-' + order_field
                     sections = sections.order_by(order_field)
@@ -49,18 +48,18 @@ class SectionService(Service):
                 raise ServiceError(code=400,
                                    message=ErrorMsg.ORDER_PARAMS_ERROR)
         if query:
-            if not query_field and query_level >= PermissionLevel.LEVEL_2:
+            if not query_field and query_level.is_gt_lv2():
                 sections = sections.filter(Q(name__icontains=query) |
                                            Q(nick__icontains=query) |
                                            Q(description__icontains=query))
-            elif query_level >= PermissionLevel.LEVEL_1:
+            elif query_level.is_gt_lv1():
                 if query_field == 'name':
                     query_field = 'name__icontains'
                 elif query_field == 'nick':
                     query_field = 'nick__icontains'
                 elif query_field == 'description':
                     query_field = 'description__icontains'
-                elif query_level < PermissionLevel.LEVEL_9:
+                elif query_level.is_lt_lv9():
                     raise ServiceError(code=403,
                                        message=ErrorMsg.QUERY_PERMISSION_DENIED)
                 query_dict = {query_field: query}
@@ -96,32 +95,28 @@ class SectionService(Service):
                                          only_roles=only_roles,
                                          only_groups=only_groups,
                                          creator_id=self.uid)
-        section_dict = model_to_dict(section)
         for moderator_uuid in moderator_uuids:
             try:
                 section.moderators.add(User.objects.get(uuid=moderator_uuid))
-                section_dict['moderators'].append(moderator_uuid)
             except User.DoesNotExist:
                 pass
         for assistant_uuid in assistant_uuids:
             try:
-                if assistant_uuid not in moderator_uuids:
-                    section.assistants.add(User.objects.get(uuid=assistant_uuid))
-                    section_dict['assistants'].append(assistant_uuid)
+                # if assistant_uuid not in moderator_uuids:
+                section.assistants.add(User.objects.get(uuid=assistant_uuid))
             except User.DoesNotExist:
                 pass
         for role_id in role_ids:
             try:
                 section.roles.add(Role.objects.get(id=role_id))
-                section_dict['roles'].append(int(role_id))
             except Role.DoesNotExist:
                 pass
         for group_id in group_ids:
             try:
                 section.groups.add(Group.objects.get(id=group_id))
-                section_dict['groups'].append(int(group_id))
             except Group.DoesNotExist:
                 pass
+        section_dict = SectionService._section_to_dict(section=section)
         return 201, section_dict
 
     def update(self, section_id, name=None, nick=None, description=None,
@@ -134,32 +129,20 @@ class SectionService(Service):
         except Section.DoesNotExist:
             raise ServiceError(code=404,
                                message=ContentErrorMsg.SECTION_NOT_FOUND)
-        is_moderator, is_assistant = True, True
-        try:
-            section.moderators.get(uuid=self.uuid)
-        except User.DoesNotExist:
-            is_moderator = False
-        try:
-            section.assistants.get(uuid=self.uuid)
-        except User.DoesNotExist:
-            is_assistant = False
-        if update_level >= PermissionLevel.LEVEL_10 or \
-                is_moderator and update_level >= PermissionLevel.LEVEL_1:
+        is_moderator, is_assistant = self._is_manager(section=section)
+        if update_level.is_gt_lv10() or is_moderator and update_level.is_gt_lv1():
             if name and SectionService._is_unique(model_obj=Section, exclude_id=section_id, name=name):
                 section.name = name
             if nick:
                 section.nick = nick
-        if update_level >= PermissionLevel.LEVEL_10 or \
-                (is_moderator or is_assistant) and update_level >= PermissionLevel.LEVEL_1:
+        if update_level.is_gt_lv10() or \
+                (is_moderator or is_assistant) and update_level.is_gt_lv1():
             section.update_char_field('description', description)
-        if appoint_level >= PermissionLevel.LEVEL_10 or \
-                is_moderator and appoint_level >= PermissionLevel.LEVEL_2:
+        if appoint_level.is_gt_lv10() or is_moderator and appoint_level.is_gt_lv2():
             section.update_m2m_field(section.moderators, User, moderator_uuids, id_field='uuid')
-        if appoint_level >= PermissionLevel.LEVEL_10 or \
-                is_moderator and appoint_level >= PermissionLevel.LEVEL_1:
+        if appoint_level.is_gt_lv10() or is_moderator and appoint_level.is_gt_lv1():
             section.update_m2m_field(section.assistants, User, assistant_uuids, id_field='uuid')
-        if update_level >= PermissionLevel.LEVEL_10 or \
-                is_moderator and update_level >= PermissionLevel.LEVEL_2:
+        if update_level.is_gt_lv10() or is_moderator and update_level.is_gt_lv2():
             if status is not None:
                 section.status = SectionService._choices_format(status, Section.STATUS_CHOICES, Section.NORMAL)
             if level is not None:
@@ -173,10 +156,33 @@ class SectionService(Service):
         section.save()
         return 200, SectionService._section_to_dict(section)
 
+    def delete(self, delete_id, force):
+        delete_level, force_level = self.get_permission_level(PermissionName.SECTION_DELETE)
+        result = {'id': delete_id}
+        try:
+            section = Section.objects.get(id=delete_id)
+            result['name'], result['status'] = section.nick, 'SUCCESS'
+            is_moderator, _ = self._is_manager(section=section)
+            if not is_moderator and delete_level.is_lt_lv10():
+                raise ServiceError()
+            if force and force_level.is_gt_lv10():
+                section.delete()
+            else:
+                section.status = Section.CANCEL
+                section.save()
+        except Section.DoesNotExist:
+            result['status'] = 'NOT_FOUND'
+        except ServiceError:
+            result['status'] = 'PERMISSION_DENIED'
+        return result
+
     def _has_section_permission(self, section, get_level):
-        if section.status == Section.CANCEL and get_level < PermissionLevel.LEVEL_10:
+        is_moderator, is_assistant = self._is_manager(section=section)
+        if is_moderator or is_assistant or get_level.is_gt_lv10():
+            return True, True
+        elif section.status == Section.CANCEL:
             return False, False
-        if get_level < PermissionLevel.LEVEL_10:
+        else:
             not_in_roles, not_in_groups = True, True
             if section.only_roles:
                 not_in_roles = len(section.roles.filter(id=self.role_id)) == 0
@@ -192,6 +198,18 @@ class SectionService(Service):
                 if section.level > section_value:
                     return section.status != Section.HIDE, False
         return True, True
+
+    def _is_manager(self, section):
+        is_moderator, is_assistant = True, True
+        try:
+            section.moderators.get(uuid=self.uuid)
+        except User.DoesNotExist:
+            is_moderator = False
+        try:
+            section.assistants.get(uuid=self.uuid)
+        except User.DoesNotExist:
+            is_assistant = False
+        return is_moderator, is_assistant
 
     @staticmethod
     def _section_to_dict(section, **kwargs):

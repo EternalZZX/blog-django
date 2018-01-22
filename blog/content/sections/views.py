@@ -275,22 +275,27 @@ def section_update(request, section_id):
     HTTP/1.1 200 OK
     {
         "data": {
-            "name": "op",
-            "default": false,
-            "create_at": "2017-12-22T02:59:50Z",
-            "role_level": 900,
-            "nick": "管理员",
-            "id": 25,
-            "permissions": [
-                {
-                    "status": true,
-                    "description": null,
-                    "name": "login",
-                    "nick": "登陆权限",
-                    "id": 32,
-                    "major_level": 1000
-                }
-            ]
+            "status": 0,
+            "description": null,
+            "roles": [],
+            "level": 0,
+            "creator": {
+                "remark": null,
+                "uuid": "7357d28a-a611-5efd-ae6e-a550a5b95487",
+                "create_at": "2017-12-20T11:19:17Z",
+                "nick": "admin",
+                "role": 1,
+                "groups": []
+            },
+            "create_at": "2018-01-22T02:23:15Z",
+            "nick": "Test",
+            "moderators": [],
+            "only_groups": false,
+            "assistants": [],
+            "only_roles": false,
+            "groups": [],
+            "id": 9,
+            "name": "test24"
         }
     }
     @apiUse ErrorData
@@ -343,4 +348,53 @@ def section_update(request, section_id):
 
 
 def section_delete(request, section_id):
-    pass
+    """
+    @api {delete} /content/sections/[id]/ section delete
+    @apiVersion 0.1.0
+    @apiName section_delete
+    @apiGroup section
+    @apiDescription 删除版块
+    @apiPermission SECTION_DELETE
+    @apiUse Header
+    @apiParam {string} [id_list] 删除版块id列表，e.g.'7;8;9', 当使用URL参数id时
+                                 该参数忽略
+    @apiParam {bool=true, false} [force=false] 强制删除
+    @apiSuccess {string} data 版块删除信息详情
+    @apiSuccessExample {json} Success-Response:
+    HTTP/1.1 200 OK
+    {
+        "data": [
+            {
+                "status": "SUCCESS",
+                "id": "9",
+                "name": "test"
+            }
+        ]
+    }
+    @apiUse ErrorData
+    @apiErrorExample {json} Error-Response:
+    HTTP/1.1 403 Forbidden
+    {
+        "data": "Permission denied"
+    }
+    """
+    data = QueryDict(request.body)
+    force = data.get('force') == 'true'
+    try:
+        if section_id:
+            id_list = [{'delete_id': section_id, 'force': force}]
+        else:
+            id_list = data.get('id_list')
+            if not isinstance(id_list, (unicode, str)):
+                raise ParamsError()
+            id_list = [{'delete_id': delete_id, 'force': force} for delete_id in id_list.split(';') if delete_id]
+        code, data = 400, map(lambda params: SectionService(request).delete(**params), id_list)
+        for result in data:
+            if result['status'] == 'SUCCESS':
+                code = 200
+                break
+    except Exception as e:
+        code, data = getattr(e, 'code', 400), \
+                     getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
+    return Response(code=code, data=data)
+

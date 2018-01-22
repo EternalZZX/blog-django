@@ -38,7 +38,7 @@ class Article(models.Model):
     content = models.TextField(null=True)
     author = models.ForeignKey(to=User, related_name='author')
     actors = models.ManyToManyField(to=User, related_name='actor')
-    section = models.ForeignKey(Section, null=True)
+    section = models.ForeignKey(Section, null=True, on_delete=models.SET_NULL)
     status = models.IntegerField(choices=STATUS_CHOICES, default=ACTIVE)
     privacy = models.IntegerField(choices=PRIVACY_CHOICES, default=PUBLIC)
     read_level = models.IntegerField(default=100)
