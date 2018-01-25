@@ -11,12 +11,14 @@ class Article(models.Model):
     CANCEL = 0
     ACTIVE = 1
     DRAFT = 2
-    REVIEW = 3
+    AUDIT = 3
+    RECYCLED = 4
     STATUS_CHOICES = (
         (CANCEL, 'cancel'),
         (ACTIVE, 'active'),
         (DRAFT, 'draft'),
-        (REVIEW, 'review')
+        (AUDIT, 'audit'),
+        (RECYCLED, 'recycled')
     )
 
     PRIVATE = 0
@@ -36,6 +38,7 @@ class Article(models.Model):
     title = models.CharField(max_length=200)
     keyword = models.TextField(null=True)
     content = models.TextField(null=True)
+    content_url = models.CharField(null=True, max_length=1000)
     author = models.ForeignKey(to=User, related_name='author')
     actors = models.ManyToManyField(to=User, related_name='actor')
     section = models.ForeignKey(Section, null=True, on_delete=models.SET_NULL)

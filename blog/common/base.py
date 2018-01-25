@@ -287,16 +287,24 @@ class Service(object):
         except KeyError:
             raise AuthError(code=503, message=ErrorMsg.PERMISSION_KEY_ERROR + '_role_level')
 
-    def has_permission(self, perm_name):
+    def has_permission(self, perm_name, raise_error=True):
+        if self._has_permission(perm_name):
+            return True
+        if raise_error:
+            raise AuthError(code=403, message=ErrorMsg.PERMISSION_DENIED)
+        return False
+
+    def _has_permission(self, perm_name):
         try:
             if not self.permission[perm_name]['state']:
-                raise AuthError(code=403, message=ErrorMsg.PERMISSION_DENIED)
+                return False
         except KeyError:
-            raise AuthError(code=403, message=ErrorMsg.PERMISSION_DENIED)
+            return False
         return True
 
-    def get_permission_level(self, perm_name):
-        self.has_permission(perm_name)
+    def get_permission_level(self, perm_name, raise_error=True):
+        if raise_error:
+            self.has_permission(perm_name)
         try:
             major_level = LevelObject(self.permission[perm_name]['major_level'])
         except KeyError:
@@ -307,22 +315,23 @@ class Service(object):
             minor_level = LevelObject(0)
         return major_level, minor_level
 
-    def get_permission_value(self, perm_name):
-        self.has_permission(perm_name)
+    def get_permission_value(self, perm_name, raise_error=True):
+        if raise_error:
+            self.has_permission(perm_name)
         try:
             return self.permission[perm_name]['value']
         except KeyError:
             return 0
 
     @staticmethod
-    def _choices_format(value, choices, default=None):
+    def choices_format(value, choices, default=None):
         if value in (None, ''):
             return default
         value = int(value)
         return value if value in dict(choices) else default
 
     @staticmethod
-    def _is_unique(model_obj, exclude_id=None, **kwargs):
+    def is_unique(model_obj, exclude_id=None, **kwargs):
         try:
             if model_obj.objects.exclude(id=exclude_id).get(**kwargs):
                 raise ServiceError(message=ErrorMsg.DUPLICATE_IDENTITY)

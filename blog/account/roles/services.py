@@ -61,7 +61,7 @@ class RoleService(Service):
 
     def create(self, name, nick=None, role_level=0, default=False, **kwargs):
         self.has_permission(PermissionName.ROLE_CREATE)
-        RoleService._is_unique(model_obj=Role, name=name)
+        RoleService.is_unique(model_obj=Role, name=name)
         nick = nick if nick else name
         role_level = int(role_level) if role_level else 0
         if default:
@@ -82,7 +82,7 @@ class RoleService(Service):
         except Role.DoesNotExist:
             raise ServiceError(code=404,
                                message=AccountErrorMsg.ROLE_NOT_FOUND)
-        if name and RoleService._is_unique(model_obj=Role, exclude_id=role_id, name=name):
+        if name and RoleService.is_unique(model_obj=Role, exclude_id=role_id, name=name):
             role.name = name
         if nick:
             role.nick = nick

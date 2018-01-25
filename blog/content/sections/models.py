@@ -23,7 +23,7 @@ class Section(models.Model, BaseModel):
     moderators = models.ManyToManyField(to=User, related_name='moderator')
     assistants = models.ManyToManyField(to=User, related_name='assistant')
     status = models.IntegerField(choices=STATUS_CHOICES, default=NORMAL)
-    level = models.IntegerField(default=0)
+    read_level = models.IntegerField(default=0)
     only_roles = models.BooleanField(default=False)
     roles = models.ManyToManyField(to=Role, related_name='role')
     only_groups = models.BooleanField(default=False)

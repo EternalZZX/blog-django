@@ -16,6 +16,8 @@ class Setting(StaticObject):
     USER_CANCEL = True
     USERNAME_UPDATE = False
     NICK_UPDATE = True
+    ARTICLE_CANCEL = True
+    ARTICLE_AUDIT = False
 
     __instance = True
 
@@ -35,6 +37,8 @@ class Setting(StaticObject):
             cls.USER_CANCEL = cls._format_value(settings.get(key=SettingKey.USER_CANCEL).value)
             cls.USERNAME_UPDATE = cls._format_value(settings.get(key=SettingKey.USERNAME_UPDATE).value)
             cls.NICK_UPDATE = cls._format_value(settings.get(key=SettingKey.NICK_UPDATE).value)
+            cls.ARTICLE_CANCEL = cls._format_value(settings.get(key=SettingKey.ARTICLE_CANCEL).value)
+            cls.ARTICLE_AUDIT = cls._format_value(settings.get(key=SettingKey.ARTICLE_AUDIT).value)
         except ServerSetting.DoesNotExist:
             raise ServerError(code=503, message=ErrorMsg.SETTING_ERROR)
 
@@ -63,6 +67,8 @@ class SettingKey(StaticObject):
     USER_CANCEL = 'user_cancel'
     USERNAME_UPDATE = 'username_update'
     NICK_UPDATE = 'nick_update'
+    ARTICLE_CANCEL = 'article_cancel'
+    ARTICLE_AUDIT = 'article_audit'
 
 
 class PermissionName(StaticObject):
@@ -72,6 +78,10 @@ class PermissionName(StaticObject):
     USER_DELETE = 'user_delete'
     USER_UPDATE = 'user_update'
     USER_SELECT = 'user_select'
+    USER_PRIVACY = 'user_privacy'
+    USER_ROLE = 'user_role'
+    USER_STATUS = 'user_status'
+    USER_CANCEL = 'user_cancel'
 
     ROLE_CREATE = 'role_create'
     ROLE_DELETE = 'role_delete'

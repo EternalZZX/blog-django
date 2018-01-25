@@ -5,7 +5,6 @@ from django.http import QueryDict
 
 from blog.content.sections.services import SectionService
 from blog.common.message import ErrorMsg
-from blog.common.setting import PermissionName
 from blog.common.error import ParamsError
 from blog.common.utils import Response, json_response, str_to_list
 
@@ -48,7 +47,7 @@ def section_get(request, section_id):
                 1,
                 2
             ],
-            "level": 0,
+            "read_level": 0,
             "nick": "JavaScript",
             "moderators": [
                 {
@@ -110,7 +109,7 @@ def section_list(request):
                     "status": 1,
                     "description": null,
                     "roles": [],
-                    "level": 0,
+                    "read_level": 0,
                     "create_at": "2018-01-18T08:26:26Z",
                     "nick": "Python",
                     "moderators": [
@@ -182,7 +181,7 @@ def section_create(request):
     @apiParam {string} [moderator_uuids] 版主UUID列表，e.g.'7357d28a-a611-5efd-ae6e-a550a5b95487'
     @apiParam {string} [assistant_uuids] 副版主UUID列表，e.g.'4be0643f-1d98-573b-97cd-ca98a65347dd'
     @apiParam {number=0, 1, 2} [status=2] 版块状态, Cancel=0, Normal=1, Hide=2
-    @apiParam {number} [level=0] 版块需求等级
+    @apiParam {number} [read_level=0] 版块需求等级
     @apiParam {only_roles=true, false} [default=false] 是否指定角色拥有阅读权限
     @apiParam {string} [role_ids] 角色ID列表，e.g.'1;2'
     @apiParam {only_groups=true, false} [default=false] 是否指定组拥有阅读权限
@@ -195,7 +194,7 @@ def section_create(request):
             "status": 2,
             "description": null,
             "roles": [],
-            "level": 0,
+            "read_level": 0,
             "nick": "JavaScript",
             "moderators": [
                 "7357d28a-a611-5efd-ae6e-a550a5b95487"
@@ -223,7 +222,7 @@ def section_create(request):
     moderator_uuids = request.POST.get('moderator_uuids')
     assistant_uuids = request.POST.get('assistant_uuids')
     status = request.POST.get('status')
-    level = request.POST.get('level')
+    read_level = request.POST.get('read_level')
     only_roles = request.POST.get('only_roles') == 'true'
     role_ids = request.POST.get('role_ids')
     only_groups = request.POST.get('only_groups') == 'true'
@@ -239,7 +238,7 @@ def section_create(request):
                                                     moderator_uuids=moderator_uuids,
                                                     assistant_uuids=assistant_uuids,
                                                     status=status,
-                                                    level=level,
+                                                    read_level=read_level,
                                                     only_roles=only_roles,
                                                     role_ids=role_ids,
                                                     only_groups=only_groups,
@@ -265,7 +264,7 @@ def section_update(request, section_id):
     @apiParam {string} [moderator_uuids] 版主UUID列表，e.g.'7357d28a-a611-5efd-ae6e-a550a5b95487'
     @apiParam {string} [assistant_uuids] 副版主UUID列表，e.g.'4be0643f-1d98-573b-97cd-ca98a65347dd'
     @apiParam {number=0, 1, 2} [status=2] 版块状态, Cancel=0, Normal=1, Hide=2
-    @apiParam {number} [level=0] 版块需求等级
+    @apiParam {number} [read_level=0] 版块需求等级
     @apiParam {only_roles=true, false} [default=false] 是否指定角色拥有阅读权限
     @apiParam {string} [role_ids] 角色ID列表，e.g.'1;2'
     @apiParam {only_groups=true, false} [default=false] 是否指定组拥有阅读权限
@@ -278,7 +277,7 @@ def section_update(request, section_id):
             "status": 0,
             "description": null,
             "roles": [],
-            "level": 0,
+            "read_level": 0,
             "creator": {
                 "remark": null,
                 "uuid": "7357d28a-a611-5efd-ae6e-a550a5b95487",
@@ -312,7 +311,7 @@ def section_update(request, section_id):
     moderator_uuids = data.get('moderator_uuids')
     assistant_uuids = data.get('assistant_uuids')
     status = data.get('status')
-    level = data.get('level')
+    read_level = data.get('read_level')
     only_roles = data.get('only_roles')
     role_ids = data.get('role_ids')
     only_groups = data.get('only_groups')
@@ -336,7 +335,7 @@ def section_update(request, section_id):
                                                     description=description,
                                                     moderator_uuids=moderator_uuids,
                                                     assistant_uuids=assistant_uuids,
-                                                    status=status, level=level,
+                                                    status=status, read_level=read_level,
                                                     only_roles=only_roles,
                                                     role_ids=role_ids,
                                                     only_groups=only_groups,
@@ -352,7 +351,7 @@ def section_delete(request, section_id):
     @api {delete} /content/sections/[id]/ section delete
     @apiVersion 0.1.0
     @apiName section_delete
-    @apiGroup section
+    @apiGroup content
     @apiDescription 删除版块
     @apiPermission SECTION_DELETE
     @apiUse Header
@@ -397,4 +396,3 @@ def section_delete(request, section_id):
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
     return Response(code=code, data=data)
-

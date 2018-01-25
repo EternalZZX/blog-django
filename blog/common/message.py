@@ -33,7 +33,7 @@ class AccountErrorMsg:
     UPDATE_PERMISSION_DENIED = 'Update permission denied'
 
     ROLE_PERMISSION_DENIED = 'Role permission denied'
-    NO_DEFAULT_ROLE = 'User of this role exists and default role is not set'
+    NO_DEFAULT_ROLE = 'Default role is not exists'
     PERMISSION_JSON_ERROR = 'Permission JSON syntax error'
 
     SIGN_UP_DENIED = 'Sign up denied'

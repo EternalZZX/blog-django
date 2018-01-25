@@ -35,6 +35,8 @@ def user_get(request, uuid):
     @apiGroup account
     @apiDescription 获取用户信息详情
     @apiPermission USER_SELECT
+    @apiPermission USER_PRIVACY
+    @apiPermission USER_CANCEL
     @apiUse Header
     @apiSuccess {string} data 用户信息详情
     @apiSuccessExample {json} Success-Response:
@@ -72,6 +74,8 @@ def user_list(request):
     @apiGroup account
     @apiDescription 获取用户信息列表
     @apiPermission USER_SELECT
+    @apiPermission USER_PRIVACY
+    @apiPermission USER_CANCEL
     @apiUse Header
     @apiParam {number} [page=0] 用户信息列表页码, 页码为0时返回所有数据
     @apiParam {number} [page_size=10] 用户信息列表页长
@@ -131,6 +135,8 @@ def user_create(request):
     @apiGroup account
     @apiDescription 创建用户
     @apiPermission USER_CREATE
+    @apiPermission USER_STATUS
+    @apiPermission USER_ROLE
     @apiUse Header
     @apiParam {string} username 用户名
     @apiParam {string} password 密码
@@ -223,6 +229,8 @@ def user_update(request, uuid):
     @apiGroup account
     @apiDescription 编辑用户
     @apiPermission USER_UPDATE
+    @apiPermission USER_STATUS
+    @apiPermission USER_ROLE
     @apiUse Header
     @apiParam {string} [username] 用户名
     @apiParam {string} [old_password] 旧密码
@@ -320,6 +328,7 @@ def user_delete(request, uuid):
     @apiGroup account
     @apiDescription 删除用户
     @apiPermission USER_DELETE
+    @apiPermission USER_CANCEL
     @apiUse Header
     @apiParam {string} [id_list] 删除用户uuid列表，e.g.'7357d28a-a611-5efd-ae6e-a550a5b95487;
                                  3cd43d89-ab0b-54ac-811c-1f4bb9b3fab6', 当使用URL参数uuid时

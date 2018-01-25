@@ -16,7 +16,7 @@ from blog.common.setting import PermissionName
 
 
 class SectionService(Service):
-    SECTION_ALL_FIELD = ['id', 'name', 'nick', 'description', 'level',
+    SECTION_ALL_FIELD = ['id', 'name', 'nick', 'description', 'read_level',
                          'status', 'moderators', 'assistants', 'only_roles',
                          'roles', 'only_groups', 'groups', 'creator',
                          'create_at']
@@ -79,19 +79,19 @@ class SectionService(Service):
         return 200, {'sections': section_dict_list, 'total': total}
 
     def create(self, name, nick=None, description=None, moderator_uuids=None,
-               assistant_uuids=None, status=Section.NORMAL, level=0,
+               assistant_uuids=None, status=Section.NORMAL, read_level=0,
                only_roles=False, role_ids=None, only_groups=False,
                group_ids=None):
         self.has_permission(PermissionName.SECTION_CREATE)
-        SectionService._is_unique(model_obj=Section, name=name)
+        SectionService.is_unique(model_obj=Section, name=name)
         nick = nick if nick else name
-        status = SectionService._choices_format(status, Section.STATUS_CHOICES, Section.NORMAL)
-        level = int(level) if level else 0
+        status = SectionService.choices_format(status, Section.STATUS_CHOICES, Section.NORMAL)
+        read_level = int(read_level) if read_level else 0
         section = Section.objects.create(name=name,
                                          nick=nick,
                                          description=description,
                                          status=status,
-                                         level=level,
+                                         read_level=read_level,
                                          only_roles=only_roles,
                                          only_groups=only_groups,
                                          creator_id=self.uid)
@@ -121,7 +121,7 @@ class SectionService(Service):
 
     def update(self, section_id, name=None, nick=None, description=None,
                moderator_uuids=None, assistant_uuids=None, status=Section.NORMAL,
-               level=0, only_roles=False, role_ids=None, only_groups=False,
+               read_level=0, only_roles=False, role_ids=None, only_groups=False,
                group_ids=None):
         update_level, appoint_level = self.get_permission_level(PermissionName.SECTION_UPDATE)
         try:
@@ -131,7 +131,7 @@ class SectionService(Service):
                                message=ContentErrorMsg.SECTION_NOT_FOUND)
         is_moderator, is_assistant = self._is_manager(section=section)
         if update_level.is_gt_lv10() or is_moderator and update_level.is_gt_lv1():
-            if name and SectionService._is_unique(model_obj=Section, exclude_id=section_id, name=name):
+            if name and SectionService.is_unique(model_obj=Section, exclude_id=section_id, name=name):
                 section.name = name
             if nick:
                 section.nick = nick
@@ -144,9 +144,9 @@ class SectionService(Service):
             section.update_m2m_field(section.assistants, User, assistant_uuids, id_field='uuid')
         if update_level.is_gt_lv10() or is_moderator and update_level.is_gt_lv2():
             if status is not None:
-                section.status = SectionService._choices_format(status, Section.STATUS_CHOICES, Section.NORMAL)
-            if level is not None:
-                section.level = int(level)
+                section.status = SectionService.choices_format(status, Section.STATUS_CHOICES, Section.NORMAL)
+            if read_level is not None:
+                section.read_level = int(read_level)
             if only_roles is not None:
                 section.only_roles = only_roles
             section.update_m2m_field(section.roles, Role, role_ids)
@@ -195,7 +195,7 @@ class SectionService(Service):
                 return section.status != Section.HIDE, False
             else:
                 section_value = self.get_permission_value(PermissionName.SECTION_SELECT)
-                if section.level > section_value:
+                if section.read_level > section_value:
                     return section.status != Section.HIDE, False
         return True, True
 
