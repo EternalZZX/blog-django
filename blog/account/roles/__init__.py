@@ -4,14 +4,16 @@
 """
 @apiDefine ROLE_SELECT
 角色查询权限
-1. MAJOR LEVEL9
-- Role List 可精确搜索所有字段
+1. MAJOR LEVEL10
+- Role List 可自定义搜索查询
 2. MAJOR LEVEL2
-- Role List 可模糊搜索名称字段
+- Role List 可模糊搜索查询
 3. MAJOR LEVEL1
-- Role List 可精确搜索名称字段
-4. MINOR LEVEL1
-- Role List 可排序字段
+- Role List 可精确搜索查询
+4. MINOR LEVEL10
+- Role List 可自定义排序查询
+5. MINOR LEVEL1
+- Role List 可排序查询
 """
 
 """

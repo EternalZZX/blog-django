@@ -32,7 +32,8 @@ class RoleService(Service):
         query_level, order_level = self.get_permission_level(PermissionName.ROLE_SELECT)
         roles = Role.objects.all()
         if order_field:
-            if order_level.is_gt_lv1() and order_field in RoleService.ROLE_ALL_FIELD:
+            if (order_level.is_gt_lv1() and order_field in RoleService.ROLE_ALL_FIELD) \
+                    or order_level.is_gt_lv10():
                 if order == 'desc':
                     order_field = '-' + order_field
                 roles = roles.order_by(order_field)
@@ -40,19 +41,22 @@ class RoleService(Service):
                 raise ServiceError(code=403,
                                    message=ErrorMsg.ORDER_PERMISSION_DENIED)
         if query:
-            if not query_field and query_level.is_gt_lv2():
-                roles = roles.filter(Q(name__icontains=query) |
-                                     Q(nick__icontains=query))
-            elif query_level.is_gt_lv1():
+            if query_field and query_level.is_gt_lv1():
                 if query_field == 'name':
                     query_field = 'name__icontains'
                 elif query_field == 'nick':
                     query_field = 'nick__icontains'
-                elif query_level.is_lt_lv9():
+                elif query_level.is_lt_lv10():
                     raise ServiceError(code=403,
                                        message=ErrorMsg.QUERY_PERMISSION_DENIED)
                 query_dict = {query_field: query}
                 roles = roles.filter(**query_dict)
+            elif query_level.is_gt_lv2():
+                roles = roles.filter(Q(name__icontains=query) |
+                                     Q(nick__icontains=query))
+            else:
+                raise ServiceError(code=403,
+                                   message=ErrorMsg.QUERY_PERMISSION_DENIED)
         roles, total = paging(roles, page=page, page_size=page_size)
         role_dict_list = []
         for role in roles:
