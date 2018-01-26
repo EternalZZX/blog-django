@@ -303,8 +303,8 @@ class Service(object):
         return True
 
     def get_permission_level(self, perm_name, raise_error=True):
-        if raise_error:
-            self.has_permission(perm_name)
+        if not self.has_permission(perm_name, raise_error):
+            return LevelObject(0), LevelObject(0)
         try:
             major_level = LevelObject(self.permission[perm_name]['major_level'])
         except KeyError:
@@ -316,8 +316,8 @@ class Service(object):
         return major_level, minor_level
 
     def get_permission_value(self, perm_name, raise_error=True):
-        if raise_error:
-            self.has_permission(perm_name)
+        if not self.has_permission(perm_name, raise_error):
+            return 0
         try:
             return self.permission[perm_name]['value']
         except KeyError:

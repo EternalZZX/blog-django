@@ -29,7 +29,7 @@ class UserService(Service):
         privacy_level, _ = self.get_permission_level(PermissionName.USER_PRIVACY, False)
         _, cancel_level = self.get_permission_level(PermissionName.USER_CANCEL, False)
         try:
-            user_dict = {}
+            privacy_dict = {}
             user_privacy_setting = UserPrivacySetting.objects.get(user__uuid=user_uuid)
             if user_uuid != self.uuid and privacy_level.is_lt_lv9():
                 return_field = UserService.USER_PUBLIC_FIELD[:]
@@ -38,15 +38,17 @@ class UserService(Service):
                         return_field.append(key[:-8])
             else:
                 return_field = UserService.USER_ALL_FIELD[:]
-                user_dict = model_to_dict(user_privacy_setting)
+                privacy_dict = model_to_dict(user_privacy_setting)
+                del privacy_dict['user']
                 if privacy_level.is_gt_lv10():
                     for key in UserService.USER_MANAGE_FIELD:
                         return_field.append(key)
             query_dict = {'uuid': user_uuid}
             if cancel_level.is_lt_lv10():
                 query_dict['status'] = User.ACTIVE
-            user = User.objects.values(*return_field).get(**query_dict)
-            user_dict.update(user)
+            user_dict = User.objects.values(*return_field).get(**query_dict)
+            if privacy_dict:
+                user_dict['privacy_setting'] = privacy_dict
         except (User.DoesNotExist, UserPrivacySetting.DoesNotExist):
             raise ServiceError(code=404,
                                message=AccountErrorMsg.USER_NOT_FOUND)
@@ -127,9 +129,11 @@ class UserService(Service):
                                    nick=nick, role=role, gender=gender, email=email,
                                    phone=phone, qq=qq, address=address, status=status,
                                    remark=remark)
-        user_dict = model_to_dict(UserService._user_privacy_update(user, **kwargs))
-        user_dict.update(model_to_dict(user))
+        user_dict = model_to_dict(user)
         del user_dict['password']
+        privacy_dict = model_to_dict(UserService._user_privacy_update(user, **kwargs))
+        del privacy_dict['user']
+        user_dict['privacy_setting'] = privacy_dict
         for group_id in group_ids:
             try:
                 user.groups.add(Group.objects.get(id=group_id))
@@ -195,9 +199,11 @@ class UserService(Service):
                 except Group.DoesNotExist:
                     pass
         user.save()
-        user_dict = model_to_dict(UserService._user_privacy_update(user, **kwargs))
-        user_dict.update(model_to_dict(user))
+        user_dict = model_to_dict(user)
         del user_dict['password']
+        privacy_dict = model_to_dict(UserService._user_privacy_update(user, **kwargs))
+        del privacy_dict['user']
+        user_dict['privacy_setting'] = privacy_dict
         return 200, user_dict
 
     def delete(self, delete_id, force):

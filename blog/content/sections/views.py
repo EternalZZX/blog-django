@@ -35,36 +35,50 @@ def section_get(request, section_id):
     @apiGroup content
     @apiDescription 获取版块信息详情
     @apiPermission SECTION_SELECT
+    @apiPermission SECTION_PERMISSION
     @apiUse Header
     @apiSuccess {string} data 版块信息详情
     @apiSuccessExample {json} Success-Response:
     HTTP/1.1 200 OK
     {
         "data": {
-            "status": 2,
+            "status": 0,
             "description": null,
-            "roles": [
-                1,
-                2
-            ],
+            "roles": [],
+            "permission": {
+                "set_permission": 0,
+                "set_name": 0,
+                "set_description": 2,
+                "set_read_level": 1,
+                "cancel_visible": 0,
+                "delete_permission": 0,
+                "set_status": 1,
+                "set_assistant": 1,
+                "set_moderator": 1,
+                "set_nick": 2,
+                "set_cancel": 1,
+                "set_owner": 0,
+                "set_read_user": 1
+            },
+            "read_permission": true,
             "read_level": 0,
-            "nick": "JavaScript",
-            "moderators": [
-                {
-                    "nick": "test",
-                    "remark": null,
-                    "role": 2,
-                    "create_at": "2017-12-20T06:00:07Z",
-                    "groups": null
-                }
-            ],
-            "rw_permission": true,
+            "create_at": "2018-01-26T06:02:52Z",
+            "nick": "Test",
+            "moderators": [],
             "only_groups": false,
+            "owner": {
+                "remark": null,
+                "uuid": "7357d28a-a611-5efd-ae6e-a550a5b95487",
+                "create_at": "2017-12-20T11:19:17Z",
+                "nick": "admin",
+                "role": 1,
+                "groups": []
+            },
             "assistants": [],
             "only_roles": false,
             "groups": [],
-            "id": 5,
-            "name": "javascript"
+            "id": 15,
+            "name": "test"
         }
     }
     @apiUse ErrorData
@@ -90,6 +104,7 @@ def section_list(request):
     @apiGroup content
     @apiDescription 获取版块信息列表
     @apiPermission SECTION_SELECT
+    @apiPermission SECTION_PERMISSION
     @apiUse Header
     @apiParam {number} [page=0] 版块信息列表页码, 页码为0时返回所有数据
     @apiParam {number} [page_size=10] 版块信息列表页长
@@ -178,6 +193,7 @@ def section_create(request):
     @apiParam {string} name 版块名
     @apiParam {string} [nick={name}] 版块昵称
     @apiParam {string} [description] 版块描述
+    @apiParam {string} [owner_uuid={self}] 大版主UUID
     @apiParam {string} [moderator_uuids] 版主UUID列表，e.g.'7357d28a-a611-5efd-ae6e-a550a5b95487'
     @apiParam {string} [assistant_uuids] 副版主UUID列表，e.g.'4be0643f-1d98-573b-97cd-ca98a65347dd'
     @apiParam {number=0, 1, 2} [status=2] 版块状态, Cancel=0, Normal=1, Hide=2
@@ -186,6 +202,12 @@ def section_create(request):
     @apiParam {string} [role_ids] 角色ID列表，e.g.'1;2'
     @apiParam {only_groups=true, false} [default=false] 是否指定组拥有阅读权限
     @apiParam {string} [group_ids] 用户组ID列表，e.g.'2;9;32;43'
+    @apiParam {number=0, 1, 2, 3} [kwargs] 权限设置, Owner=0, Moderator=1, Manager=2, All=3,
+                                           参数名'set_permission', 'delete_permission',
+                                           'set_owner', 'set_name', 'set_nick', 'set_description',
+                                           'set_moderator', 'set_assistant', 'set_status',
+                                           'set_cancel', 'cancel_visible', 'set_read_level',
+                                           'set_read_user'
     @apiSuccess {string} data 创建版块信息详情
     @apiSuccessExample {json} Success-Response:
     HTTP/1.1 200 OK
@@ -194,19 +216,39 @@ def section_create(request):
             "status": 2,
             "description": null,
             "roles": [],
+            "permission": {
+                "set_permission": 0,
+                "set_name": 0,
+                "set_description": 2,
+                "set_read_level": 1,
+                "cancel_visible": 2,
+                "delete_permission": 0,
+                "set_status": 1,
+                "set_assistant": 1,
+                "set_moderator": 1,
+                "set_nick": 2,
+                "set_cancel": 1,
+                "set_owner": 0,
+                "set_read_user": 1
+            },
             "read_level": 0,
-            "nick": "JavaScript",
-            "moderators": [
-                "7357d28a-a611-5efd-ae6e-a550a5b95487"
-            ],
+            "create_at": "2018-01-26T09:46:18.038Z",
+            "nick": "Test",
+            "moderators": [],
             "only_groups": false,
-            "assistants": [
-                "4be0643f-1d98-573b-97cd-ca98a65347dd"
-            ],
+            "owner": {
+                "remark": null,
+                "uuid": "7357d28a-a611-5efd-ae6e-a550a5b95487",
+                "create_at": "2017-12-20T11:19:17Z",
+                "nick": "admin",
+                "role": 1,
+                "groups": []
+            },
+            "assistants": [],
             "only_roles": false,
             "groups": [],
-            "id": 4,
-            "name": "javascript"
+            "id": 17,
+            "name": "test3"
         }
     }
     @apiUse ErrorData
@@ -219,6 +261,7 @@ def section_create(request):
     name = request.POST.get('name')
     nick = request.POST.get('nick')
     description = request.POST.get('description')
+    owner_uuid = request.POST.get('owner_uuid')
     moderator_uuids = request.POST.get('moderator_uuids')
     assistant_uuids = request.POST.get('assistant_uuids')
     status = request.POST.get('status')
@@ -227,6 +270,11 @@ def section_create(request):
     role_ids = request.POST.get('role_ids')
     only_groups = request.POST.get('only_groups') == 'true'
     group_ids = request.POST.get('group_ids')
+    kwargs = {}
+    for key in SectionService.SECTION_PERMISSION_FIELD:
+        value = request.POST.get(key)
+        if value is not None:
+            kwargs[key] = value
     try:
         moderator_uuids = str_to_list(moderator_uuids)
         assistant_uuids = str_to_list(assistant_uuids)
@@ -235,6 +283,7 @@ def section_create(request):
         code, data = SectionService(request).create(name=name,
                                                     nick=nick,
                                                     description=description,
+                                                    owner_uuid=owner_uuid,
                                                     moderator_uuids=moderator_uuids,
                                                     assistant_uuids=assistant_uuids,
                                                     status=status,
@@ -242,7 +291,7 @@ def section_create(request):
                                                     only_roles=only_roles,
                                                     role_ids=role_ids,
                                                     only_groups=only_groups,
-                                                    group_ids=group_ids)
+                                                    group_ids=group_ids, **kwargs)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
@@ -261,6 +310,7 @@ def section_update(request, section_id):
     @apiParam {string} name 版块名
     @apiParam {string} [nick={name}] 版块昵称
     @apiParam {string} [description] 版块描述
+    @apiParam {string} [owner_uuid={self}] 大版主UUID
     @apiParam {string} [moderator_uuids] 版主UUID列表，e.g.'7357d28a-a611-5efd-ae6e-a550a5b95487'
     @apiParam {string} [assistant_uuids] 副版主UUID列表，e.g.'4be0643f-1d98-573b-97cd-ca98a65347dd'
     @apiParam {number=0, 1, 2} [status=2] 版块状态, Cancel=0, Normal=1, Hide=2
@@ -269,16 +319,41 @@ def section_update(request, section_id):
     @apiParam {string} [role_ids] 角色ID列表，e.g.'1;2'
     @apiParam {only_groups=true, false} [default=false] 是否指定组拥有阅读权限
     @apiParam {string} [group_ids] 用户组ID列表，e.g.'2;9;32;43'
+    @apiParam {number=0, 1, 2, 3} [kwargs] 权限设置, Owner=0, Moderator=1, Manager=2, All=3,
+                                           参数名'set_permission', 'delete_permission',
+                                           'set_owner', 'set_name', 'set_nick', 'set_description',
+                                           'set_moderator', 'set_assistant', 'set_status',
+                                           'set_cancel', 'cancel_visible', 'set_read_level',
+                                           'set_read_user'
     @apiSuccess {string} data 编辑版块信息详情
     @apiSuccessExample {json} Success-Response:
     HTTP/1.1 200 OK
     {
         "data": {
-            "status": 0,
+            "status": 2,
             "description": null,
             "roles": [],
+            "permission": {
+                "set_permission": 0,
+                "set_name": 0,
+                "set_description": 2,
+                "set_read_level": 1,
+                "cancel_visible": 0,
+                "delete_permission": 0,
+                "set_status": 1,
+                "set_assistant": 1,
+                "set_moderator": 1,
+                "set_nick": 2,
+                "set_cancel": 1,
+                "set_owner": 0,
+                "set_read_user": 1
+            },
             "read_level": 0,
-            "creator": {
+            "create_at": "2018-01-26T09:46:18Z",
+            "nick": "Test",
+            "moderators": [],
+            "only_groups": false,
+            "owner": {
                 "remark": null,
                 "uuid": "7357d28a-a611-5efd-ae6e-a550a5b95487",
                 "create_at": "2017-12-20T11:19:17Z",
@@ -286,15 +361,11 @@ def section_update(request, section_id):
                 "role": 1,
                 "groups": []
             },
-            "create_at": "2018-01-22T02:23:15Z",
-            "nick": "Test",
-            "moderators": [],
-            "only_groups": false,
             "assistants": [],
             "only_roles": false,
             "groups": [],
-            "id": 9,
-            "name": "test24"
+            "id": 17,
+            "name": "test"
         }
     }
     @apiUse ErrorData
@@ -308,6 +379,7 @@ def section_update(request, section_id):
     name = data.get('name')
     nick = data.get('nick')
     description = data.get('description')
+    owner_uuid = data.get('owner_uuid')
     moderator_uuids = data.get('moderator_uuids')
     assistant_uuids = data.get('assistant_uuids')
     status = data.get('status')
@@ -316,6 +388,11 @@ def section_update(request, section_id):
     role_ids = data.get('role_ids')
     only_groups = data.get('only_groups')
     group_ids = data.get('group_ids')
+    kwargs = {}
+    for key in SectionService.SECTION_PERMISSION_FIELD:
+        value = data.get(key)
+        if value is not None:
+            kwargs[key] = value
     try:
         if only_roles is not None:
             only_roles = only_roles == 'true'
@@ -333,13 +410,14 @@ def section_update(request, section_id):
                                                     name=name,
                                                     nick=nick,
                                                     description=description,
+                                                    owner_uuid=owner_uuid,
                                                     moderator_uuids=moderator_uuids,
                                                     assistant_uuids=assistant_uuids,
                                                     status=status, read_level=read_level,
                                                     only_roles=only_roles,
                                                     role_ids=role_ids,
                                                     only_groups=only_groups,
-                                                    group_ids=group_ids)
+                                                    group_ids=group_ids, **kwargs)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)

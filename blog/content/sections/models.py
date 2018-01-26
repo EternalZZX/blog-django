@@ -1,4 +1,5 @@
 from django.db import models
+from django.dispatch import receiver
 
 from blog.common.tools import BaseModel
 from blog.account.groups.models import Group
@@ -20,6 +21,7 @@ class Section(models.Model, BaseModel):
     name = models.CharField(max_length=50)
     nick = models.CharField(max_length=200)
     description = models.TextField(null=True)
+    owner = models.ForeignKey(User)
     moderators = models.ManyToManyField(to=User, related_name='moderator')
     assistants = models.ManyToManyField(to=User, related_name='assistant')
     status = models.IntegerField(choices=STATUS_CHOICES, default=NORMAL)
@@ -28,8 +30,42 @@ class Section(models.Model, BaseModel):
     roles = models.ManyToManyField(to=Role, related_name='role')
     only_groups = models.BooleanField(default=False)
     groups = models.ManyToManyField(to=Group, related_name='group')
-    creator = models.ForeignKey(User)
     create_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = 'section'
+
+
+class SectionPermission(models.Model):
+    OWNER = 0
+    MODERATOR = 1
+    MANAGER = 2
+    PERMISSION_CHOICES = (
+        (OWNER, 'owner'),
+        (MODERATOR, 'moderator'),
+        (MANAGER, 'moderator and assistant')
+    )
+
+    section = models.OneToOneField(Section, primary_key=True)
+    set_permission = models.IntegerField(choices=PERMISSION_CHOICES, default=OWNER)
+    delete_permission = models.IntegerField(choices=PERMISSION_CHOICES, default=OWNER)
+    set_owner = models.IntegerField(choices=PERMISSION_CHOICES, default=OWNER)
+    set_name = models.IntegerField(choices=PERMISSION_CHOICES, default=OWNER)
+    set_nick = models.IntegerField(choices=PERMISSION_CHOICES, default=MODERATOR)
+    set_description = models.IntegerField(choices=PERMISSION_CHOICES, default=MANAGER)
+    set_moderator = models.IntegerField(choices=PERMISSION_CHOICES, default=MODERATOR)
+    set_assistant = models.IntegerField(choices=PERMISSION_CHOICES, default=MODERATOR)
+    set_status = models.IntegerField(choices=PERMISSION_CHOICES, default=MODERATOR)
+    set_cancel = models.IntegerField(choices=PERMISSION_CHOICES, default=MODERATOR)
+    cancel_visible = models.IntegerField(choices=PERMISSION_CHOICES, default=MANAGER)
+    set_read_level = models.IntegerField(choices=PERMISSION_CHOICES, default=MODERATOR)
+    set_read_user = models.IntegerField(choices=PERMISSION_CHOICES, default=MODERATOR)
+
+    class Meta:
+        db_table = 'section_permission'
+
+
+@receiver(models.signals.post_save, sender=Section, dispatch_uid='models.section_obj_create')
+def section_obj_create(sender, instance, created, **kwargs):
+    if created:
+        SectionPermission.objects.create(section=instance)

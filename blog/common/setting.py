@@ -31,7 +31,8 @@ class Setting(StaticObject):
         try:
             cls.SESSION_LIMIT = cls._format_value(settings.get(key=SettingKey.SESSION_LIMIT).value)
             cls.TOKEN_EXPIRATION = cls._format_value(settings.get(key=SettingKey.TOKEN_EXPIRATION).value)
-            cls.TOKEN_EXPIRATION_TIME = cls._format_value(settings.get(key=SettingKey.TOKEN_EXPIRATION_TIME).value, 'int')
+            cls.TOKEN_EXPIRATION_TIME = cls._format_value(settings.get(key=SettingKey.TOKEN_EXPIRATION_TIME).value,
+                                                          'int')
             cls.SIGN_UP_POLICY = cls._format_value(settings.get(key=SettingKey.SIGN_UP_POLICY).value)
             cls.SIGN_UP_KEY = cls._format_value(settings.get(key=SettingKey.SIGN_UP_KEY).value)
             cls.USER_CANCEL = cls._format_value(settings.get(key=SettingKey.USER_CANCEL).value)
@@ -73,6 +74,7 @@ class SettingKey(StaticObject):
 
 class PermissionName(StaticObject):
     LOGIN = 'login'
+    READ_LEVEL = 'read_level'
 
     USER_CREATE = 'user_create'
     USER_DELETE = 'user_delete'
@@ -97,6 +99,7 @@ class PermissionName(StaticObject):
     SECTION_DELETE = 'section_delete'
     SECTION_UPDATE = 'section_update'
     SECTION_SELECT = 'section_select'
+    SECTION_PERMISSION = 'section_permission'
 
 
 class PermissionLevel(StaticObject):
