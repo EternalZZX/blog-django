@@ -35,7 +35,7 @@
 
 """
 @apiDefine USER_STATUS
-用户状态修改权限
+用户状态权限
 1. MAJOR LEVEL10
 - User Create 可创建用户为非激活状态
 - User Update 可修改用户为非激活状态
