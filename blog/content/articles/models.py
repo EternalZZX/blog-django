@@ -12,12 +12,14 @@ class Article(models.Model):
     ACTIVE = 1
     DRAFT = 2
     AUDIT = 3
-    RECYCLED = 4
+    FAILED = 4
+    RECYCLED = 5
     STATUS_CHOICES = (
         (CANCEL, 'cancel'),
         (ACTIVE, 'active'),
         (DRAFT, 'draft'),
         (AUDIT, 'audit'),
+        (FAILED, 'failed'),
         (RECYCLED, 'recycled')
     )
 

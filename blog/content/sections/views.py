@@ -271,7 +271,7 @@ def section_create(request):
     only_groups = request.POST.get('only_groups') == 'true'
     group_ids = request.POST.get('group_ids')
     kwargs = {}
-    for key in SectionService.SECTION_PERMISSION_FIELD:
+    for key in (SectionService.SECTION_POLICY_FIELD + SectionService.SECTION_PERMISSION_FIELD):
         value = request.POST.get(key)
         if value is not None:
             kwargs[key] = value
@@ -389,7 +389,7 @@ def section_update(request, section_id):
     only_groups = data.get('only_groups')
     group_ids = data.get('group_ids')
     kwargs = {}
-    for key in SectionService.SECTION_PERMISSION_FIELD:
+    for key in (SectionService.SECTION_POLICY_FIELD + SectionService.SECTION_PERMISSION_FIELD):
         value = data.get(key)
         if value is not None:
             kwargs[key] = value

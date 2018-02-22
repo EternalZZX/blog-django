@@ -20,6 +20,8 @@ class SectionService(Service):
                          'status', 'owner', 'moderators', 'assistants',
                          'only_roles', 'roles', 'only_groups', 'groups',
                          'create_at']
+    SECTION_POLICY_FIELD = ['article_mute', 'reply_mute', 'max_articles',
+                            'max_articles_one_day']
     SECTION_PERMISSION_FIELD = ['set_permission', 'delete_permission', 'set_owner',
                                 'set_name', 'set_nick', 'set_description',
                                 'set_moderator', 'set_assistant', 'set_status',
@@ -38,7 +40,7 @@ class SectionService(Service):
         self.has_permission(PermissionName.SECTION_SELECT)
         try:
             section = Section.objects.get(id=section_id)
-            get_permission, read_permission = self._has_get_permission(section=section)
+            get_permission, read_permission = self.has_get_permission(section=section)
             if not get_permission:
                 raise Section.DoesNotExist
             section_dict = SectionService._section_to_dict(section=section,
@@ -46,6 +48,9 @@ class SectionService(Service):
             permission_dict = model_to_dict(section.sectionpermission)
             del permission_dict['section']
             section_dict['permission'] = permission_dict
+            policy_dict = model_to_dict(section.sectionpolicy)
+            del policy_dict['section']
+            section_dict['policy'] = policy_dict
         except Section.DoesNotExist:
             raise ServiceError(code=404,
                                message=ContentErrorMsg.SECTION_NOT_FOUND)
@@ -86,7 +91,7 @@ class SectionService(Service):
                                    message=ErrorMsg.QUERY_PERMISSION_DENIED)
         section_read_list = {}
         for section in sections:
-            get_permission, read_permission = self._has_get_permission(section=section)
+            get_permission, read_permission = self.has_get_permission(section=section)
             if not get_permission:
                 sections = sections.exclude(id=section.id)
             else:
@@ -146,13 +151,16 @@ class SectionService(Service):
         permission_dict = model_to_dict(SectionService._section_permission_update(section, **kwargs))
         del permission_dict['section']
         section_dict['permission'] = permission_dict
+        policy_dict = model_to_dict(SectionService._section_policy_update(section, **kwargs))
+        del policy_dict['section']
+        section_dict['policy'] = policy_dict
         return 201, section_dict
 
     def update(self, section_id, name=None, nick=None, description=None,
                owner_uuid=None, moderator_uuids=None, assistant_uuids=None,
                status=Section.NORMAL, read_level=0, only_roles=False,
                role_ids=None, only_groups=False, group_ids=None, **kwargs):
-        update_level, _ = self.get_permission_level(PermissionName.SECTION_UPDATE)
+        update_level, policy_level = self.get_permission_level(PermissionName.SECTION_UPDATE)
         op = update_level.is_gt_lv9()
         try:
             section = Section.objects.get(id=section_id)
@@ -199,6 +207,12 @@ class SectionService(Service):
             permission_dict = model_to_dict(section.sectionpermission)
         del permission_dict['section']
         section_dict['permission'] = permission_dict
+        if self._has_set_permission(permission.set_policy, set_role, policy_level.is_gt_lv10()):
+            policy_dict = model_to_dict(SectionService._section_policy_update(section, **kwargs))
+        else:
+            policy_dict = model_to_dict(section.sectionpolicy)
+        del policy_dict['section']
+        section_dict['policy'] = policy_dict
         return 200, section_dict
 
     def delete(self, delete_id, force):
@@ -226,7 +240,7 @@ class SectionService(Service):
             result['status'] = 'PERMISSION_DENIED'
         return result
 
-    def _has_get_permission(self, section):
+    def has_get_permission(self, section):
         get_level, read_level = self.get_permission_level(PermissionName.SECTION_PERMISSION, False)
         set_role = self._is_manager(section=section)
         if section.status == Section.CANCEL:
@@ -306,3 +320,20 @@ class SectionService(Service):
                 setattr(section_permission, key, value)
         section_permission.save()
         return section_permission
+
+    @staticmethod
+    def _section_policy_update(section, **kwargs):
+        section_policy = section.sectionpolicy
+        for key in kwargs:
+            if key in SectionService.SECTION_POLICY_FIELD and kwargs[key] is not None:
+                if kwargs[key] == 'true':
+                    value = True
+                elif kwargs[key] == 'false':
+                    value = False
+                elif kwargs[key] == '':
+                    value = None
+                else:
+                    value = int(kwargs[key])
+                setattr(section_policy, key, value)
+        section_policy.save()
+        return section_policy

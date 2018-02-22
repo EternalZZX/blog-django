@@ -46,6 +46,8 @@
 - Section Update 可编辑所有版块权限
 2. MAJOR LEVEL9
 - Section Update 可编辑所有版块
+3. MINOR LEVEL10
+- Section Update 可编辑所有版块策略
 """
 
 """

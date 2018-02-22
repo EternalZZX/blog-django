@@ -36,6 +36,17 @@ class Section(models.Model, BaseModel):
         db_table = 'section'
 
 
+class SectionPolicy(models.Model):
+    section = models.OneToOneField(Section, primary_key=True)
+    article_mute = models.BooleanField(default=False)
+    reply_mute = models.BooleanField(default=False)
+    max_articles = models.IntegerField(null=True)
+    max_articles_one_day = models.IntegerField(null=True)
+
+    class Meta:
+        db_table = 'section_policy'
+
+
 class SectionPermission(models.Model):
     OWNER = 0
     MODERATOR = 1
@@ -60,6 +71,7 @@ class SectionPermission(models.Model):
     cancel_visible = models.IntegerField(choices=PERMISSION_CHOICES, default=MANAGER)
     set_read_level = models.IntegerField(choices=PERMISSION_CHOICES, default=MODERATOR)
     set_read_user = models.IntegerField(choices=PERMISSION_CHOICES, default=MODERATOR)
+    set_policy = models.IntegerField(choices=PERMISSION_CHOICES, default=MODERATOR)
 
     class Meta:
         db_table = 'section_permission'
@@ -68,4 +80,5 @@ class SectionPermission(models.Model):
 @receiver(models.signals.post_save, sender=Section, dispatch_uid='models.section_obj_create')
 def section_obj_create(sender, instance, created, **kwargs):
     if created:
+        SectionPolicy.objects.create(section=instance)
         SectionPermission.objects.create(section=instance)
