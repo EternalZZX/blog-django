@@ -90,16 +90,18 @@ class PermissionName(StaticObject):
     ROLE_UPDATE = 'role_update'
     ROLE_SELECT = 'role_select'
 
-    ARTICLE_CREATE = 'article_create'
-    ARTICLE_DELETE = 'article_delete'
-    ARTICLE_UPDATE = 'article_update'
-    ARTICLE_SELECT = 'article_select'
-
     SECTION_CREATE = 'section_create'
     SECTION_DELETE = 'section_delete'
     SECTION_UPDATE = 'section_update'
     SECTION_SELECT = 'section_select'
     SECTION_PERMISSION = 'section_permission'
+
+    ARTICLE_CREATE = 'article_create'
+    ARTICLE_DELETE = 'article_delete'
+    ARTICLE_UPDATE = 'article_update'
+    ARTICLE_SELECT = 'article_select'
+    ARTICLE_STATUS = 'article_status'
+    ARTICLE_PRIVACY = 'article_privacy'
 
 
 class PermissionLevel(StaticObject):

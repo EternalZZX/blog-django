@@ -45,6 +45,7 @@ class AccountErrorMsg:
 class ContentErrorMsg:
     SECTION_NOT_FOUND = 'Section not found'
     SECTION_PERMISSION_DENIED = 'Section permission denied'
+    STATUS_PERMISSION_DENIED = 'Status permission denied'
 
     def __init__(self):
         pass
