@@ -207,7 +207,9 @@ def section_create(request):
                                            'set_owner', 'set_name', 'set_nick', 'set_description',
                                            'set_moderator', 'set_assistant', 'set_status',
                                            'set_cancel', 'cancel_visible', 'set_read_level',
-                                           'set_read_user'
+                                           'set_read_user'，
+                                           策略设置, 参数名'article_mute', 'reply_mute',
+                                           'max_articles', 'max_articles_one_day'
     @apiSuccess {string} data 创建版块信息详情
     @apiSuccessExample {json} Success-Response:
     HTTP/1.1 200 OK
@@ -324,7 +326,9 @@ def section_update(request, section_id):
                                            'set_owner', 'set_name', 'set_nick', 'set_description',
                                            'set_moderator', 'set_assistant', 'set_status',
                                            'set_cancel', 'cancel_visible', 'set_read_level',
-                                           'set_read_user'
+                                           'set_read_user'，
+                                           策略设置, 参数名'article_mute', 'reply_mute',
+                                           'max_articles', 'max_articles_one_day'
     @apiSuccess {string} data 编辑版块信息详情
     @apiSuccessExample {json} Success-Response:
     HTTP/1.1 200 OK

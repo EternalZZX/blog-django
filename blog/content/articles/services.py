@@ -20,8 +20,7 @@ from blog.common.setting import Setting, PermissionName
 
 
 class ArticleService(Service):
-    def create(self, title, keywords=None, content=None,
-               content_url=None, actor_uuids=None, section_id=None,
+    def create(self, title, keywords=None, content=None, actor_uuids=None, section_id=None,
                status=Article.ACTIVE, privacy=Article.PUBLIC, read_level=100):
         self.has_permission(PermissionName.ARTICLE_CREATE)
         article_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, (title + self.uuid + str(time.time())).encode('utf-8')))
@@ -36,7 +35,6 @@ class ArticleService(Service):
                                          title=title,
                                          keywords=keyword_str,
                                          content=content,
-                                         content_url=content_url,
                                          author_id=self.uid,
                                          section=section,
                                          status=status,
