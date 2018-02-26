@@ -14,17 +14,23 @@
 - Article List 可自定义排序查询
 5. MINOR LEVEL1
 - Article List 可排序查询
+"""
 
+"""
 @apiDefine ARTICLE_CREATE
 文章创建权限
 - 文章创建权限
+"""
 
+"""
 @apiDefine ARTICLE_PERMISSION
 文章越权权限
 1. MAJOR LEVEL10
 - Article Get    可查看所有状态文章
 - Article List   可查看所有状态文章
+"""
 
+"""
 @apiDefine ARTICLE_AUDIT
 文章审核权限
 1. MAJOR LEVEL10
@@ -39,7 +45,9 @@
 - Article Update 可修改文章为审核通过状态
 - Article Create 可创建文章为审核未通过状态
 - Article Update 可修改文章为审核未通过状态
+"""
 
+"""
 @apiDefine ARTICLE_CANCEL
 文章注销权限
 1. MAJOR LEVEL10
@@ -51,7 +59,9 @@
 3. MINOR LEVEL1
 - Article Update 可修改自身文章为注销状态
 - Article Delete 可修改自身文章为注销状态
+"""
 
+"""
 @apiDefine ARTICLE_PRIVACY
 文章私有权限
 1. MAJOR LEVEL10
@@ -63,7 +73,9 @@
 2. MINOR LEVEL1
 - Article Create 可创建文章为受保护
 - Article Update 可修改文章为受保护
+"""
 
+"""
 @apiDefine ARTICLE_READ
 文章阅读权限
 1. MAJOR LEVEL10
@@ -75,12 +87,16 @@
 3. MINOR LEVEL1
 - Article Create 可创建文章为小于等于自身的阅读等级
 - Article Update 可修改文章为小于等于自身的阅读等级
+"""
 
+"""
 @apiDefine ARTICLE_UPDATE
 文章编辑权限
 1. MAJOR LEVEL10
 - Article Update 可编辑所有文章
+"""
 
+"""
 @apiDefine ARTICLE_DELETE
 文章删除权限
 - 文章删除权限
