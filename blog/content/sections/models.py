@@ -38,6 +38,7 @@ class Section(models.Model, BaseModel):
 
 class SectionPolicy(models.Model):
     section = models.OneToOneField(Section, primary_key=True)
+    auto_audit = models.BooleanField(default=False)
     article_mute = models.BooleanField(default=False)
     reply_mute = models.BooleanField(default=False)
     max_articles = models.IntegerField(null=True)
@@ -53,8 +54,8 @@ class SectionPermission(models.Model):
     MANAGER = 2
     PERMISSION_CHOICES = (
         (OWNER, 'owner'),
-        (MODERATOR, 'moderator'),
-        (MANAGER, 'moderator and assistant')
+        (MODERATOR, 'owner and moderator'),
+        (MANAGER, 'owner, moderator and assistant')
     )
 
     section = models.OneToOneField(Section, primary_key=True)
@@ -72,6 +73,11 @@ class SectionPermission(models.Model):
     set_read_level = models.IntegerField(choices=PERMISSION_CHOICES, default=MODERATOR)
     set_read_user = models.IntegerField(choices=PERMISSION_CHOICES, default=MODERATOR)
     set_policy = models.IntegerField(choices=PERMISSION_CHOICES, default=MODERATOR)
+    article_audit = models.IntegerField(choices=PERMISSION_CHOICES, default=MANAGER)
+    article_draft = models.IntegerField(choices=PERMISSION_CHOICES, default=MODERATOR)
+    article_recycled = models.IntegerField(choices=PERMISSION_CHOICES, default=MODERATOR)
+    article_cancel = models.IntegerField(choices=PERMISSION_CHOICES, default=MANAGER)
+    article_delete = models.IntegerField(choices=PERMISSION_CHOICES, default=MODERATOR)
 
     class Meta:
         db_table = 'section_permission'

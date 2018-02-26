@@ -20,13 +20,15 @@ class SectionService(Service):
                          'status', 'owner', 'moderators', 'assistants',
                          'only_roles', 'roles', 'only_groups', 'groups',
                          'create_at']
-    SECTION_POLICY_FIELD = ['article_mute', 'reply_mute', 'max_articles',
-                            'max_articles_one_day']
+    SECTION_POLICY_FIELD = ['auto_audit', 'article_mute', 'reply_mute',
+                            'max_articles', 'max_articles_one_day']
     SECTION_PERMISSION_FIELD = ['set_permission', 'delete_permission', 'set_owner',
                                 'set_name', 'set_nick', 'set_description',
                                 'set_moderator', 'set_assistant', 'set_status',
                                 'set_cancel', 'cancel_visible', 'set_read_level',
-                                'set_read_user']
+                                'set_read_user', 'set_policy', 'article_audit',
+                                'article_draft', 'article_recycled', 'article_cancel',
+                                'article_delete']
 
     class SectionRole:
         def __init__(self, is_owner, is_moderator, is_assistant):
@@ -167,32 +169,32 @@ class SectionService(Service):
         except Section.DoesNotExist:
             raise ServiceError(code=404,
                                message=ContentErrorMsg.SECTION_NOT_FOUND)
-        set_role = self._is_manager(section=section)
+        set_role = self.is_manager(section=section)
         permission = section.sectionpermission
-        if name and self._has_set_permission(permission.set_name, set_role, op) and \
+        if name and self.has_set_permission(permission.set_name, set_role, op) and \
                 SectionService.is_unique(model_obj=Section, exclude_id=section_id, name=name):
             section.name = name
-        if nick and self._has_set_permission(permission.set_nick, set_role, op):
+        if nick and self.has_set_permission(permission.set_nick, set_role, op):
             section.nick = nick
-        if description is not None and self._has_set_permission(permission.set_description, set_role, op):
+        if description is not None and self.has_set_permission(permission.set_description, set_role, op):
             section.update_char_field('description', description)
-        if owner_uuid and self._has_set_permission(permission.set_owner, set_role, op):
+        if owner_uuid and self.has_set_permission(permission.set_owner, set_role, op):
             try:
                 section.owner_id = User.objects.get(uuid=owner_uuid).id
             except User.DoesNotExist:
                 raise ServiceError(message=AccountErrorMsg.USER_NOT_FOUND)
-        if moderator_uuids is not None and self._has_set_permission(permission.set_moderator, set_role, op):
+        if moderator_uuids is not None and self.has_set_permission(permission.set_moderator, set_role, op):
             section.update_m2m_field(section.moderators, User, moderator_uuids, id_field='uuid')
-        if assistant_uuids is not None and self._has_set_permission(permission.set_assistant, set_role, op):
+        if assistant_uuids is not None and self.has_set_permission(permission.set_assistant, set_role, op):
             section.update_m2m_field(section.assistants, User, assistant_uuids, id_field='uuid')
         if status is not None:
-            if status != Section.CANCEL and self._has_set_permission(permission.set_status, set_role, op):
+            if status != Section.CANCEL and self.has_set_permission(permission.set_status, set_role, op):
                 section.status = SectionService.choices_format(status, Section.STATUS_CHOICES, Section.NORMAL)
-            elif status == Section.CANCEL and self._has_set_permission(permission.set_cancel, set_role, op):
+            elif status == Section.CANCEL and self.has_set_permission(permission.set_cancel, set_role, op):
                 section.status = Section.CANCEL
-        if read_level is not None and self._has_set_permission(permission.set_read_level, set_role, op):
+        if read_level is not None and self.has_set_permission(permission.set_read_level, set_role, op):
             section.read_level = int(read_level)
-        if self._has_set_permission(permission.set_read_user, set_role, op):
+        if self.has_set_permission(permission.set_read_user, set_role, op):
             if only_roles is not None:
                 section.only_roles = only_roles
             section.update_m2m_field(section.roles, Role, role_ids)
@@ -201,13 +203,13 @@ class SectionService(Service):
             section.update_m2m_field(section.groups, Group, group_ids)
         section.save()
         section_dict = SectionService._section_to_dict(section=section)
-        if self._has_set_permission(permission.set_permission, set_role, update_level.is_gt_lv10()):
+        if self.has_set_permission(permission.set_permission, set_role, update_level.is_gt_lv10()):
             permission_dict = model_to_dict(SectionService._section_permission_update(section, **kwargs))
         else:
             permission_dict = model_to_dict(section.sectionpermission)
         del permission_dict['section']
         section_dict['permission'] = permission_dict
-        if self._has_set_permission(permission.set_policy, set_role, policy_level.is_gt_lv10()):
+        if self.has_set_permission(permission.set_policy, set_role, policy_level.is_gt_lv10()):
             policy_dict = model_to_dict(SectionService._section_policy_update(section, **kwargs))
         else:
             policy_dict = model_to_dict(section.sectionpolicy)
@@ -221,15 +223,15 @@ class SectionService(Service):
         try:
             section = Section.objects.get(id=delete_id)
             result['nick'], result['status'] = section.nick, 'SUCCESS'
-            set_role = self._is_manager(section=section)
+            set_role = self.is_manager(section=section)
             permission = section.sectionpermission
             if force:
-                if self._has_set_permission(permission.delete_permission, set_role, delete_level.is_gt_lv10()):
+                if self.has_set_permission(permission.delete_permission, set_role, delete_level.is_gt_lv10()):
                     section.delete()
                 else:
                     raise ServiceError()
             else:
-                if self._has_set_permission(permission.set_cancel, set_role, cancel_level.is_gt_lv10()):
+                if self.has_set_permission(permission.set_cancel, set_role, cancel_level.is_gt_lv10()):
                     section.status = Section.CANCEL
                     section.save()
                 else:
@@ -240,13 +242,26 @@ class SectionService(Service):
             result['status'] = 'PERMISSION_DENIED'
         return result
 
+    def is_manager(self, section):
+        is_owner = section.owner_id == self.uid
+        is_moderator, is_assistant = True, True
+        try:
+            section.moderators.get(uuid=self.uuid)
+        except User.DoesNotExist:
+            is_moderator = False
+        try:
+            section.assistants.get(uuid=self.uuid)
+        except User.DoesNotExist:
+            is_assistant = False
+        return self.SectionRole(is_owner, is_moderator, is_assistant)
+
     def has_get_permission(self, section):
         get_level, read_level = self.get_permission_level(PermissionName.SECTION_PERMISSION, False)
-        set_role = self._is_manager(section=section)
+        set_role = self.is_manager(section=section)
         if section.status == Section.CANCEL:
             cancel_visible = section.sectionpermission.cancel_visible
-            if SectionService._has_set_permission(permission=cancel_visible,
-                                                  set_role=set_role):
+            if SectionService.has_set_permission(permission=cancel_visible,
+                                                 set_role=set_role):
                 return True, True
             elif get_level.is_gt_lv10():
                 return True, read_level.is_gt_lv10()
@@ -273,21 +288,8 @@ class SectionService(Service):
                     return section.status != Section.HIDE, False
         return True, True
 
-    def _is_manager(self, section):
-        is_owner = section.owner_id == self.uid
-        is_moderator, is_assistant = True, True
-        try:
-            section.moderators.get(uuid=self.uuid)
-        except User.DoesNotExist:
-            is_moderator = False
-        try:
-            section.assistants.get(uuid=self.uuid)
-        except User.DoesNotExist:
-            is_assistant = False
-        return self.SectionRole(is_owner, is_moderator, is_assistant)
-
     @staticmethod
-    def _has_set_permission(permission, set_role, op=False):
+    def has_set_permission(permission, set_role, op=False):
         if op or permission == SectionPermission.OWNER and set_role.is_owner or \
                 permission == SectionPermission.MODERATOR and set_role.is_moderator or \
                 permission == SectionPermission.MANAGER and set_role.is_manager:

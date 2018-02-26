@@ -43,6 +43,7 @@ class AccountErrorMsg:
 
 
 class ContentErrorMsg:
+    ARTICLE_NOT_FOUND = 'Article not found'
     SECTION_NOT_FOUND = 'Section not found'
     SECTION_PERMISSION_DENIED = 'Section permission denied'
     STATUS_PERMISSION_DENIED = 'Status permission denied'

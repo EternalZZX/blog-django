@@ -28,7 +28,61 @@ def article_operate(request, article_uuid=None):
 
 
 def article_get(request, article_uuid):
-    pass
+    """
+    @api {get} /content/articles/{id}/ article get
+    @apiVersion 0.1.0
+    @apiName article_get
+    @apiGroup content
+    @apiDescription 获取文章信息详情
+    @apiPermission ARTICLE_SELECT
+    @apiPermission ARTICLE_PERMISSION
+    @apiPermission ARTICLE_PRIVACY
+    @apiPermission ARTICLE_READ
+    @apiPermission ARTICLE_CANCEL
+    @apiPermission ARTICLE_AUDIT
+    @apiUse Header
+    @apiSuccess {string} data 文章信息详情
+    @apiSuccessExample {json} Success-Response:
+    HTTP/1.1 200 OK
+    {
+        "data": {
+            "status": 1,
+            "dislike_count": 0,
+            "edit_at": "2018-02-23T02:14:56Z",
+            "uuid": "11d9fc3a-051f-5271-b1e1-65c192b63105",
+            "title": "test-article",
+            "read_level": 200,
+            "section": 18,
+            "author": {
+                "remark": null,
+                "uuid": "7357d28a-a611-5efd-ae6e-a550a5b95487",
+                "create_at": "2017-12-20T11:19:17Z",
+                "nick": "admin",
+                "role": 1,
+                "groups": []
+            },
+            "create_at": "2018-02-23T02:25:47Z",
+            "content_url": null,
+            "content": "content...",
+            "privacy": 1,
+            "like_count": 0,
+            "keywords": "keyword1;keyword2;",
+            "id": 1
+        }
+    }
+    @apiUse ErrorData
+    @apiErrorExample {json} Error-Response:
+    HTTP/1.1 404 Not Found
+    {
+        "data": "Article not found"
+    }
+    """
+    try:
+        code, data = ArticleService(request).get(article_uuid=article_uuid)
+    except Exception as e:
+        code, data = getattr(e, 'code', 400), \
+                     getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
+    return Response(code=code, data=data)
 
 
 def article_list(request):
@@ -43,14 +97,15 @@ def article_create(request):
     @apiGroup content
     @apiDescription 创建文章
     @apiPermission ARTICLE_CREATE
-    @apiPermission ARTICLE_STATUS
     @apiPermission ARTICLE_PRIVACY
+    @apiPermission ARTICLE_READ
+    @apiPermission ARTICLE_CANCEL
+    @apiPermission ARTICLE_AUDIT
     @apiUse Header
     @apiParam {string} title 文章标题
     @apiParam {string} [keywords] 文章关键词，e.g.'keyword1;keyword2'
     @apiParam {string} [content] 文章内容
     @apiParam {string} [section_id] 文章所属板块ID
-    @apiParam {string} [actor_uuids] 文章编辑参与者UUID列表，e.g.'4be0643f-1d98-573b-97cd-ca98a65347dd'
     @apiParam {number=0, 1, 2, 3, 4, 5} [status=1] 文章状态, Cancel=0, Active=1, Draft=2, Audit=3, Failed=4, Recycled=5
     @apiParam {number=0, 1, 2} [privacy=1] 文章私有状态, Private=0, Public=1, Protected=2
     @apiParam {number} [read_level=100] 文章需求阅读等级
@@ -79,9 +134,7 @@ def article_create(request):
             "content": "content...",
             "privacy": 1,
             "like_count": 0,
-            "actors": [],
             "keywords": "keyword1;keyword2",
-            "last_editor": 1,
             "id": 1
         }
     }
@@ -95,18 +148,15 @@ def article_create(request):
     title = request.POST.get('title')
     keywords = request.POST.get('keywords')
     content = request.POST.get('content')
-    actor_uuids = request.POST.get('actor_uuids')
     section_id = request.POST.get('section_id')
     status = request.POST.get('status')
     privacy = request.POST.get('privacy')
     read_level = request.POST.get('read_level')
     try:
         keywords = str_to_list(keywords)
-        actor_uuids = str_to_list(actor_uuids)
         code, data = ArticleService(request).create(title=title,
                                                     keywords=keywords,
                                                     content=content,
-                                                    actor_uuids=actor_uuids,
                                                     section_id=section_id,
                                                     status=status,
                                                     privacy=privacy,

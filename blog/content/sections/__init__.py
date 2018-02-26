@@ -14,9 +14,7 @@
 - Section List 可自定义排序查询
 5. MINOR LEVEL1
 - Section List 可排序查询
-"""
 
-"""
 @apiDefine SECTION_PERMISSION
 版块越权权限
 1. MAJOR LEVEL10
@@ -31,15 +29,11 @@
 2. MINOR LEVEL9
 - Section List 可获取隐藏版块读权限
 - Section Get  可获取隐藏版块读权限
-"""
 
-"""
 @apiDefine SECTION_CREATE
 版块创建权限
 - 版块创建权限
-"""
 
-"""
 @apiDefine SECTION_UPDATE
 版块编辑权限
 1. MAJOR LEVEL10
@@ -48,9 +42,7 @@
 - Section Update 可编辑所有版块
 3. MINOR LEVEL10
 - Section Update 可编辑所有版块策略
-"""
 
-"""
 @apiDefine SECTION_DELETE
 版块删除权限
 1. MAJOR LEVEL10

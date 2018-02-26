@@ -42,7 +42,6 @@ class Article(models.Model):
     content = models.TextField(null=True)
     content_url = models.CharField(null=True, max_length=1000)
     author = models.ForeignKey(to=User, related_name='author')
-    actors = models.ManyToManyField(to=User, related_name='actor')
     section = models.ForeignKey(Section, null=True, on_delete=models.SET_NULL)
     status = models.IntegerField(choices=STATUS_CHOICES, default=ACTIVE)
     privacy = models.IntegerField(choices=PRIVACY_CHOICES, default=PUBLIC)
@@ -50,7 +49,6 @@ class Article(models.Model):
     like_count = models.IntegerField(default=0)
     dislike_count = models.IntegerField(default=0)
     create_at = models.DateTimeField(auto_now_add=True)
-    last_editor = models.ForeignKey(to=User, related_name='last_editor')
     edit_at = models.DateTimeField(default=datetime.now())
 
     class Meta:

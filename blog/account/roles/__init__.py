@@ -14,21 +14,15 @@
 - Role List 可自定义排序查询
 5. MINOR LEVEL1
 - Role List 可排序查询
-"""
 
-"""
 @apiDefine ROLE_CREATE
 角色创建权限
 - 角色创建权限
-"""
 
-"""
 @apiDefine ROLE_UPDATE
 角色编辑权限
 - 角色编辑权限
-"""
 
-"""
 @apiDefine ROLE_DELETE
 角色删除权限
 - 角色删除权限

@@ -100,8 +100,11 @@ class PermissionName(StaticObject):
     ARTICLE_DELETE = 'article_delete'
     ARTICLE_UPDATE = 'article_update'
     ARTICLE_SELECT = 'article_select'
-    ARTICLE_STATUS = 'article_status'
+    ARTICLE_PERMISSION = 'article_permission'
+    ARTICLE_AUDIT = 'article_audit'
+    ARTICLE_CANCEL = 'article_cancel'
     ARTICLE_PRIVACY = 'article_privacy'
+    ARTICLE_READ = 'article_read'
 
 
 class PermissionLevel(StaticObject):
