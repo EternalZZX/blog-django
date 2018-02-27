@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import re
+
 from Crypto.Hash import MD5
 
 from django.http import JsonResponse
@@ -113,6 +115,10 @@ def str_to_list(data):
         return [item for item in data.split(';') if item]
     else:
         return []
+
+
+def html_to_str(html):
+    return re.compile(r'<[^>]+>', re.S).sub('', html)
 
 
 def encode(data, salt):

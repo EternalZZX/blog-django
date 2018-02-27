@@ -39,6 +39,7 @@ class Article(models.Model):
                             editable=False)
     title = models.CharField(max_length=200)
     keywords = models.TextField(null=True)
+    overview = models.CharField(max_length=1000)
     content = models.TextField(null=True)
     content_url = models.CharField(null=True, max_length=1000)
     author = models.ForeignKey(to=User, related_name='author')

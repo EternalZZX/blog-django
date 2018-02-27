@@ -4,10 +4,11 @@
 import uuid
 import time
 
+from functools import reduce
+
 from django.db.models import Q
 from django.utils.timezone import now, timedelta
 
-from blog.account.users.models import User
 from blog.account.users.services import UserService
 from blog.content.sections.models import Section
 from blog.content.sections.services import SectionService
@@ -15,11 +16,16 @@ from blog.content.articles.models import Article
 from blog.common.base import Service
 from blog.common.error import ServiceError
 from blog.common.message import ErrorMsg, ContentErrorMsg
-from blog.common.utils import paging, model_to_dict
+from blog.common.utils import paging, model_to_dict, html_to_str
 from blog.common.setting import Setting, PermissionName
 
 
 class ArticleService(Service):
+    ARTICLE_PUBLIC_FIELD = ['id', 'uuid', 'title', 'keywords', 'overview',
+                            'author', 'section', 'status', 'privacy',
+                            'read_level', 'like_count', 'dislike_count',
+                            'create_at', 'edit_at']
+
     def __init__(self, request):
         super(ArticleService, self).__init__(request=request)
         self.section_service = SectionService(request=request)
@@ -28,7 +34,8 @@ class ArticleService(Service):
         self.has_permission(PermissionName.ARTICLE_SELECT)
         try:
             article = Article.objects.get(uuid=article_uuid)
-            if not self._has_get_permission(article=article):
+            get_permission, read_permission = self._has_get_permission(article=article)
+            if not get_permission:
                 raise Article.DoesNotExist
             article_dict = ArticleService._article_to_dict(article=article)
         except Article.DoesNotExist:
@@ -36,14 +43,87 @@ class ArticleService(Service):
                                message=ContentErrorMsg.ARTICLE_NOT_FOUND)
         return 200, article_dict
 
-    def create(self, title, keywords=None, content=None, section_id=None,
-               status=Article.AUDIT, privacy=Article.PUBLIC, read_level=100):
+    def list(self, page=0, page_size=10, section_id=None, author_uuid=None,
+             status=None, order_field=None, order='desc', query=None,
+             query_field=None):
+        query_level, order_level = self.get_permission_level(PermissionName.ARTICLE_SELECT)
+        articles = Article.objects.all()
+        if section_id:
+            articles = articles.filter(section_id=section_id)
+        if author_uuid:
+            articles = articles.filter(author__uuid=author_uuid)
+        if status:
+            if int(status) in dict(Article.STATUS_CHOICES):
+                articles = articles.filter(status=int(status))
+            else:
+                articles = articles.filter(reduce(self._status_or, list(status)))
+        if order_field:
+            if (order_level.is_gt_lv1() and order_field in ArticleService.ARTICLE_PUBLIC_FIELD) \
+                    or order_level.is_gt_lv10():
+                if order == 'desc':
+                    order_field = '-' + order_field
+                articles = articles.order_by(order_field)
+            else:
+                raise ServiceError(code=400,
+                                   message=ErrorMsg.ORDER_PARAMS_ERROR)
+        if query:
+            if query_field and query_level.is_gt_lv1():
+                if query_field == 'title':
+                    query_field = 'title__icontains'
+                elif query_field == 'keywords':
+                    query_field = 'keywords__icontains'
+                elif query_field == 'content':
+                    query_field = 'content__icontains'
+                elif query_field == 'author':
+                    query_field = 'author__nick__icontains'
+                elif query_field == 'section':
+                    query_field = 'section__nick__icontains'
+                elif query_field == 'status':
+                    query_field = 'status'
+                elif query_level.is_lt_lv10():
+                    raise ServiceError(code=403,
+                                       message=ErrorMsg.QUERY_PERMISSION_DENIED)
+                query_dict = {query_field: query}
+                articles = articles.filter(**query_dict)
+            elif query_level.is_gt_lv2():
+                articles = articles.filter(Q(title__icontains=query) |
+                                           Q(keywords__icontains=query) |
+                                           Q(content__icontains=query) |
+                                           Q(author__nick__icontains=query) |
+                                           Q(section__nick__icontains=query))
+            else:
+                raise ServiceError(code=403,
+                                   message=ErrorMsg.QUERY_PERMISSION_DENIED)
+        article_read_list = {}
+        for article in articles:
+            get_permission, read_permission = self._has_get_permission(article=article)
+            if not get_permission:
+                articles = articles.exclude(id=article.id)
+            else:
+                article_read_list[article.id] = read_permission
+        articles, total = paging(articles, page=page, page_size=page_size)
+        article_dict_list = []
+        for article in articles:
+            article_dict = ArticleService._article_to_dict(article=article,
+                                                           read_permission=article_read_list[article.id])
+            del article_dict['content']
+            del article_dict['content_url']
+            article_dict_list.append(article_dict)
+        return 200, {'articles': article_dict_list, 'total': total}
+
+    def create(self, title, keywords=None, overview=None, content=None,
+               section_id=None, status=Article.AUDIT, privacy=Article.PUBLIC,
+               read_level=100):
         self.has_permission(PermissionName.ARTICLE_CREATE)
         article_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, (title + self.uuid + str(time.time())).encode('utf-8')))
         keyword_str = ''
         for keyword in keywords:
             keyword_str = keyword_str + keyword + ';'
         keyword_str = keyword_str[:-1] if keyword_str else keyword_str
+        if not overview and content:
+            overview = html_to_str(content[:200])
+            if len(content) > 200:
+                overview = overview + '...'
         section = self._get_section(section_id=section_id)
         status = self._get_create_status(status=status, section=section)
         privacy = self._get_privacy(privacy=privacy)
@@ -51,6 +131,7 @@ class ArticleService(Service):
         article = Article.objects.create(uuid=article_uuid,
                                          title=title,
                                          keywords=keyword_str,
+                                         overview=overview,
                                          content=content,
                                          author_id=self.uid,
                                          section=section,
@@ -63,46 +144,52 @@ class ArticleService(Service):
         section = article.section
         is_author = article.author_id == self.uid
         if is_author and article.status != Article.CANCEL:
-            return True
+            return True, True
         permission_level, _ = self.get_permission_level(PermissionName.ARTICLE_PERMISSION, False)
         if permission_level.is_gt_lv10():
-            return True
+            return True, True
         _, read_permission = self.section_service.has_get_permission(article.section)
         if not read_permission:
-            return False
+            return False, False
         if article.status == Article.ACTIVE:
             privacy_level, _ = self.get_permission_level(PermissionName.ARTICLE_PRIVACY, False)
             read_permission_level, _ = self.get_permission_level(PermissionName.ARTICLE_READ, False)
             read_level = self.get_permission_value(PermissionName.READ_LEVEL, False)
             if (article.privacy == Article.PUBLIC or privacy_level.is_gt_lv10()) and \
                     (read_level >= article.read_level or read_permission_level.is_gt_lv10()):
-                return True
-            if self.section_service.is_manager(section=section).is_manager:
-                return True
-            return False
-        if article.status == Article.CANCEL:
+                return True, True
+            set_role = self.section_service.is_manager(section=section)
+            if self.section_service.has_set_permission(permission=section.sectionpermission.article_audit,
+                                                       set_role=set_role):
+                return True, True
+            return article.privacy != Article.PRIVATE, False
+        elif article.status == Article.CANCEL:
             cancel_level, _ = self.get_permission_level(PermissionName.ARTICLE_CANCEL, False)
             if cancel_level.is_gt_lv10():
-                return True
+                return True, True
             set_role = self.section_service.is_manager(section=section)
-            return self.section_service.has_set_permission(permission=section.sectionpermission.article_delete,
-                                                           set_role=set_role)
-        if article.status == Article.AUDIT or article.status == Article.FAILED:
+            if self.section_service.has_set_permission(permission=section.sectionpermission.article_delete,
+                                                       set_role=set_role):
+                return True, True
+        elif article.status == Article.AUDIT or article.status == Article.FAILED:
             audit_level, _ = self.get_permission_level(PermissionName.ARTICLE_AUDIT, False)
             if audit_level.is_gt_lv10():
-                return True
+                return True, True
             set_role = self.section_service.is_manager(section=section)
-            return self.section_service.has_set_permission(permission=section.sectionpermission.article_audit,
-                                                           set_role=set_role)
-        if article.status == Article.DRAFT:
+            if self.section_service.has_set_permission(permission=section.sectionpermission.article_audit,
+                                                       set_role=set_role):
+                return True, True
+        elif article.status == Article.DRAFT:
             set_role = self.section_service.is_manager(section=section)
-            return self.section_service.has_set_permission(permission=section.sectionpermission.article_draft,
-                                                           set_role=set_role)
-        if article.status == Article.RECYCLED:
+            if self.section_service.has_set_permission(permission=section.sectionpermission.article_draft,
+                                                       set_role=set_role):
+                return True, True
+        elif article.status == Article.RECYCLED:
             set_role = self.section_service.is_manager(section=section)
-            return self.section_service.has_set_permission(permission=section.sectionpermission.article_recycled,
-                                                           set_role=set_role)
-        return False
+            if self.section_service.has_set_permission(permission=section.sectionpermission.article_recycled,
+                                                       set_role=set_role):
+                return True, True
+        return False, False
 
     def _get_section(self, section_id):
         section = None
@@ -222,3 +309,7 @@ class ArticleService(Service):
         for key in kwargs:
             article_dict[key] = kwargs[key]
         return article_dict
+
+    @staticmethod
+    def _status_or(a, b):
+        return (a if isinstance(a, Q) else Q(status=int(a))) | Q(status=int(b))
