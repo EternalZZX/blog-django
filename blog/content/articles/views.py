@@ -213,10 +213,10 @@ def article_create(request):
         "data": {
             "status": 1,
             "dislike_count": 0,
-            "edit_at": "2018-02-23T10:14:56.189",
+            "edit_at": "2018-02-28",
             "uuid": "11d9fc3a-051f-5271-b1e1-65c192b63105",
-            "title": "test-article",
-            "read_level": 200,
+            "title": "test-update2",
+            "overview": "",
             "section": 18,
             "author": {
                 "remark": null,
@@ -226,12 +226,21 @@ def article_create(request):
                 "role": 1,
                 "groups": []
             },
-            "create_at": "2018-02-23T02:25:47.382Z",
+            "create_at": "2018-02-23T02:25:47Z",
             "content_url": null,
             "content": "content...",
             "privacy": 1,
             "like_count": 0,
+            "read_level": 200,
             "keywords": "keyword1;keyword2",
+            "last_editor": {
+                "remark": null,
+                "uuid": "4be0643f-1d98-573b-97cd-ca98a65347dd",
+                "create_at": "2017-12-20T06:00:07Z",
+                "nick": "test",
+                "role": 2,
+                "groups": []
+            },
             "id": 1
         }
     }
@@ -267,6 +276,74 @@ def article_create(request):
 
 
 def article_update(request, article_uuid):
+    """
+    @api {put} /content/articles/{id}/ article update
+    @apiVersion 0.1.0
+    @apiName article_update
+    @apiGroup content
+    @apiDescription 编辑文章
+    @apiPermission ARTICLE_UPDATE
+    @apiPermission ARTICLE_PRIVACY
+    @apiPermission ARTICLE_READ
+    @apiPermission ARTICLE_CANCEL
+    @apiPermission ARTICLE_AUDIT
+    @apiUse Header
+    @apiParam {string} title 文章标题
+    @apiParam {string} [keywords] 文章关键词，e.g.'keyword1;keyword2'
+    @apiParam {string} [overview] 文章概述
+    @apiParam {string} [content] 文章内容
+    @apiParam {string} [section_id] 文章所属板块ID
+    @apiParam {number=0, 1, 2, 3, 4, 5} [status=1] 文章状态, Cancel=0, Active=1, Draft=2, Audit=3,
+                                                   Failed=4, Recycled=5
+    @apiParam {number=0, 1, 2} [privacy=1] 文章私有状态, Private=0, Public=1, Protected=2
+    @apiParam {number} [read_level=100] 文章需求阅读等级
+    @apiParam {number} [like_count=1] 文章点赞
+    @apiParam {number} [dislike_count=1] 文章取消点赞
+    @apiSuccess {string} data 编辑文章信息详情
+    @apiSuccessExample {json} Success-Response:
+    HTTP/1.1 200 OK
+    {
+        "data": {
+            "status": 1,
+            "dislike_count": 0,
+            "edit_at": "2018-02-28",
+            "uuid": "11d9fc3a-051f-5271-b1e1-65c192b63105",
+            "title": "test-update2",
+            "overview": "",
+            "section": 18,
+            "author": {
+                "remark": null,
+                "uuid": "7357d28a-a611-5efd-ae6e-a550a5b95487",
+                "create_at": "2017-12-20T11:19:17Z",
+                "nick": "admin",
+                "role": 1,
+                "groups": []
+            },
+            "create_at": "2018-02-23T02:25:47Z",
+            "content_url": null,
+            "content": "content...",
+            "privacy": 1,
+            "like_count": 0,
+            "read_level": 200,
+            "keywords": "keyword1;keyword2",
+            "last_editor": {
+                "remark": null,
+                "uuid": "4be0643f-1d98-573b-97cd-ca98a65347dd",
+                "create_at": "2017-12-20T06:00:07Z",
+                "nick": "test",
+                "role": 2,
+                "groups": []
+            },
+            "id": 1
+        }
+    }
+    @apiUse ErrorData
+    @apiErrorExample {json} Error-Response:
+    HTTP/1.1 403 Forbidden
+    {
+        "data": "Permission denied"
+    }
+    """
     data = QueryDict(request.body)
     title = data.get('title')
     keywords = data.get('keywords')

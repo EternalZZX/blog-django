@@ -153,6 +153,7 @@ class ArticleService(Service):
             raise ServiceError(code=404,
                                message=ContentErrorMsg.ARTICLE_NOT_FOUND)
         if like_count or dislike_count:
+            _, read_permission = self._has_get_permission(article=article)
             #Todo article like list
             pass
         is_self = article.author_id == self.uid
