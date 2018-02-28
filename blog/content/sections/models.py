@@ -74,6 +74,7 @@ class SectionPermission(models.Model):
     set_read_user = models.IntegerField(choices=PERMISSION_CHOICES, default=MODERATOR)
     set_policy = models.IntegerField(choices=PERMISSION_CHOICES, default=MODERATOR)
     article_audit = models.IntegerField(choices=PERMISSION_CHOICES, default=MANAGER)
+    article_edit = models.IntegerField(choices=PERMISSION_CHOICES, default=MODERATOR)
     article_draft = models.IntegerField(choices=PERMISSION_CHOICES, default=MODERATOR)
     article_recycled = models.IntegerField(choices=PERMISSION_CHOICES, default=MODERATOR)
     article_cancel = models.IntegerField(choices=PERMISSION_CHOICES, default=MANAGER)

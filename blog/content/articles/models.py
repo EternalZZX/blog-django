@@ -3,11 +3,12 @@ import uuid
 from datetime import datetime
 from django.db import models
 
+from blog.common.tools import BaseModel
 from blog.account.users.models import User
 from blog.content.sections.models import Section
 
 
-class Article(models.Model):
+class Article(models.Model, BaseModel):
     CANCEL = 0
     ACTIVE = 1
     DRAFT = 2
@@ -50,6 +51,7 @@ class Article(models.Model):
     like_count = models.IntegerField(default=0)
     dislike_count = models.IntegerField(default=0)
     create_at = models.DateTimeField(auto_now_add=True)
+    last_editor = models.ForeignKey(to=User, related_name='last_editor')
     edit_at = models.DateTimeField(default=datetime.now())
 
     class Meta:

@@ -27,8 +27,8 @@ class SectionService(Service):
                                 'set_moderator', 'set_assistant', 'set_status',
                                 'set_cancel', 'cancel_visible', 'set_read_level',
                                 'set_read_user', 'set_policy', 'article_audit',
-                                'article_draft', 'article_recycled', 'article_cancel',
-                                'article_delete']
+                                'article_edit', 'article_draft', 'article_recycled',
+                                'article_cancel', 'article_delete']
 
     class SectionRole:
         def __init__(self, is_owner, is_moderator, is_assistant):

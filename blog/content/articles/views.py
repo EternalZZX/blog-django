@@ -267,7 +267,35 @@ def article_create(request):
 
 
 def article_update(request, article_uuid):
-    pass
+    data = QueryDict(request.body)
+    title = data.get('title')
+    keywords = data.get('keywords')
+    overview = data.get('overview')
+    content = data.get('content')
+    section_id = data.get('section_id')
+    status = data.get('status')
+    privacy = data.get('privacy')
+    read_level = data.get('read_level')
+    like_count = data.get('like_count')
+    dislike_count = data.get('dislike_count')
+    try:
+        if keywords is not None:
+            keywords = str_to_list(keywords)
+        code, data = ArticleService(request).update(article_uuid=article_uuid,
+                                                    title=title,
+                                                    keywords=keywords,
+                                                    overview=overview,
+                                                    content=content,
+                                                    section_id=section_id,
+                                                    status=status,
+                                                    privacy=privacy,
+                                                    read_level=read_level,
+                                                    like_count=like_count,
+                                                    dislike_count=dislike_count)
+    except Exception as e:
+        code, data = getattr(e, 'code', 400), \
+                     getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
+    return Response(code=code, data=data)
 
 
 def article_delete(request, article_uuid):
