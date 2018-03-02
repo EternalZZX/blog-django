@@ -154,7 +154,7 @@ class ArticleService(Service):
                                message=ContentErrorMsg.ARTICLE_NOT_FOUND)
         if like_count or dislike_count:
             _, read_permission = self._has_get_permission(article=article)
-            #Todo article like list
+            # Todo article like list
             pass
         is_self = article.author_id == self.uid
         is_content_change, is_edit = False, False
@@ -163,7 +163,7 @@ class ArticleService(Service):
             permission=article.section.sectionpermission.article_edit,
             set_role=set_role,
             op=update_level.is_gt_lv10())
-        if is_self or edit_permission:
+        if is_self and update_level.is_gt_lv1() or edit_permission:
             if title and title != article.title:
                 article.title, is_content_change = title, True
             if keywords is not None:
@@ -205,6 +205,32 @@ class ArticleService(Service):
                 article.status = status if Setting().ARTICLE_AUDIT else article.status
         article.save()
         return 200, ArticleService._article_to_dict(article=article)
+
+    def delete(self, delete_id, force):
+        if force:
+            self.has_permission(PermissionName.ARTICLE_DELETE)
+        else:
+            self.has_permission(PermissionName.ARTICLE_CANCEL)
+        result = {'id': delete_id}
+        try:
+            article = Article.objects.get(uuid=delete_id)
+            result['nick'], result['status'] = article.title, 'SUCCESS'
+            if force:
+                if self._has_delete_permission(article=article):
+                    article.delete()
+                else:
+                    raise ServiceError()
+            else:
+                if Setting().ARTICLE_CANCEL and self._has_cancel_permission(article=article):
+                    article.status = Article.CANCEL
+                    article.save()
+                else:
+                    raise ServiceError()
+        except Article.DoesNotExist:
+            result['status'] = 'NOT_FOUND'
+        except ServiceError:
+            result['status'] = 'PERMISSION_DENIED'
+        return result
 
     def _has_get_permission(self, article):
         section = article.section
@@ -261,6 +287,30 @@ class ArticleService(Service):
                     set_role=set_role):
                 return True, True
         return False, False
+
+    def _has_delete_permission(self, article):
+        delete_level, _ = self.get_permission_level(PermissionName.ARTICLE_DELETE, False)
+        is_self = article.author_id == self.uid
+        if delete_level.is_gt_lv10() or is_self and delete_level.is_gt_lv1():
+            return True
+        set_role = self.section_service.is_manager(section=article.section)
+        if self.section_service.has_set_permission(
+                permission=article.section.sectionpermission.article_delete,
+                set_role=set_role):
+            return True
+        return False
+
+    def _has_cancel_permission(self, article):
+        _, cancel_level = self.get_permission_level(PermissionName.ARTICLE_CANCEL, False)
+        is_self = article.author_id == self.uid
+        if cancel_level.is_gt_lv10() or is_self and cancel_level.is_gt_lv1():
+            return True
+        set_role = self.section_service.is_manager(section=article.section)
+        if self.section_service.has_set_permission(
+                permission=article.section.sectionpermission.article_cancel,
+                set_role=set_role):
+            return True
+        return False
 
     def _get_section(self, section_id):
         section = None

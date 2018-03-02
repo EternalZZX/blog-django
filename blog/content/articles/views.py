@@ -376,4 +376,52 @@ def article_update(request, article_uuid):
 
 
 def article_delete(request, article_uuid):
-    pass
+    """
+    @api {delete} /content/articles/[uuid]/ article delete
+    @apiVersion 0.1.0
+    @apiName article_delete
+    @apiGroup content
+    @apiDescription 删除文章
+    @apiPermission ARTICLE_DELETE
+    @apiUse Header
+    @apiParam {string} [id_list] 删除文章uuid列表，e.g.'11d9fc3a-051f-5271-b1e1-65c192b63105;',
+                                 当使用URL参数uuid时该参数忽略
+    @apiParam {bool=true, false} [force=false] 强制删除
+    @apiSuccess {string} data 文章删除信息详情
+    @apiSuccessExample {json} Success-Response:
+    HTTP/1.1 200 OK
+    {
+        "data": [
+            {
+                "status": "SUCCESS",
+                "id": "11d9fc3a-051f-5271-b1e1-65c192b63105",
+                "name": "title..."
+            }
+        ]
+    }
+    @apiUse ErrorData
+    @apiErrorExample {json} Error-Response:
+    HTTP/1.1 403 Forbidden
+    {
+        "data": "Permission denied"
+    }
+    """
+    data = QueryDict(request.body)
+    force = data.get('force') == 'true'
+    try:
+        if article_uuid:
+            id_list = [{'delete_id': article_uuid, 'force': force}]
+        else:
+            id_list = data.get('id_list')
+            if not isinstance(id_list, (unicode, str)):
+                raise ParamsError()
+            id_list = [{'delete_id': delete_id, 'force': force} for delete_id in id_list.split(';') if delete_id]
+        code, data = 400, map(lambda params: ArticleService(request).delete(**params), id_list)
+        for result in data:
+            if result['status'] == 'SUCCESS':
+                code = 200
+                break
+    except Exception as e:
+        code, data = getattr(e, 'code', 400), \
+                     getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
+    return Response(code=code, data=data)

@@ -94,10 +94,15 @@
 文章编辑权限
 1. MAJOR LEVEL10
 - Article Update 可编辑所有文章
+1. MAJOR LEVEL1
+- Article Update 可编辑自身文章
 """
 
 """
 @apiDefine ARTICLE_DELETE
 文章删除权限
-- 文章删除权限
+1. MAJOR LEVEL10
+- Article Delete 可删除所有文章
+1. MAJOR LEVEL1
+- Article Delete 可删除自身文章
 """
