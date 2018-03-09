@@ -43,6 +43,7 @@ INSTALLED_APPS = (
     'blog.content.albums',
     'blog.content.articles',
     'blog.content.marks',
+    'blog.content.photos',
     'blog.content.sections',
 )
 
@@ -91,7 +92,12 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.7/howto/static-files/
 
+DATA_DIR = os.path.join(BASE_DIR, 'data').replace('\\', '/')
+
 STATIC_URL = '/static/'
+
+MEDIA_ROOT = os.path.join(DATA_DIR, 'media')
+MEDIA_URL = '/media/'
 
 APPEND_SLASH = False
 

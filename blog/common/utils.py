@@ -7,6 +7,7 @@ from Crypto.Hash import MD5
 
 from django.http import JsonResponse
 from django.core.paginator import Paginator, EmptyPage, InvalidPage, PageNotAnInteger
+from django.db.models.fields.files import ImageField
 from django.db.models.fields.related import ManyToManyField
 
 
@@ -102,6 +103,8 @@ def model_to_dict(instance, **kwargs):
                 data[field.name] = []
             else:
                 data[field.name] = list(field.value_from_object(instance).values_list('pk', flat=True))
+        elif isinstance(field, ImageField):
+            data[field.name] = field.value_from_object(instance).url
         else:
             data[field.name] = field.value_from_object(instance)
     for key, value in kwargs.items():
