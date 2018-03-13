@@ -2,11 +2,24 @@
 # -*- coding: utf-8 -*-
 
 from django.http import QueryDict
+from django.http import HttpResponse, JsonResponse
 
 from blog.content.photos.services import PhotoService
 from blog.common.message import ErrorMsg
 from blog.common.error import ParamsError
 from blog.common.utils import Response, json_response, str_to_list
+from blog.common.setting import AuthType
+
+
+
+def photo_show(request):
+    try:
+        code, data = PhotoService(request, auth_type=AuthType.COOKIE).show(request.path)
+        return HttpResponse(data, content_type="image/png")
+    except Exception as e:
+        code, data = getattr(e, 'code', 400), \
+                     getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
+    return JsonResponse({'data': data}, status=code)
 
 @json_response
 def photo_operate(request, photo_uuid=None):
@@ -27,7 +40,12 @@ def photo_operate(request, photo_uuid=None):
 
 
 def photo_get(request, photo_uuid):
-    pass
+    try:
+        code, data = PhotoService(request).get(photo_uuid=photo_uuid)
+    except Exception as e:
+        code, data = getattr(e, 'code', 400), \
+                     getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
+    return Response(code=code, data=data)
 
 
 def photo_list(request):

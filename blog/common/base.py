@@ -14,7 +14,7 @@ from blog.account.users.models import User
 from blog.account.roles.models import Role, RolePermission
 from blog.common.error import AuthError, ServiceError
 from blog.common.message import ErrorMsg, AccountErrorMsg
-from blog.common.setting import Setting, PermissionName, PermissionLevel
+from blog.common.setting import Setting, PermissionName, PermissionLevel, AuthType
 from blog.settings import REDIS_HOSTS, MEMCACHED_HOSTS
 
 
@@ -277,9 +277,10 @@ class LevelObject(object):
 
 
 class Service(object):
-    def __init__(self, request):
+    def __init__(self, request, auth_type=AuthType.HEADER):
         self.request = request
-        self.token = request.META.get('HTTP_AUTH_TOKEN')
+        self.token = request.META.get('HTTP_AUTH_TOKEN') \
+            if auth_type == AuthType.HEADER else request.COOKIES.get('AUTH-TOKEN')
         self.uuid, self.uid, self.role_id = Authorize().auth_token(self.token)
         self.permission = Grant().get_permission(role_id=self.role_id)
         try:

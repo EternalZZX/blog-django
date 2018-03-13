@@ -119,3 +119,7 @@ class PermissionLevel(StaticObject):
     LEVEL_2 = 200
     LEVEL_1 = 100
     LEVEL_0 = 0
+
+class AuthType(StaticObject):
+    COOKIE = 0
+    HEADER = 1
