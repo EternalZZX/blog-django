@@ -115,41 +115,41 @@ def article_list(request):
     HTTP/1.1 200 OK
     {
         "data": {
-            "total": 1,
-            "sections": [
+            "articles": [
                 {
                     "status": 1,
-                    "description": null,
-                    "roles": [],
-                    "read_level": 0,
-                    "create_at": "2018-01-18T08:26:26Z",
-                    "nick": "Python",
-                    "moderators": [
-                        {
-                            "nick": "admin",
-                            "remark": null,
-                            "role": 1,
-                            "create_at": "2017-12-20T11:19:17Z",
-                            "groups": null
-                        }
-                    ],
-                    "rw_permission": true,
-                    "only_groups": false,
-                    "assistants": [
-                        {
-                            "nick": "test",
-                            "remark": null,
-                            "role": 2,
-                            "create_at": "2017-12-20T06:00:07Z",
-                            "groups": null
-                        }
-                    ],
-                    "only_roles": false,
-                    "groups": [],
-                    "id": 6,
-                    "name": "python"
+                    "dislike_count": 0,
+                    "edit_at": "2018-02-27T16:00:00Z",
+                    "uuid": "11d9fc3a-051f-5271-b1e1-65c192b63105",
+                    "title": "test-update2",
+                    "overview": "",
+                    "section": 18,
+                    "author": {
+                        "remark": null,
+                        "uuid": "7357d28a-a611-5efd-ae6e-a550a5b95487",
+                        "create_at": "2017-12-20T11:19:17Z",
+                        "nick": "admin",
+                        "role": 1,
+                        "groups": []
+                    },
+                    "create_at": "2018-02-23T02:25:47Z",
+                    "privacy": 1,
+                    "like_count": 0,
+                    "read_level": 200,
+                    "keywords": "keyword1;keyword2",
+                    "last_editor": {
+                        "remark": null,
+                        "uuid": "4be0643f-1d98-573b-97cd-ca98a65347dd",
+                        "create_at": "2017-12-20T06:00:07Z",
+                        "nick": "test",
+                        "role": 2,
+                        "groups": []
+                    },
+                    "id": 1,
+                    "read_permission": true
                 }
-            ]
+            ],
+            "total": 1
         }
     }
     @apiUse ErrorData

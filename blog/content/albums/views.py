@@ -74,7 +74,75 @@ def album_get(request, album_uuid):
 
 
 def album_list(request):
-    pass
+    """
+    @api {get} /content/albums/ album list
+    @apiVersion 0.1.0
+    @apiName album_list
+    @apiGroup content
+    @apiDescription 获取相册信息列表
+    @apiPermission ALBUM_SELECT
+    @apiPermission ALBUM_PRIVACY
+    @apiUse Header
+    @apiParam {number} [page=0] 相册信息列表页码, 页码为0时返回所有数据
+    @apiParam {number} [page_size=10] 相册信息列表页长
+    @apiParam {string} [author_uuid] 相册作者
+    @apiParam {string} [order_field] 相册信息列表排序字段
+    @apiParam {string=desc, asc} [order="desc"] 相册信息列表排序方向
+    @apiParam {string} [query] 搜索内容，若无搜索字段则全局搜索name, description, author
+    @apiParam {string=name, description, author, DjangoFilterParams} [query_field] 搜索字段, 支持Django filter参数
+    @apiSuccess {String} total 相册信息列表总数
+    @apiSuccess {String} albums 相册信息列表
+    @apiSuccessExample {json} Success-Response:
+    HTTP/1.1 200 OK
+    {
+        "data": {
+            "albums": [
+                {
+                    "description": "description",
+                    "privacy": 1,
+                    "author": {
+                        "remark": null,
+                        "uuid": "4be0643f-1d98-573b-97cd-ca98a65347dd",
+                        "create_at": "2017-12-20T06:00:07Z",
+                        "nick": "test",
+                        "role": 2,
+                        "groups": []
+                    },
+                    "uuid": "0c91df50-0709-574b-86c8-e867fb022521",
+                    "create_at": "2018-03-14T06:11:19Z",
+                    "id": 1,
+                    "name": "test-album"
+                }
+            ],
+            "total": 1
+        }
+    }
+    @apiUse ErrorData
+    @apiErrorExample {json} Error-Response:
+    HTTP/1.1 403 Forbidden
+    {
+        "data": "Query permission denied"
+    }
+    """
+    try:
+        page = request.GET.get('page')
+        page_size = request.GET.get('page_size')
+        author_uuid = request.GET.get('author_uuid')
+        order_field = request.GET.get('order_field')
+        order = request.GET.get('order')
+        query = request.GET.get('query')
+        query_field = request.GET.get('query_field')
+        code, data = AlbumService(request).list(page=page,
+                                                page_size=page_size,
+                                                author_uuid=author_uuid,
+                                                order_field=order_field,
+                                                order=order,
+                                                query=query,
+                                                query_field=query_field)
+    except Exception as e:
+        code, data = getattr(e, 'code', 400), \
+                     getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
+    return Response(code=code, data=data)
 
 
 def album_create(request):
