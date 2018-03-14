@@ -91,6 +91,30 @@ class AlbumService(Service):
         album_dict = AlbumService._album_to_dict(album=album)
         return 201, album_dict
 
+    def update(self, album_uuid, name=None, description=None,
+               author_uuid=None, privacy=Album.PUBLIC):
+        update_level, author_level = self.get_permission_level(PermissionName.ALBUM_UPDATE)
+        try:
+            album = Album.objects.get(uuid=album_uuid)
+        except Album.DoesNotExist:
+            raise ServiceError(code=404,
+                               message=ContentErrorMsg.ALBUM_NOT_FOUND)
+        is_self = album.author_id == self.uid
+        if is_self and update_level.is_gt_lv1() or update_level.is_gt_lv10():
+            if name:
+                album.name = name
+            album.update_char_field('description', description)
+            if author_uuid and author_level.is_gt_lv10():
+                try:
+                    album.author_id = User.objects.get(uuid=author_uuid).id
+                except User.DoesNotExist:
+                    raise ServiceError(message=AccountErrorMsg.USER_NOT_FOUND)
+            if privacy and int(privacy) != album.privacy:
+                album.privacy = self._get_privacy(privacy=privacy)
+        album.save()
+        album_dict = AlbumService._album_to_dict(album=album)
+        return 200, album_dict
+
     def _get_privacy(self, privacy=Album.PUBLIC):
         _, privacy_level = self.get_permission_level(PermissionName.ALBUM_PRIVACY, False)
         privacy = AlbumService.choices_format(privacy, Album.PRIVACY_CHOICES, Album.PUBLIC)
