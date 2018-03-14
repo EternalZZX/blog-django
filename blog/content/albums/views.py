@@ -28,7 +28,49 @@ def album_operate(request, album_uuid=None):
 
 
 def album_get(request, album_uuid):
-    pass
+    """
+    @api {get} /content/albums/{uuid}/ album get
+    @apiVersion 0.1.0
+    @apiName album_get
+    @apiGroup content
+    @apiDescription 获取相册信息详情
+    @apiPermission ALBUM_SELECT
+    @apiPermission ALBUM_PRIVACY
+    @apiUse Header
+    @apiSuccess {string} data 相册信息详情
+    @apiSuccessExample {json} Success-Response:
+    HTTP/1.1 200 OK
+    {
+        "data": {
+            "description": "description",
+            "privacy": 1,
+            "author": {
+                "remark": null,
+                "uuid": "4be0643f-1d98-573b-97cd-ca98a65347dd",
+                "create_at": "2017-12-20T06:00:07Z",
+                "nick": "test",
+                "role": 2,
+                "groups": []
+            },
+            "uuid": "0c91df50-0709-574b-86c8-e867fb022521",
+            "create_at": "2018-03-14T06:11:19Z",
+            "id": 1,
+            "name": "test-album"
+        }
+    }
+    @apiUse ErrorData
+    @apiErrorExample {json} Error-Response:
+    HTTP/1.1 404 Not Found
+    {
+        "data": "Album not found"
+    }
+    """
+    try:
+        code, data = AlbumService(request).get(album_uuid=album_uuid)
+    except Exception as e:
+        code, data = getattr(e, 'code', 400), \
+                     getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
+    return Response(code=code, data=data)
 
 
 def album_list(request):
@@ -43,6 +85,7 @@ def album_create(request):
     @apiGroup content
     @apiDescription 创建相册
     @apiPermission ALBUM_CREATE
+    @apiPermission ALBUM_PRIVACY
     @apiUse Header
     @apiParam {string} name 相册名
     @apiParam {string} [description] 相册描述

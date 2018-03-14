@@ -43,6 +43,7 @@ class AccountErrorMsg:
 
 
 class ContentErrorMsg:
+    ALBUM_NOT_FOUND = 'Album not found'
     ARTICLE_NOT_FOUND = 'Article not found'
     PHOTO_NOT_FOUND = 'Photo not found'
     SECTION_NOT_FOUND = 'Section not found'

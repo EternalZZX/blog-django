@@ -17,6 +17,18 @@ from blog.common.setting import PermissionName
 
 
 class AlbumService(Service):
+    def get(self, album_uuid):
+        self.has_permission(PermissionName.ALBUM_SELECT)
+        try:
+            album = Album.objects.get(uuid=album_uuid)
+            if not self.has_get_permission(album=album):
+                raise Album.DoesNotExist
+            album_dict = AlbumService._album_to_dict(album=album)
+        except Album.DoesNotExist:
+            raise ServiceError(code=404,
+                               message=ContentErrorMsg.ALBUM_NOT_FOUND)
+        return 200, album_dict
+
     def create(self, name, description=None, author_uuid=None, privacy=Album.PUBLIC):
         create_level, _ = self.get_permission_level(PermissionName.ALBUM_CREATE)
         album_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, (name + self.uuid + str(time.time())).encode('utf-8')))
@@ -42,6 +54,15 @@ class AlbumService(Service):
                 privacy == Album.PRIVATE and privacy_level.is_lt_lv2():
             privacy = Album.PUBLIC
         return privacy
+
+    def has_get_permission(self, album):
+        is_self = album.author_id == self.uid
+        if is_self:
+            return True
+        if album.privacy == album.PUBLIC:
+            return True
+        get_level, _ = self.get_permission_level(PermissionName.ALBUM_PRIVACY, False)
+        return get_level.is_gt_lv10()
 
     @staticmethod
     def _album_to_dict(album, **kwargs):
