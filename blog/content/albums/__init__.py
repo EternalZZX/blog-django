@@ -33,3 +33,12 @@
 3. MINOR LEVEL10
 - Album Update 可编辑相册为其他作者
 """
+
+"""
+@apiDefine ALBUM_DELETE
+相册删除权限
+1. MAJOR LEVEL10
+- Album Delete 可删除所有相册
+2. MAJOR LEVEL1
+- Album Delete 可删除自身相册
+"""

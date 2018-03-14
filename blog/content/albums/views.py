@@ -262,4 +262,50 @@ def album_update(request, album_uuid):
 
 
 def album_delete(request, album_uuid):
-    pass
+    """
+    @api {delete} /content/albums/[uuid]/ album delete
+    @apiVersion 0.1.0
+    @apiName album_delete
+    @apiGroup content
+    @apiDescription 删除相册
+    @apiPermission ALBUM_DELETE
+    @apiUse Header
+    @apiParam {string} [id_list] 删除相册uuid列表，e.g.'11d9fc3a-051f-5271-b1e1-65c192b63105;',
+                                 当使用URL参数uuid时该参数忽略
+    @apiSuccess {string} data 相册删除信息详情
+    @apiSuccessExample {json} Success-Response:
+    HTTP/1.1 200 OK
+    {
+        "data": [
+            {
+                "status": "SUCCESS",
+                "nick": "test-album",
+                "id": "174a7ba6-0a15-5402-b827-d3e670218d5b"
+            }
+        ]
+    }
+    @apiUse ErrorData
+    @apiErrorExample {json} Error-Response:
+    HTTP/1.1 403 Forbidden
+    {
+        "data": "Permission denied"
+    }
+    """
+    data = QueryDict(request.body)
+    try:
+        if album_uuid:
+            id_list = [{'delete_id': album_uuid}]
+        else:
+            id_list = data.get('id_list')
+            if not isinstance(id_list, (unicode, str)):
+                raise ParamsError()
+            id_list = [{'delete_id': delete_id} for delete_id in id_list.split(';') if delete_id]
+        code, data = 400, map(lambda params: AlbumService(request).delete(**params), id_list)
+        for result in data:
+            if result['status'] == 'SUCCESS':
+                code = 200
+                break
+    except Exception as e:
+        code, data = getattr(e, 'code', 400), \
+                     getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
+    return Response(code=code, data=data)

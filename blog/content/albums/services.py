@@ -115,6 +115,23 @@ class AlbumService(Service):
         album_dict = AlbumService._album_to_dict(album=album)
         return 200, album_dict
 
+    def delete(self, delete_id):
+        delete_level, _ = self.get_permission_level(PermissionName.ALBUM_DELETE)
+        result = {'id': delete_id}
+        try:
+            album = Album.objects.get(uuid=delete_id)
+            is_self = album.author_id == self.uid
+            result['nick'], result['status'] = album.name, 'SUCCESS'
+            if is_self and delete_level.is_gt_lv1() or delete_level.is_gt_lv10():
+                album.delete()
+            else:
+                raise ServiceError()
+        except Album.DoesNotExist:
+            result['status'] = 'NOT_FOUND'
+        except ServiceError:
+            result['status'] = 'PERMISSION_DENIED'
+        return result
+
     def _get_privacy(self, privacy=Album.PUBLIC):
         _, privacy_level = self.get_permission_level(PermissionName.ALBUM_PRIVACY, False)
         privacy = AlbumService.choices_format(privacy, Album.PRIVACY_CHOICES, Album.PUBLIC)
