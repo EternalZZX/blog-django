@@ -11,7 +11,6 @@ from blog.common.utils import Response, json_response, str_to_list
 from blog.common.setting import AuthType
 
 
-
 def photo_show(request):
     try:
         code, data = PhotoService(request, auth_type=AuthType.COOKIE).show(request.path)
@@ -20,6 +19,7 @@ def photo_show(request):
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
     return JsonResponse({'data': data}, status=code)
+
 
 @json_response
 def photo_operate(request, photo_uuid=None):

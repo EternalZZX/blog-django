@@ -106,6 +106,12 @@ class PermissionName(StaticObject):
     ARTICLE_PRIVACY = 'article_privacy'
     ARTICLE_READ = 'article_read'
 
+    ALBUM_CREATE = 'album_create'
+    ALBUM_DELETE = 'album_delete'
+    ALBUM_UPDATE = 'album_update'
+    ALBUM_SELECT = 'album_select'
+    ALBUM_PRIVACY = 'album_privacy'
+
 
 class PermissionLevel(StaticObject):
     LEVEL_10 = 1000

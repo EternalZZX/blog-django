@@ -280,7 +280,7 @@ class Service(object):
     def __init__(self, request, auth_type=AuthType.HEADER):
         self.request = request
         self.token = request.META.get('HTTP_AUTH_TOKEN') \
-            if auth_type == AuthType.HEADER else request.COOKIES.get('AUTH-TOKEN')
+            if auth_type == AuthType.HEADER else request.COOKIES.get('Auth-Token')
         self.uuid, self.uid, self.role_id = Authorize().auth_token(self.token)
         self.permission = Grant().get_permission(role_id=self.role_id)
         try:
