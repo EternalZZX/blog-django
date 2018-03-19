@@ -104,7 +104,11 @@ def model_to_dict(instance, **kwargs):
             else:
                 data[field.name] = list(field.value_from_object(instance).values_list('pk', flat=True))
         elif isinstance(field, ImageField):
-            data[field.name] = field.value_from_object(instance).url
+            try:
+                url = field.value_from_object(instance).url
+            except ValueError:
+                url = None
+            data[field.name] = url
         else:
             data[field.name] = field.value_from_object(instance)
     for key, value in kwargs.items():

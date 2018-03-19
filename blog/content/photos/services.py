@@ -5,10 +5,12 @@ import uuid
 import time
 import os
 
-from functools import reduce
+from io import BytesIO
+from PIL import Image
 
 from django.db.models import Q
 from django.utils.timezone import now, timedelta
+from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.core.files.images import ImageFile
 
 from blog.settings import MEDIA_ROOT, MEDIA_URL
@@ -20,12 +22,12 @@ from blog.common.base import Service
 from blog.common.error import ServiceError
 from blog.common.message import ErrorMsg, ContentErrorMsg
 from blog.common.utils import paging, model_to_dict, html_to_str
-from blog.common.setting import Setting, PermissionName
+from blog.common.setting import Setting, PermissionName, AuthType
 
 
 class PhotoService(Service):
-    def __init__(self, request):
-        super(PhotoService, self).__init__(request=request)
+    def __init__(self, request, auth_type=AuthType.HEADER):
+        super(PhotoService, self).__init__(request=request, auth_type=auth_type)
         self.album_service = AlbumService(request=request, instance=self)
 
     def show(self, url):
@@ -50,19 +52,43 @@ class PhotoService(Service):
                status=Photo.AUDIT, privacy=Photo.PUBLIC, read_level=100):
         self.has_permission(PermissionName.PHOTO_CREATE)
         photo_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, (description + self.uuid + str(time.time())).encode('utf-8')))
-        # image = ImageFile(image)
         album = self._get_album(album_uuid=album_uuid)
         status = self._get_create_status(status=status, album=album)
         privacy = self._get_privacy(privacy=privacy)
         read_level = self._get_read_level(read_level=read_level)
-        photo = Photo.objects.create(uuid=photo_uuid,
-                                     image=image,
-                                     description=description,
-                                     author_id=self.uid,
-                                     album=album,
-                                     status=status,
-                                     privacy=privacy,
-                                     read_level=read_level)
+        pil_image = Image.open(image)
+        image_large_stream = BytesIO()
+        image_middle_stream = BytesIO()
+        image_small_stream = BytesIO()
+        try:
+            pil_image.save(image_large_stream, format='png')
+            pil_image.thumbnail((600, 600), Image.ANTIALIAS)
+            pil_image.save(image_middle_stream, format='png')
+            pil_image.thumbnail((200, 200), Image.ANTIALIAS)
+            pil_image.save(image_small_stream, format='png')
+            image_large = InMemoryUploadedFile(image_large_stream, image.field_name, image.name,
+                                               image.content_type, image_large_stream.tell(),
+                                               image.content_type_extra)
+            image_middle = InMemoryUploadedFile(image_middle_stream, image.field_name, image.name,
+                                                image.content_type, image_large_stream.tell(),
+                                                image.content_type_extra)
+            image_small = InMemoryUploadedFile(image_small_stream, image.field_name, image.name,
+                                               image.content_type, image_large_stream.tell(),
+                                               image.content_type_extra)
+            photo = Photo.objects.create(uuid=photo_uuid,
+                                         image_large=image_large,
+                                         image_middle=image_middle,
+                                         image_small=image_small,
+                                         description=description,
+                                         author_id=self.uid,
+                                         album=album,
+                                         status=status,
+                                         privacy=privacy,
+                                         read_level=read_level)
+        finally:
+            image_large_stream.close()
+            image_middle_stream.close()
+            image_small_stream.close()
         return 201, PhotoService._photo_to_dict(photo=photo)
 
     def _get_album(self, album_uuid):

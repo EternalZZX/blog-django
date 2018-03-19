@@ -23,3 +23,26 @@ class BaseModel(object):
                     m2m_field.add(model.objects.get(**query_dict))
                 except model.DoesNotExist:
                     pass
+
+
+def photo_large_path(instance, filename):
+    return path_format(instance, filename, 'photos', size='large')
+
+
+def photo_middle_path(instance, filename):
+    return path_format(instance, filename, 'photos', size='middle')
+
+
+def photo_small_path(instance, filename):
+    return path_format(instance, filename, 'photos', size='small')
+
+
+def path_format(instance, filename, prefix, size=None):
+    try:
+        postfix = '.' + filename.split('.')[-1].lower()
+    except (IndexError, AttributeError):
+        postfix = ''
+    if prefix == 'photos':
+        return '%s/%s/%s/%s%s' % (prefix, instance.author.uuid, size, instance.uuid, postfix)
+    elif prefix == 'articles':
+        return '%s/%s/%s%s' % (prefix, instance.author.uuid, instance.uuid, postfix)
