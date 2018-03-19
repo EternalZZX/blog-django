@@ -3,6 +3,7 @@ import uuid
 from django.db import models
 
 from blog.account.users.models import User
+from blog.content.albums.models import Album
 
 
 class Photo(models.Model):
@@ -36,6 +37,7 @@ class Photo(models.Model):
     image = models.ImageField(upload_to='photos')
     description = models.CharField(max_length=200)
     author = models.ForeignKey(to=User)
+    album = models.ForeignKey(Album, null=True, on_delete=models.SET_NULL)
     status = models.IntegerField(choices=STATUS_CHOICES, default=ACTIVE)
     privacy = models.IntegerField(choices=PRIVACY_CHOICES, default=PUBLIC)
     read_level = models.IntegerField(default=100)

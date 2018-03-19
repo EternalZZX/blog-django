@@ -28,9 +28,10 @@
 相册编辑权限
 1. MAJOR LEVEL10
 - Album Update 可编辑所有相册
-2. MAJOR LEVEL1
-- Album Update 可编辑自身相册
-3. MINOR LEVEL10
+- Photo Create 可为所有相册添加照片
+- Photo Update 可为所有相册编辑照片
+- Photo Delete 可为所有相册删除照片
+2. MINOR LEVEL10
 - Album Update 可编辑相册为其他作者
 """
 
@@ -41,4 +42,18 @@
 - Album Delete 可删除所有相册
 2. MAJOR LEVEL1
 - Album Delete 可删除自身相册
+"""
+
+"""
+@apiDefine ALBUM_PRIVACY
+相册私有权限
+1. MAJOR LEVEL10
+- Album Get    可查看非公有相册
+- Album List   可查看非公有相册
+1. MINOR LEVEL2
+- Album Create 可创建相册为私有
+- Album Update 可修改相册为私有
+2. MINOR LEVEL1
+- Album Create 可创建相册为受保护
+- Album Update 可修改相册为受保护
 """

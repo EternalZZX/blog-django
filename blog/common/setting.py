@@ -18,6 +18,8 @@ class Setting(StaticObject):
     NICK_UPDATE = True
     ARTICLE_CANCEL = True
     ARTICLE_AUDIT = False
+    PHOTO_CANCEL = True
+    PHOTO_AUDIT = False
 
     __instance = True
 
@@ -40,6 +42,8 @@ class Setting(StaticObject):
             cls.NICK_UPDATE = cls._format_value(settings.get(key=SettingKey.NICK_UPDATE).value)
             cls.ARTICLE_CANCEL = cls._format_value(settings.get(key=SettingKey.ARTICLE_CANCEL).value)
             cls.ARTICLE_AUDIT = cls._format_value(settings.get(key=SettingKey.ARTICLE_AUDIT).value)
+            cls.PHOTO_CANCEL = cls._format_value(settings.get(key=SettingKey.ARTICLE_CANCEL).value)
+            cls.PHOTO_AUDIT = cls._format_value(settings.get(key=SettingKey.PHOTO_AUDIT).value)
         except ServerSetting.DoesNotExist:
             raise ServerError(code=503, message=ErrorMsg.SETTING_ERROR)
 
@@ -70,6 +74,8 @@ class SettingKey(StaticObject):
     NICK_UPDATE = 'nick_update'
     ARTICLE_CANCEL = 'article_cancel'
     ARTICLE_AUDIT = 'article_audit'
+    PHOTO_CANCEL = 'photo_cancel'
+    PHOTO_AUDIT = 'photo_audit'
 
 
 class PermissionName(StaticObject):
@@ -112,6 +118,15 @@ class PermissionName(StaticObject):
     ALBUM_SELECT = 'album_select'
     ALBUM_PRIVACY = 'album_privacy'
 
+    PHOTO_CREATE = 'photo_create'
+    PHOTO_DELETE = 'photo_delete'
+    PHOTO_UPDATE = 'photo_update'
+    PHOTO_SELECT = 'photo_select'
+    PHOTO_AUDIT = 'photo_audit'
+    PHOTO_CANCEL = 'photo_cancel'
+    PHOTO_PRIVACY = 'photo_privacy'
+    PHOTO_READ = 'photo_read'
+
 
 class PermissionLevel(StaticObject):
     LEVEL_10 = 1000
@@ -125,6 +140,7 @@ class PermissionLevel(StaticObject):
     LEVEL_2 = 200
     LEVEL_1 = 100
     LEVEL_0 = 0
+
 
 class AuthType(StaticObject):
     COOKIE = 0

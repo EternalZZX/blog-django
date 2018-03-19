@@ -28,7 +28,7 @@ class ArticleService(Service):
 
     def __init__(self, request):
         super(ArticleService, self).__init__(request=request)
-        self.section_service = SectionService(request=request)
+        self.section_service = SectionService(request=request, instance=self)
 
     def get(self, article_uuid):
         self.has_permission(PermissionName.ARTICLE_SELECT)

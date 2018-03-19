@@ -277,7 +277,14 @@ class LevelObject(object):
 
 
 class Service(object):
-    def __init__(self, request, auth_type=AuthType.HEADER):
+    def __init__(self, request, instance=None, auth_type=AuthType.HEADER):
+        if instance:
+            self.request = instance.request
+            self.token = instance.token
+            self.uuid, self.uid, self.role_id = instance.uuid, instance.uid, instance.role_id
+            self.permission = instance.permission
+            self.role_level = instance.role_level
+            return
         self.request = request
         self.token = request.META.get('HTTP_AUTH_TOKEN') \
             if auth_type == AuthType.HEADER else request.COOKIES.get('Auth-Token')

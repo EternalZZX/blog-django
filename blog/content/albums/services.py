@@ -100,7 +100,7 @@ class AlbumService(Service):
             raise ServiceError(code=404,
                                message=ContentErrorMsg.ALBUM_NOT_FOUND)
         is_self = album.author_id == self.uid
-        if is_self and update_level.is_gt_lv1() or update_level.is_gt_lv10():
+        if is_self or update_level.is_gt_lv10():
             if name:
                 album.name = name
             album.update_char_field('description', description)
@@ -132,14 +132,6 @@ class AlbumService(Service):
             result['status'] = 'PERMISSION_DENIED'
         return result
 
-    def _get_privacy(self, privacy=Album.PUBLIC):
-        _, privacy_level = self.get_permission_level(PermissionName.ALBUM_PRIVACY, False)
-        privacy = AlbumService.choices_format(privacy, Album.PRIVACY_CHOICES, Album.PUBLIC)
-        if privacy == Album.PROTECTED and privacy_level.is_lt_lv1() or \
-                privacy == Album.PRIVATE and privacy_level.is_lt_lv2():
-            privacy = Album.PUBLIC
-        return privacy
-
     def has_get_permission(self, album):
         is_self = album.author_id == self.uid
         if is_self:
@@ -148,6 +140,14 @@ class AlbumService(Service):
             return True
         get_level, _ = self.get_permission_level(PermissionName.ALBUM_PRIVACY, False)
         return get_level.is_gt_lv10()
+
+    def _get_privacy(self, privacy=Album.PUBLIC):
+        _, privacy_level = self.get_permission_level(PermissionName.ALBUM_PRIVACY, False)
+        privacy = AlbumService.choices_format(privacy, Album.PRIVACY_CHOICES, Album.PUBLIC)
+        if privacy == Album.PROTECTED and privacy_level.is_lt_lv1() or \
+                privacy == Album.PRIVATE and privacy_level.is_lt_lv2():
+            privacy = Album.PUBLIC
+        return privacy
 
     @staticmethod
     def _album_to_dict(album, **kwargs):
