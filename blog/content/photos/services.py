@@ -48,33 +48,24 @@ class PhotoService(Service):
                                message=ContentErrorMsg.PHOTO_NOT_FOUND)
         return 200, model_to_dict(photo)
 
-    def create(self, image, description=None, album_uuid=None,
-               status=Photo.AUDIT, privacy=Photo.PUBLIC, read_level=100):
-        self.has_permission(PermissionName.PHOTO_CREATE)
+    def create(self, image, description=None, album_uuid=None, status=Photo.AUDIT,
+               privacy=Photo.PUBLIC, read_level=100, origin=False):
+        size_level, _ = self.get_permission_level(PermissionName.PHOTO_CREATE)
         photo_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, (description + self.uuid + str(time.time())).encode('utf-8')))
         album = self._get_album(album_uuid=album_uuid)
         status = self._get_create_status(status=status, album=album)
         privacy = self._get_privacy(privacy=privacy)
         read_level = self._get_read_level(read_level=read_level)
-        pil_image = Image.open(image)
-        image_large_stream = BytesIO()
-        image_middle_stream = BytesIO()
-        image_small_stream = BytesIO()
+        stream_large = BytesIO()
+        stream_middle = BytesIO()
+        stream_small = BytesIO()
         try:
-            pil_image.save(image_large_stream, format='png')
-            pil_image.thumbnail((600, 600), Image.ANTIALIAS)
-            pil_image.save(image_middle_stream, format='png')
-            pil_image.thumbnail((200, 200), Image.ANTIALIAS)
-            pil_image.save(image_small_stream, format='png')
-            image_large = InMemoryUploadedFile(image_large_stream, image.field_name, image.name,
-                                               image.content_type, image_large_stream.tell(),
-                                               image.content_type_extra)
-            image_middle = InMemoryUploadedFile(image_middle_stream, image.field_name, image.name,
-                                                image.content_type, image_large_stream.tell(),
-                                                image.content_type_extra)
-            image_small = InMemoryUploadedFile(image_small_stream, image.field_name, image.name,
-                                               image.content_type, image_large_stream.tell(),
-                                               image.content_type_extra)
+            if origin and size_level.is_lt_lv1():
+                image_large = self._get_thumbnail(image, stream_large, 'origin', photo_uuid)
+            else:
+                image_large = self._get_thumbnail(image, stream_large, 'large', photo_uuid)
+            image_middle = self._get_thumbnail(image, stream_middle, 'middle', photo_uuid)
+            image_small = self._get_thumbnail(image, stream_small, 'small', photo_uuid)
             photo = Photo.objects.create(uuid=photo_uuid,
                                          image_large=image_large,
                                          image_middle=image_middle,
@@ -86,9 +77,9 @@ class PhotoService(Service):
                                          privacy=privacy,
                                          read_level=read_level)
         finally:
-            image_large_stream.close()
-            image_middle_stream.close()
-            image_small_stream.close()
+            stream_large.close()
+            stream_middle.close()
+            stream_small.close()
         return 201, PhotoService._photo_to_dict(photo=photo)
 
     def _get_album(self, album_uuid):
@@ -144,6 +135,26 @@ class PhotoService(Service):
             if read_level > self_read_level and read_permission_level.is_lt_lv10():
                 read_level = self_read_level
         return read_level
+
+    @staticmethod
+    def _get_thumbnail(image, stream, size, photo_uuid='pic'):
+        pil_image = Image.open(image)
+        pil_format = pil_image.format.lower()
+        if pil_format not in ('jpeg', 'png', 'gif'):
+            pil_format = 'jpeg'
+        content_type = 'image/' + pil_format
+        image_name = photo_uuid + '.' + pil_format
+        setting = Setting()
+        if size == 'large':
+            pil_image.thumbnail((setting.PHOTO_LARGE_SIZE, setting.PHOTO_LARGE_SIZE), Image.ANTIALIAS)
+        elif size == 'middle':
+            pil_image.thumbnail((setting.PHOTO_MIDDLE_SIZE, setting.PHOTO_MIDDLE_SIZE), Image.ANTIALIAS)
+        elif size == 'small':
+            pil_image.thumbnail((setting.PHOTO_SMALL_SIZE, setting.PHOTO_SMALL_SIZE), Image.ANTIALIAS)
+        pil_image.save(stream, format=pil_format)
+        image_thumbnail = InMemoryUploadedFile(stream, None, image_name,
+                                               content_type, stream.tell(), {})
+        return image_thumbnail
 
     @staticmethod
     def _photo_to_dict(photo, **kwargs):

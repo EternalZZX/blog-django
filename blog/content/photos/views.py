@@ -59,13 +59,15 @@ def photo_create(request):
     status = request.POST.get('status')
     privacy = request.POST.get('privacy')
     read_level = request.POST.get('read_level')
+    origin = request.POST.get('origin') == 'true'
     try:
         code, data = PhotoService(request).create(image=image,
                                                   description=description,
                                                   album_uuid=album_uuid,
                                                   status=status,
                                                   privacy=privacy,
-                                                  read_level=read_level)
+                                                  read_level=read_level,
+                                                  origin=origin)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
