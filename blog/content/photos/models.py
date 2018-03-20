@@ -4,7 +4,8 @@ from django.db import models
 
 from blog.account.users.models import User
 from blog.content.albums.models import Album
-from blog.common.tools import photo_large_path, photo_middle_path, photo_small_path
+from blog.common.tools import photo_large_path, photo_middle_path, \
+                              photo_small_path, photo_untreated_path
 
 
 class Photo(models.Model):
@@ -38,6 +39,7 @@ class Photo(models.Model):
     image_large = models.ImageField(upload_to=photo_large_path, null=True)
     image_middle = models.ImageField(upload_to=photo_middle_path, null=True)
     image_small = models.ImageField(upload_to=photo_small_path, null=True)
+    image_untreated = models.ImageField(upload_to=photo_untreated_path, null=True)
     description = models.CharField(max_length=200)
     author = models.ForeignKey(to=User)
     album = models.ForeignKey(Album, null=True, on_delete=models.SET_NULL)

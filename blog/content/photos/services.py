@@ -44,32 +44,38 @@ class PhotoService(Service):
             #     raise Article.DoesNotExist
             # article_dict = ArticleService._article_to_dict(article=article)
         except Photo.DoesNotExist:
-            raise ServiceError(code=404,
-                               message=ContentErrorMsg.PHOTO_NOT_FOUND)
+            raise ServiceError(code=404, message=ContentErrorMsg.PHOTO_NOT_FOUND)
         return 200, model_to_dict(photo)
 
     def create(self, image, description=None, album_uuid=None, status=Photo.AUDIT,
-               privacy=Photo.PUBLIC, read_level=100, origin=False):
-        size_level, _ = self.get_permission_level(PermissionName.PHOTO_CREATE)
+               privacy=Photo.PUBLIC, read_level=100, origin=False, untreated=False):
+        create_level, size_level = self.get_permission_level(PermissionName.PHOTO_CREATE)
+        photo_limit = self.get_permission_value(PermissionName.PHOTO_LIMIT)
+        if create_level.is_lt_lv10() and photo_limit != -1 and \
+                photo_limit <= Photo.objects.filter(author__uid=self.uid).count():
+            raise ServiceError(code=403, message=ContentErrorMsg.PHOTO_LIMIT_EXCEED)
         photo_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, (description + self.uuid + str(time.time())).encode('utf-8')))
         album = self._get_album(album_uuid=album_uuid)
         status = self._get_create_status(status=status, album=album)
         privacy = self._get_privacy(privacy=privacy)
         read_level = self._get_read_level(read_level=read_level)
-        stream_large = BytesIO()
-        stream_middle = BytesIO()
-        stream_small = BytesIO()
+        stream_large, stream_middle, stream_small = BytesIO(), BytesIO(), BytesIO()
         try:
             if origin and size_level.is_lt_lv1():
                 image_large = self._get_thumbnail(image, stream_large, 'origin', photo_uuid)
             else:
                 image_large = self._get_thumbnail(image, stream_large, 'large', photo_uuid)
-            image_middle = self._get_thumbnail(image, stream_middle, 'middle', photo_uuid)
-            image_small = self._get_thumbnail(image, stream_small, 'small', photo_uuid)
+            if Setting().PHOTO_THUMBNAIL:
+                image_middle = self._get_thumbnail(image, stream_middle, 'middle', photo_uuid)
+                image_small = self._get_thumbnail(image, stream_small, 'small', photo_uuid)
+            else:
+                image_middle, image_small = None, None
+            image_untreated = image if untreated and size_level.is_lt_lv10() else None
             photo = Photo.objects.create(uuid=photo_uuid,
                                          image_large=image_large,
                                          image_middle=image_middle,
                                          image_small=image_small,
+                                         image_untreated=image_untreated,
                                          description=description,
                                          author_id=self.uid,
                                          album=album,
@@ -151,10 +157,11 @@ class PhotoService(Service):
             pil_image.thumbnail((setting.PHOTO_MIDDLE_SIZE, setting.PHOTO_MIDDLE_SIZE), Image.ANTIALIAS)
         elif size == 'small':
             pil_image.thumbnail((setting.PHOTO_SMALL_SIZE, setting.PHOTO_SMALL_SIZE), Image.ANTIALIAS)
+        elif size != 'origin':
+            raise ServiceError(code=500, message=ErrorMsg.REQUEST_PARAMS_ERROR)
         pil_image.save(stream, format=pil_format)
-        image_thumbnail = InMemoryUploadedFile(stream, None, image_name,
-                                               content_type, stream.tell(), {})
-        return image_thumbnail
+        return InMemoryUploadedFile(stream, None, image_name,
+                                    content_type, stream.tell(), {})
 
     @staticmethod
     def _photo_to_dict(photo, **kwargs):

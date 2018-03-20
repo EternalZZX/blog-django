@@ -17,9 +17,10 @@ class Setting(StaticObject):
     USERNAME_UPDATE = False
     NICK_UPDATE = True
     ARTICLE_CANCEL = True
-    ARTICLE_AUDIT = False
+    ARTICLE_AUDIT = True
     PHOTO_CANCEL = True
-    PHOTO_AUDIT = False
+    PHOTO_AUDIT = True
+    PHOTO_THUMBNAIL = True
     PHOTO_LARGE_SIZE = 2560
     PHOTO_MIDDLE_SIZE = 800
     PHOTO_SMALL_SIZE = 200
@@ -47,6 +48,7 @@ class Setting(StaticObject):
             cls.ARTICLE_AUDIT = cls._format_value(settings.get(key=SettingKey.ARTICLE_AUDIT).value)
             cls.PHOTO_CANCEL = cls._format_value(settings.get(key=SettingKey.ARTICLE_CANCEL).value)
             cls.PHOTO_AUDIT = cls._format_value(settings.get(key=SettingKey.PHOTO_AUDIT).value)
+            cls.PHOTO_THUMBNAIL = cls._format_value(settings.get(key=SettingKey.PHOTO_THUMBNAIL).value)
             cls.PHOTO_LARGE_SIZE = cls._format_value(settings.get(key=SettingKey.PHOTO_LARGE_SIZE).value, 'int')
             cls.PHOTO_MIDDLE_SIZE = cls._format_value(settings.get(key=SettingKey.PHOTO_MIDDLE_SIZE).value, 'int')
             cls.PHOTO_SMALL_SIZE = cls._format_value(settings.get(key=SettingKey.PHOTO_SMALL_SIZE).value, 'int')
@@ -82,6 +84,7 @@ class SettingKey(StaticObject):
     ARTICLE_AUDIT = 'article_audit'
     PHOTO_CANCEL = 'photo_cancel'
     PHOTO_AUDIT = 'photo_audit'
+    PHOTO_THUMBNAIL = 'photo_thumbnail'
     PHOTO_LARGE_SIZE = 'photo_large_size'
     PHOTO_MIDDLE_SIZE = 'photo_middle_size'
     PHOTO_SMALL_SIZE = 'photo_small_size'
@@ -135,6 +138,7 @@ class PermissionName(StaticObject):
     PHOTO_CANCEL = 'photo_cancel'
     PHOTO_PRIVACY = 'photo_privacy'
     PHOTO_READ = 'photo_read'
+    PHOTO_LIMIT = 'photo_limit'
 
 
 class PermissionLevel(StaticObject):

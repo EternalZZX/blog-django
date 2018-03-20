@@ -60,6 +60,7 @@ def photo_create(request):
     privacy = request.POST.get('privacy')
     read_level = request.POST.get('read_level')
     origin = request.POST.get('origin') == 'true'
+    untreated = request.POST.get('untreated') == 'true'
     try:
         code, data = PhotoService(request).create(image=image,
                                                   description=description,
@@ -67,7 +68,8 @@ def photo_create(request):
                                                   status=status,
                                                   privacy=privacy,
                                                   read_level=read_level,
-                                                  origin=origin)
+                                                  origin=origin,
+                                                  untreated=untreated)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)

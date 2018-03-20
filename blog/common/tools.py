@@ -37,6 +37,10 @@ def photo_small_path(instance, filename):
     return path_format(instance, filename, 'photos', size='small')
 
 
+def photo_untreated_path(instance, filename):
+    return path_format(instance, filename, 'photos', size='untreated')
+
+
 def path_format(instance, filename, prefix, size=None):
     try:
         postfix = '.' + filename.split('.')[-1].lower()
