@@ -29,7 +29,7 @@ def article_operate(request, article_uuid=None):
 
 def article_get(request, article_uuid):
     """
-    @api {get} /content/articles/{id}/ article get
+    @api {get} /content/articles/{uuid}/ article get
     @apiVersion 0.1.0
     @apiName article_get
     @apiGroup content
@@ -277,7 +277,7 @@ def article_create(request):
 
 def article_update(request, article_uuid):
     """
-    @api {put} /content/articles/{id}/ article update
+    @api {put} /content/articles/{uuid}/ article update
     @apiVersion 0.1.0
     @apiName article_update
     @apiGroup content

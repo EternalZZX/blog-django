@@ -29,10 +29,6 @@ class PhotoService(Service):
                           'status', 'privacy', 'read_level', 'like_count',
                           'dislike_count', 'create_at']
 
-    def __init__(self, request, auth_type=AuthType.HEADER):
-        super(PhotoService, self).__init__(request=request, auth_type=auth_type)
-        self.album_service = AlbumService(request=request, instance=self)
-
     def show(self, url):
         self.has_permission(PermissionName.PHOTO_SELECT)
         image_path = os.path.join(MEDIA_ROOT, url.replace(MEDIA_URL, ''))
@@ -96,7 +92,7 @@ class PhotoService(Service):
             if not self._has_get_permission(photo=photo):
                 photos = photos.exclude(id=photo.id)
         articles, total = paging(photos, page=page, page_size=page_size)
-        return 200, {'articles': [PhotoService._photo_to_dict(photo) for photo in photos],
+        return 200, {'photos': [PhotoService._photo_to_dict(photo) for photo in photos],
                      'total': total}
 
     def create(self, image, description=None, album_uuid=None, status=Photo.AUDIT,
