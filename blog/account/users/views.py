@@ -108,13 +108,13 @@ def user_list(request):
         "data": "Order field permission denied"
     }
     """
+    page = request.GET.get('page')
+    page_size = request.GET.get('page_size')
+    order_field = request.GET.get('order_field')
+    order = request.GET.get('order')
+    query = request.GET.get('query')
+    query_field = request.GET.get('query_field')
     try:
-        page = request.GET.get('page')
-        page_size = request.GET.get('page_size')
-        order_field = request.GET.get('order_field')
-        order = request.GET.get('order')
-        query = request.GET.get('query')
-        query_field = request.GET.get('query_field')
         code, data = UserService(request).list(page=page,
                                                page_size=page_size,
                                                order_field=order_field,

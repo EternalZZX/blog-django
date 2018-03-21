@@ -159,16 +159,16 @@ def article_list(request):
         "data": "Query permission denied"
     }
     """
+    page = request.GET.get('page')
+    page_size = request.GET.get('page_size')
+    section_id = request.GET.get('section_id')
+    author_uuid = request.GET.get('author_uuid')
+    status = request.GET.get('status')
+    order_field = request.GET.get('order_field')
+    order = request.GET.get('order')
+    query = request.GET.get('query')
+    query_field = request.GET.get('query_field')
     try:
-        page = request.GET.get('page')
-        page_size = request.GET.get('page_size')
-        section_id = request.GET.get('section_id')
-        author_uuid = request.GET.get('author_uuid')
-        status = request.GET.get('status')
-        order_field = request.GET.get('order_field')
-        order = request.GET.get('order')
-        query = request.GET.get('query')
-        query_field = request.GET.get('query_field')
         code, data = ArticleService(request).list(page=page,
                                                   page_size=page_size,
                                                   section_id=section_id,

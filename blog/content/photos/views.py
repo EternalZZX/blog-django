@@ -49,7 +49,29 @@ def photo_get(request, photo_uuid):
 
 
 def photo_list(request):
-    pass
+    page = request.GET.get('page')
+    page_size = request.GET.get('page_size')
+    album_uuid = request.GET.get('album_uuid')
+    author_uuid = request.GET.get('author_uuid')
+    status = request.GET.get('status')
+    order_field = request.GET.get('order_field')
+    order = request.GET.get('order')
+    query = request.GET.get('query')
+    query_field = request.GET.get('query_field')
+    try:
+        code, data = PhotoService(request).list(page=page,
+                                                page_size=page_size,
+                                                album_uuid=album_uuid,
+                                                author_uuid=author_uuid,
+                                                status=status,
+                                                order_field=order_field,
+                                                order=order,
+                                                query=query,
+                                                query_field=query_field)
+    except Exception as e:
+        code, data = getattr(e, 'code', 400), \
+                     getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
+    return Response(code=code, data=data)
 
 
 def photo_create(request):

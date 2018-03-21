@@ -77,62 +77,62 @@ def role_get(request, role_id):
 
 def role_list(request):
     """
-        @api {get} /account/roles/ role list
-        @apiVersion 0.1.0
-        @apiName role_list
-        @apiGroup account
-        @apiDescription 获取角色信息列表
-        @apiPermission ROLE_SELECT
-        @apiUse Header
-        @apiParam {number} [page=0] 角色信息列表页码, 页码为0时返回所有数据
-        @apiParam {number} [page_size=10] 角色信息列表页长
-        @apiParam {string} [order_field] 角色信息列表排序字段
-        @apiParam {string=desc, asc} [order="desc"] 角色信息列表排序方向
-        @apiParam {string} [query] 搜索内容，若无搜索字段则全局搜索name, nick
-        @apiParam {string=name, nick, DjangoFilterParams} [query_field] 搜索字段, 支持Django filter参数
-        @apiSuccess {String} total 角色信息列表总数
-        @apiSuccess {String} roles 角色信息列表
-        @apiSuccessExample {json} Success-Response:
-        HTTP/1.1 200 OK
-        {
-            "data": {
-                "total": 3,
-                "roles": [
-                    {
-                        "name": "admin",
-                        "default": false,
-                        "create_at": "2017-12-20T11:19:17Z",
-                        "role_level": 1000,
-                        "nick": "系统管理员",
-                        "id": 1,
-                        "permissions": [
-                            {
-                                "status": true,
-                                "description": null,
-                                "name": "login",
-                                "nick": "登陆权限",
-                                "id": 1,
-                                "major_level": 1000
-                            }
-                        ]
-                    }
-                ]
-            }
+    @api {get} /account/roles/ role list
+    @apiVersion 0.1.0
+    @apiName role_list
+    @apiGroup account
+    @apiDescription 获取角色信息列表
+    @apiPermission ROLE_SELECT
+    @apiUse Header
+    @apiParam {number} [page=0] 角色信息列表页码, 页码为0时返回所有数据
+    @apiParam {number} [page_size=10] 角色信息列表页长
+    @apiParam {string} [order_field] 角色信息列表排序字段
+    @apiParam {string=desc, asc} [order="desc"] 角色信息列表排序方向
+    @apiParam {string} [query] 搜索内容，若无搜索字段则全局搜索name, nick
+    @apiParam {string=name, nick, DjangoFilterParams} [query_field] 搜索字段, 支持Django filter参数
+    @apiSuccess {String} total 角色信息列表总数
+    @apiSuccess {String} roles 角色信息列表
+    @apiSuccessExample {json} Success-Response:
+    HTTP/1.1 200 OK
+    {
+        "data": {
+            "total": 3,
+            "roles": [
+                {
+                    "name": "admin",
+                    "default": false,
+                    "create_at": "2017-12-20T11:19:17Z",
+                    "role_level": 1000,
+                    "nick": "系统管理员",
+                    "id": 1,
+                    "permissions": [
+                        {
+                            "status": true,
+                            "description": null,
+                            "name": "login",
+                            "nick": "登陆权限",
+                            "id": 1,
+                            "major_level": 1000
+                        }
+                    ]
+                }
+            ]
         }
-        @apiUse ErrorData
-        @apiErrorExample {json} Error-Response:
-        HTTP/1.1 403 Forbidden
-        {
-            "data": "Order field permission denied"
-        }
-        """
+    }
+    @apiUse ErrorData
+    @apiErrorExample {json} Error-Response:
+    HTTP/1.1 403 Forbidden
+    {
+        "data": "Order field permission denied"
+    }
+    """
+    page = request.GET.get('page')
+    page_size = request.GET.get('page_size')
+    order_field = request.GET.get('order_field')
+    order = request.GET.get('order')
+    query = request.GET.get('query')
+    query_field = request.GET.get('query_field')
     try:
-        page = request.GET.get('page')
-        page_size = request.GET.get('page_size')
-        order_field = request.GET.get('order_field')
-        order = request.GET.get('order')
-        query = request.GET.get('query')
-        query_field = request.GET.get('query_field')
         code, data = RoleService(request).list(page=page,
                                                page_size=page_size,
                                                order_field=order_field,
