@@ -10,6 +10,8 @@ import json
 
 from Crypto.Hash import MD5
 
+from django.db.models import Q
+
 from blog.account.users.models import User
 from blog.account.roles.models import Role, RolePermission
 from blog.common.error import AuthError, ServiceError
@@ -347,3 +349,7 @@ class Service(object):
             raise ServiceError(code=500, message=ErrorMsg.DUPLICATE_IDENTITY)
         except model_obj.DoesNotExist:
             return kwargs.values()[0]
+
+    @staticmethod
+    def _status_or(a, b):
+        return (a if isinstance(a, Q) else Q(status=int(a))) | Q(status=int(b))

@@ -5,13 +5,12 @@ import uuid
 import time
 import os
 
+from functools import reduce
 from io import BytesIO
 from PIL import Image
 
 from django.db.models import Q
-from django.utils.timezone import now, timedelta
 from django.core.files.uploadedfile import InMemoryUploadedFile
-from django.core.files.images import ImageFile
 
 from blog.settings import MEDIA_ROOT, MEDIA_URL
 from blog.account.users.services import UserService
@@ -21,36 +20,89 @@ from blog.content.photos.models import Photo
 from blog.common.base import Service
 from blog.common.error import ServiceError
 from blog.common.message import ErrorMsg, ContentErrorMsg
-from blog.common.utils import paging, model_to_dict, html_to_str
+from blog.common.utils import paging, model_to_dict
 from blog.common.setting import Setting, PermissionName, AuthType
 
 
 class PhotoService(Service):
+    PHOTO_PUBLIC_FIELD = ['id', 'uuid', 'description', 'author', 'album',
+                          'status', 'privacy', 'read_level', 'like_count',
+                          'dislike_count', 'create_at']
+
     def __init__(self, request, auth_type=AuthType.HEADER):
         super(PhotoService, self).__init__(request=request, auth_type=auth_type)
         self.album_service = AlbumService(request=request, instance=self)
 
     def show(self, url):
+        self.has_permission(PermissionName.PHOTO_SELECT)
         image_path = os.path.join(MEDIA_ROOT, url.replace(MEDIA_URL, ''))
         image_data = open(image_path, "rb").read()
         return 200, image_data
 
     def get(self, photo_uuid):
-        # self.has_permission(PermissionName.ARTICLE_SELECT)
+        self.has_permission(PermissionName.PHOTO_SELECT)
         try:
             photo = Photo.objects.get(uuid=photo_uuid)
-            # get_permission, read_permission = self._has_get_permission(article=article)
-            # if not get_permission:
-            #     raise Article.DoesNotExist
-            # article_dict = ArticleService._article_to_dict(article=article)
+            if not self._has_get_permission(photo=photo):
+                raise Photo.DoesNotExist
         except Photo.DoesNotExist:
             raise ServiceError(code=404, message=ContentErrorMsg.PHOTO_NOT_FOUND)
-        return 200, model_to_dict(photo)
+        return 200, PhotoService._photo_to_dict(photo=photo)
+
+    def list(self, page=0, page_size=10, album_uuid=None, author_uuid=None,
+             status=None, order_field=None, order='desc', query=None,
+             query_field=None):
+        query_level, order_level = self.get_permission_level(PermissionName.PHOTO_SELECT)
+        photos = Photo.objects.all()
+        if album_uuid:
+            photos = photos.filter(album__uuid=album_uuid)
+        if author_uuid:
+            photos = photos.filter(author__uuid=author_uuid)
+        if status:
+            if int(status) in dict(Photo.STATUS_CHOICES):
+                photos = photos.filter(status=int(status))
+            else:
+                photos = photos.filter(reduce(self._status_or, list(status)))
+        if order_field:
+            if (order_level.is_gt_lv1() and order_field in PhotoService.PHOTO_PUBLIC_FIELD) \
+                    or order_level.is_gt_lv10():
+                if order == 'desc':
+                    order_field = '-' + order_field
+                photos = photos.order_by(order_field)
+            else:
+                raise ServiceError(code=400, message=ErrorMsg.ORDER_PARAMS_ERROR)
+        if query:
+            if query_field and query_level.is_gt_lv1():
+                if query_field == 'description':
+                    query_field = 'description__icontains'
+                elif query_field == 'author':
+                    query_field = 'author__nick__icontains'
+                elif query_field == 'album':
+                    query_field = 'album__name__icontains'
+                elif query_field == 'status':
+                    query_field = 'status'
+                elif query_level.is_lt_lv10():
+                    raise ServiceError(code=403,
+                                       message=ErrorMsg.QUERY_PERMISSION_DENIED)
+                query_dict = {query_field: query}
+                photos = photos.filter(**query_dict)
+            elif query_level.is_gt_lv2():
+                photos = photos.filter(Q(description__icontains=query) |
+                                       Q(author__nick__icontains=query) |
+                                       Q(album__name__icontains=query))
+            else:
+                raise ServiceError(code=403, message=ErrorMsg.QUERY_PERMISSION_DENIED)
+        for photo in photos:
+            if not self._has_get_permission(photo=photo):
+                photos = photos.exclude(id=photo.id)
+        articles, total = paging(photos, page=page, page_size=page_size)
+        return 200, {'articles': [PhotoService._photo_to_dict(photo) for photo in photos],
+                     'total': total}
 
     def create(self, image, description=None, album_uuid=None, status=Photo.AUDIT,
                privacy=Photo.PUBLIC, read_level=100, origin=False, untreated=False):
         create_level, size_level = self.get_permission_level(PermissionName.PHOTO_CREATE)
-        photo_limit = self.get_permission_value(PermissionName.PHOTO_LIMIT)
+        photo_limit = self.get_permission_value(PermissionName.PHOTO_CREATE)
         if create_level.is_lt_lv10() and photo_limit != -1 and \
                 photo_limit <= Photo.objects.filter(author__uid=self.uid).count():
             raise ServiceError(code=403, message=ContentErrorMsg.PHOTO_LIMIT_EXCEED)
@@ -70,7 +122,7 @@ class PhotoService(Service):
                 image_small = self._get_thumbnail(image, stream_small, 'small', photo_uuid)
             else:
                 image_middle, image_small = None, None
-            image_untreated = image if untreated and size_level.is_lt_lv10() else None
+            image_untreated = image if untreated and size_level.is_lt_lv2() else None
             photo = Photo.objects.create(uuid=photo_uuid,
                                          image_large=image_large,
                                          image_middle=image_middle,
@@ -87,6 +139,27 @@ class PhotoService(Service):
             stream_middle.close()
             stream_small.close()
         return 201, PhotoService._photo_to_dict(photo=photo)
+
+    def _has_get_permission(self, photo):
+        is_author = photo.author_id == self.uid
+        if is_author and photo.status != Photo.CANCEL:
+            return True
+        permission_level, _ = self.get_permission_level(PermissionName.PHOTO_PERMISSION, False)
+        if permission_level.is_gt_lv10():
+            return True
+        if photo.status == Photo.ACTIVE:
+            privacy_level, _ = self.get_permission_level(PermissionName.PHOTO_PRIVACY, False)
+            read_permission_level, _ = self.get_permission_level(PermissionName.PHOTO_READ, False)
+            read_level = self.get_permission_value(PermissionName.READ_LEVEL, False)
+            return (photo.privacy == Photo.PUBLIC or privacy_level.is_gt_lv10()) and \
+                (read_level >= photo.read_level or read_permission_level.is_gt_lv10())
+        elif photo.status == Photo.CANCEL:
+            cancel_level, _ = self.get_permission_level(PermissionName.PHOTO_CANCEL, False)
+            return cancel_level.is_gt_lv10()
+        elif photo.status == Photo.AUDIT or photo.status == Photo.FAILED:
+            audit_level, _ = self.get_permission_level(PermissionName.ARTICLE_AUDIT, False)
+            return audit_level.is_gt_lv10()
+        return False
 
     def _get_album(self, album_uuid):
         album = None

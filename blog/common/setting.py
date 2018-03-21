@@ -134,11 +134,11 @@ class PermissionName(StaticObject):
     PHOTO_DELETE = 'photo_delete'
     PHOTO_UPDATE = 'photo_update'
     PHOTO_SELECT = 'photo_select'
+    PHOTO_PERMISSION = 'photo_permission'
     PHOTO_AUDIT = 'photo_audit'
     PHOTO_CANCEL = 'photo_cancel'
     PHOTO_PRIVACY = 'photo_privacy'
     PHOTO_READ = 'photo_read'
-    PHOTO_LIMIT = 'photo_limit'
 
 
 class PermissionLevel(StaticObject):

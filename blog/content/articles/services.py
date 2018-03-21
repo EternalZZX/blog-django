@@ -448,7 +448,3 @@ class ArticleService(Service):
         for key in kwargs:
             article_dict[key] = kwargs[key]
         return article_dict
-
-    @staticmethod
-    def _status_or(a, b):
-        return (a if isinstance(a, Q) else Q(status=int(a))) | Q(status=int(b))
