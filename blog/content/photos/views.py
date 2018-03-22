@@ -12,6 +12,27 @@ from blog.common.setting import AuthType
 
 
 def photo_show(request):
+    """
+    @api {get} /media/photos/{user_uuid}/{size}/{photo_uuid}.{photo_format} photo show
+    @apiVersion 0.1.0
+    @apiName photo_show
+    @apiGroup content
+    @apiDescription 获取照片文件
+    @apiPermission PHOTO_SELECT
+    @apiPermission PHOTO_PERMISSION
+    @apiPermission PHOTO_PRIVACY
+    @apiPermission PHOTO_READ
+    @apiPermission PHOTO_CANCEL
+    @apiPermission PHOTO_AUDIT
+    @apiUse Header
+    @apiSuccess {string} data 照片信息详情
+    @apiUse ErrorData
+    @apiErrorExample {json} Error-Response:
+    HTTP/1.1 404 Not Found
+    {
+        "data": "Photo not found"
+    }
+    """
     try:
         code, data = PhotoService(request, auth_type=AuthType.COOKIE).show(request.path)
         return HttpResponse(data, content_type="image/png")

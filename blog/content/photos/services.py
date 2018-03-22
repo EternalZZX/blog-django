@@ -32,8 +32,15 @@ class PhotoService(Service):
 
     def show(self, url):
         self.has_permission(PermissionName.PHOTO_SELECT)
-        image_path = os.path.join(MEDIA_ROOT, url.replace(MEDIA_URL, ''))
-        image_data = open(image_path, "rb").read()
+        try:
+            photo_uuid = url.rsplit('.')[-2].rsplit('/')[-1]
+            photo = Photo.objects.get(uuid=photo_uuid)
+            if not self._has_get_permission(photo=photo):
+                raise Photo.DoesNotExist
+            image_path = os.path.join(MEDIA_ROOT, url.replace(MEDIA_URL, ''))
+            image_data = open(image_path, "rb").read()
+        except (IndexError, IOError, Photo.DoesNotExist):
+            raise ServiceError(code=404, message=ContentErrorMsg.PHOTO_NOT_FOUND)
         return 200, image_data
 
     def get(self, photo_uuid):
