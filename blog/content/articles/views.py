@@ -383,6 +383,7 @@ def article_delete(request, article_uuid):
     @apiGroup content
     @apiDescription 删除文章
     @apiPermission ARTICLE_DELETE
+    @apiPermission ARTICLE_CANCEL
     @apiUse Header
     @apiParam {string} [id_list] 删除文章uuid列表，e.g.'11d9fc3a-051f-5271-b1e1-65c192b63105;',
                                  当使用URL参数uuid时该参数忽略

@@ -359,6 +359,37 @@ def photo_update(request, photo_uuid):
 
 
 def photo_delete(request, photo_uuid):
+    """
+    @api {delete} /content/photos/[uuid]/ photo delete
+    @apiVersion 0.1.0
+    @apiName photo_delete
+    @apiGroup content
+    @apiDescription 删除照片
+    @apiPermission PHOTO_DELETE
+    @apiPermission PHOTO_CANCEL
+    @apiUse Header
+    @apiParam {string} [id_list] 删除照片uuid列表，e.g.'11d9fc3a-051f-5271-b1e1-65c192b63105;',
+                                 当使用URL参数uuid时该参数忽略
+    @apiParam {bool=true, false} [force=false] 强制删除
+    @apiSuccess {string} data 照片删除信息详情
+    @apiSuccessExample {json} Success-Response:
+    HTTP/1.1 200 OK
+    {
+        "data": [
+            {
+                "status": "SUCCESS",
+                "id": "11d9fc3a-051f-5271-b1e1-65c192b63105",
+                "name": "test"
+            }
+        ]
+    }
+    @apiUse ErrorData
+    @apiErrorExample {json} Error-Response:
+    HTTP/1.1 403 Forbidden
+    {
+        "data": "Permission denied"
+    }
+    """
     data = QueryDict(request.body)
     force = data.get('force') == 'true'
     try:

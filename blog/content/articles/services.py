@@ -214,7 +214,7 @@ class ArticleService(Service):
         result = {'id': delete_id}
         try:
             article = Article.objects.get(uuid=delete_id)
-            result['nick'], result['status'] = article.title, 'SUCCESS'
+            result['name'], result['status'] = article.title, 'SUCCESS'
             if force:
                 if self._has_delete_permission(article=article):
                     article.delete()

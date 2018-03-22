@@ -121,7 +121,7 @@ class AlbumService(Service):
         try:
             album = Album.objects.get(uuid=delete_id)
             is_self = album.author_id == self.uid
-            result['nick'], result['status'] = album.name, 'SUCCESS'
+            result['name'], result['status'] = album.name, 'SUCCESS'
             if is_self and delete_level.is_gt_lv1() or delete_level.is_gt_lv10():
                 album.delete()
             else:

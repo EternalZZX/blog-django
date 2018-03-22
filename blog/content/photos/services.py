@@ -188,7 +188,7 @@ class PhotoService(Service):
         result = {'id': delete_id}
         try:
             photo = Photo.objects.get(uuid=delete_id)
-            result['nick'], result['status'] = photo.description, 'SUCCESS'
+            result['name'], result['status'] = photo.description, 'SUCCESS'
             if force:
                 if self._has_delete_permission(photo=photo):
                     photo.delete()

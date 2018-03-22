@@ -279,7 +279,7 @@ def album_delete(request, album_uuid):
         "data": [
             {
                 "status": "SUCCESS",
-                "nick": "test-album",
+                "name": "test-album",
                 "id": "174a7ba6-0a15-5402-b827-d3e670218d5b"
             }
         ]

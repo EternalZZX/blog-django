@@ -222,7 +222,7 @@ class SectionService(Service):
         result = {'id': delete_id}
         try:
             section = Section.objects.get(id=delete_id)
-            result['nick'], result['status'] = section.nick, 'SUCCESS'
+            result['name'], result['status'] = section.nick, 'SUCCESS'
             set_role = self.is_manager(section=section)
             permission = section.sectionpermission
             if force:

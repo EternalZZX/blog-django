@@ -61,7 +61,7 @@ class Photo(models.Model, BaseModel):
 
 @receiver(models.signals.pre_delete, sender=Photo)
 def photo_obj_delete(sender, instance, **kwargs):
-    instance.image_large.delete(False)
-    instance.image_middle.delete(False)
-    instance.image_small.delete(False)
-    instance.image_untreated.delete(False)
+    instance.image_large.delete(save=False)
+    instance.image_middle.delete(save=False)
+    instance.image_small.delete(save=False)
+    instance.image_untreated.delete(save=False)
