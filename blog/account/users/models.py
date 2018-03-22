@@ -31,6 +31,7 @@ class User(models.Model, BaseModel):
     username = models.SlugField()
     password = models.CharField(max_length=50)
     nick = models.CharField(max_length=200)
+    avatar = models.CharField(max_length=300, null=True)
     role = models.ForeignKey(Role, null=True)
     groups = models.ManyToManyField(Group)
     gender = models.NullBooleanField(choices=GENDER_CHOICES, null=True)

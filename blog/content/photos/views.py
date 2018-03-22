@@ -25,7 +25,7 @@ def photo_show(request):
     @apiPermission PHOTO_CANCEL
     @apiPermission PHOTO_AUDIT
     @apiUse Header
-    @apiSuccess {string} data 照片信息详情
+    @apiSuccess {file} file 照片文件
     @apiUse ErrorData
     @apiErrorExample {json} Error-Response:
     HTTP/1.1 404 Not Found
