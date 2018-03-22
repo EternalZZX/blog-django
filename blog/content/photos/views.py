@@ -270,7 +270,92 @@ def photo_create(request):
 
 
 def photo_update(request, photo_uuid):
-    pass
+    """
+    @api {put} /content/photos/{uuid}/ photo update
+    @apiVersion 0.1.0
+    @apiName photo_update
+    @apiGroup content
+    @apiDescription 编辑照片
+    @apiPermission PHOTO_UPDATE
+    @apiPermission PHOTO_PRIVACY
+    @apiPermission PHOTO_READ
+    @apiPermission PHOTO_CANCEL
+    @apiPermission PHOTO_AUDIT
+    @apiUse Header
+    @apiParam {string} description 照片描述
+    @apiParam {string} [album_uuid] 照片所属相册UUID
+    @apiParam {number=0, 1, 2, 3, 4, 5} [status=1] 照片状态, Cancel=0, Active=1, Audit=2,
+                                                   Failed=3, Recycled=4
+    @apiParam {number=0, 1, 2} [privacy=1] 照片私有状态, Private=0, Public=1, Protected=2
+    @apiParam {number} [read_level=100] 照片需求阅读等级
+    @apiParam {number} [like_count=1] 文章点赞
+    @apiParam {number} [dislike_count=1] 文章取消点赞
+    @apiSuccess {string} data 编辑照片信息详情
+    @apiSuccessExample {json} Success-Response:
+    HTTP/1.1 200 OK
+    {
+        "data": {
+            "image_large": null,
+            "album": 1,
+            "edit_at": "2018-03-22T02:26:09.768Z",
+            "uuid": "f94a8727-7b6f-5c36-a554-022f3cb54baa",
+            "author": {
+                "remark": null,
+                "uuid": "7357d28a-a611-5efd-ae6e-a550a5b95487",
+                "create_at": "2017-12-20T11:19:17Z",
+                "nick": "admin",
+                "role": 1,
+                "groups": []
+            },
+            "read_level": 100,
+            "privacy": 1,
+            "image_small": null,
+            "image_middle": null,
+            "image_untreated": null,
+            "dislike_count": 0,
+            "create_at": "2018-03-19T09:10:39Z",
+            "like_count": 0,
+            "status": 1,
+            "last_editor": {
+                "remark": null,
+                "uuid": "7357d28a-a611-5efd-ae6e-a550a5b95487",
+                "create_at": "2017-12-20T11:19:17Z",
+                "nick": "admin",
+                "role": 1,
+                "groups": []
+            },
+            "id": 44,
+            "description": "album"
+        }
+    }
+    @apiUse ErrorData
+    @apiErrorExample {json} Error-Response:
+    HTTP/1.1 403 Forbidden
+    {
+        "data": "Permission denied"
+    }
+    """
+    data = QueryDict(request.body)
+    description = data.get('description')
+    album_uuid = data.get('album_uuid')
+    status = data.get('status')
+    privacy = data.get('privacy')
+    read_level = data.get('read_level')
+    like_count = data.get('like_count')
+    dislike_count = data.get('dislike_count')
+    try:
+        code, data = PhotoService(request).update(photo_uuid=photo_uuid,
+                                                  description=description,
+                                                  album_uuid=album_uuid,
+                                                  status=status,
+                                                  privacy=privacy,
+                                                  read_level=read_level,
+                                                  like_count=like_count,
+                                                  dislike_count=dislike_count)
+    except Exception as e:
+        code, data = getattr(e, 'code', 400), \
+                     getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
+    return Response(code=code, data=data)
 
 
 def photo_delete(request, photo_uuid):

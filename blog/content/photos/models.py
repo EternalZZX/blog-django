@@ -1,14 +1,16 @@
 import uuid
 
+from django.utils import timezone
 from django.db import models
 
 from blog.account.users.models import User
 from blog.content.albums.models import Album
+from blog.common.tools import BaseModel
 from blog.common.tools import photo_large_path, photo_middle_path, \
                               photo_small_path, photo_untreated_path
 
 
-class Photo(models.Model):
+class Photo(models.Model, BaseModel):
     CANCEL = 0
     ACTIVE = 1
     AUDIT = 2
@@ -41,7 +43,7 @@ class Photo(models.Model):
     image_small = models.ImageField(upload_to=photo_small_path, null=True)
     image_untreated = models.ImageField(upload_to=photo_untreated_path, null=True)
     description = models.CharField(max_length=200)
-    author = models.ForeignKey(to=User)
+    author = models.ForeignKey(to=User, related_name='photo_author')
     album = models.ForeignKey(Album, null=True, on_delete=models.SET_NULL)
     status = models.IntegerField(choices=STATUS_CHOICES, default=ACTIVE)
     privacy = models.IntegerField(choices=PRIVACY_CHOICES, default=PUBLIC)
@@ -49,6 +51,8 @@ class Photo(models.Model):
     like_count = models.IntegerField(default=0)
     dislike_count = models.IntegerField(default=0)
     create_at = models.DateTimeField(auto_now_add=True)
+    last_editor = models.ForeignKey(to=User, related_name='photo_last_editor')
+    edit_at = models.DateTimeField(default=timezone.now())
 
     class Meta:
         db_table = 'photo'

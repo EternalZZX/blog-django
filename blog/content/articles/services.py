@@ -7,7 +7,7 @@ import time
 from functools import reduce
 
 from django.db.models import Q
-from django.utils.timezone import now, timedelta
+from django.utils import timezone
 
 from blog.account.users.services import UserService
 from blog.content.sections.models import Section
@@ -189,7 +189,7 @@ class ArticleService(Service):
             raise ServiceError(code=403, message=ErrorMsg.PERMISSION_DENIED)
         if is_content_change or is_edit:
             article.last_editor_id = self.uid
-            article.edit_at = now().date()
+            article.edit_at = timezone.now()
         if status and int(status) != article.status:
             article.status = self._get_update_status(status, article, set_role, is_content_change)
         elif is_content_change:
@@ -329,8 +329,8 @@ class ArticleService(Service):
                         Article.objects.filter(author_id=self.uid,
                                                section_id=section_id).count() >= section_policy.max_articles:
                     raise ServiceError(code=403, message=ContentErrorMsg.SECTION_PERMISSION_DENIED)
-                start = now().date()
-                end = start + timedelta(days=1)
+                start = timezone.now().date()
+                end = start + timezone.timedelta(days=1)
                 if section_policy.max_articles_one_day is not None and \
                         Article.objects.filter(author_id=self.uid,
                                                section_id=section_id,
@@ -397,11 +397,11 @@ class ArticleService(Service):
             elif status == Article.ACTIVE:
                 return status
         elif status == Article.CANCEL:
-            if section and Setting().ARTICLE_CANCEL:
+            if Setting().ARTICLE_CANCEL:
                 _, cancel_level = self.get_permission_level(PermissionName.ARTICLE_CANCEL, False)
-                if self.section_service.has_set_permission(permission=section.sectionpermission.article_cancel,
-                                                           set_role=set_role,
-                                                           op=cancel_level.is_gt_lv10()):
+                if cancel_level.is_gt_lv10() or section and \
+                        self.section_service.has_set_permission(permission=section.sectionpermission.article_cancel,
+                                                                set_role=set_role):
                     return status
         elif status == Article.DRAFT:
             if is_self or self.section_service.has_set_permission(

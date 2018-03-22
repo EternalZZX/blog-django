@@ -21,12 +21,17 @@
 照片创建权限
 1. MAJOR LEVEL10
 - Photo Create 可创建照片超过数量限制
-2. MINOR LEVEL2
-- Photo Create 可创建照片保留原图文件
-3. MINOR LEVEL1
-- Photo Create 可创建照片保留原图尺寸
-4. VALUE
+2. VALUE
 - Photo Create 创建照片数量限制
+"""
+
+"""
+@apiDefine PHOTO_LIMIT
+照片质量权限
+1. MAJOR LEVEL10
+- Photo Create 可创建照片保留原图尺寸
+2. MINOR LEVEL10
+- Photo Create 可创建照片保留原图文件
 """
 
 """

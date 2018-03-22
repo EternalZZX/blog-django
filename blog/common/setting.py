@@ -139,6 +139,7 @@ class PermissionName(StaticObject):
     PHOTO_CANCEL = 'photo_cancel'
     PHOTO_PRIVACY = 'photo_privacy'
     PHOTO_READ = 'photo_read'
+    PHOTO_LIMIT = 'photo_limit'
 
 
 class PermissionLevel(StaticObject):

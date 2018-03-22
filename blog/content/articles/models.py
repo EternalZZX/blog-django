@@ -1,6 +1,6 @@
 import uuid
 
-from datetime import datetime
+from django.utils import timezone
 from django.db import models
 
 from blog.common.tools import BaseModel
@@ -52,7 +52,7 @@ class Article(models.Model, BaseModel):
     dislike_count = models.IntegerField(default=0)
     create_at = models.DateTimeField(auto_now_add=True)
     last_editor = models.ForeignKey(to=User, related_name='last_editor')
-    edit_at = models.DateTimeField(default=datetime.now())
+    edit_at = models.DateTimeField(default=timezone.now())
 
     class Meta:
         db_table = 'article'

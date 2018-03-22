@@ -10,24 +10,25 @@ from io import BytesIO
 from PIL import Image
 
 from django.db.models import Q
+from django.utils import timezone
 from django.core.files.uploadedfile import InMemoryUploadedFile
 
 from blog.settings import MEDIA_ROOT, MEDIA_URL
 from blog.account.users.services import UserService
 from blog.content.albums.models import Album
-from blog.content.albums.services import AlbumService
 from blog.content.photos.models import Photo
 from blog.common.base import Service
 from blog.common.error import ServiceError
 from blog.common.message import ErrorMsg, ContentErrorMsg
 from blog.common.utils import paging, model_to_dict
-from blog.common.setting import Setting, PermissionName, AuthType
+from blog.common.setting import Setting, PermissionName
 
 
 class PhotoService(Service):
     PHOTO_PUBLIC_FIELD = ['id', 'uuid', 'description', 'author', 'album',
                           'status', 'privacy', 'read_level', 'like_count',
-                          'dislike_count', 'create_at']
+                          'dislike_count', 'create_at', 'last_editor',
+                          'edit_at']
 
     def show(self, url):
         self.has_permission(PermissionName.PHOTO_SELECT)
@@ -91,16 +92,16 @@ class PhotoService(Service):
         for photo in photos:
             if not self._has_get_permission(photo=photo):
                 photos = photos.exclude(id=photo.id)
-        articles, total = paging(photos, page=page, page_size=page_size)
+        photos, total = paging(photos, page=page, page_size=page_size)
         return 200, {'photos': [PhotoService._photo_to_dict(photo) for photo in photos],
                      'total': total}
 
     def create(self, image, description=None, album_uuid=None, status=Photo.AUDIT,
                privacy=Photo.PUBLIC, read_level=100, origin=False, untreated=False):
-        create_level, size_level = self.get_permission_level(PermissionName.PHOTO_CREATE)
-        photo_limit = self.get_permission_value(PermissionName.PHOTO_CREATE)
-        if create_level.is_lt_lv10() and photo_limit != -1 and \
-                photo_limit <= Photo.objects.filter(author__uid=self.uid).count():
+        create_level, _ = self.get_permission_level(PermissionName.PHOTO_CREATE)
+        count_level = self.get_permission_value(PermissionName.PHOTO_CREATE)
+        if create_level.is_lt_lv10() and count_level != -1 and \
+                count_level <= Photo.objects.filter(author__uid=self.uid).count():
             raise ServiceError(code=403, message=ContentErrorMsg.PHOTO_LIMIT_EXCEED)
         photo_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, (description + self.uuid + str(time.time())).encode('utf-8')))
         album = self._get_album(album_uuid=album_uuid)
@@ -109,7 +110,8 @@ class PhotoService(Service):
         read_level = self._get_read_level(read_level=read_level)
         stream_large, stream_middle, stream_small = BytesIO(), BytesIO(), BytesIO()
         try:
-            if origin and size_level.is_lt_lv1():
+            origin_level, untreated_level = self.get_permission_level(PermissionName.PHOTO_LIMIT)
+            if origin and origin_level.is_gt_lv10():
                 image_large = self._get_thumbnail(image, stream_large, 'origin', photo_uuid)
             else:
                 image_large = self._get_thumbnail(image, stream_large, 'large', photo_uuid)
@@ -118,7 +120,7 @@ class PhotoService(Service):
                 image_small = self._get_thumbnail(image, stream_small, 'small', photo_uuid)
             else:
                 image_middle, image_small = None, None
-            image_untreated = image if untreated and size_level.is_lt_lv2() else None
+            image_untreated = image if untreated and untreated_level.is_gt_lv10() else None
             photo = Photo.objects.create(uuid=photo_uuid,
                                          image_large=image_large,
                                          image_middle=image_middle,
@@ -129,12 +131,54 @@ class PhotoService(Service):
                                          album=album,
                                          status=status,
                                          privacy=privacy,
-                                         read_level=read_level)
+                                         read_level=read_level,
+                                         last_editor_id=self.uid)
         finally:
             stream_large.close()
             stream_middle.close()
             stream_small.close()
         return 201, PhotoService._photo_to_dict(photo=photo)
+
+    def update(self, photo_uuid, description=None, album_uuid=None,
+               status=Photo.AUDIT, privacy=Photo.PUBLIC, read_level=100,
+               like_count=None, dislike_count=None):
+        update_level, _ = self.get_permission_level(PermissionName.PHOTO_UPDATE)
+        try:
+            photo = Photo.objects.get(uuid=photo_uuid)
+        except Photo.DoesNotExist:
+            raise ServiceError(code=404, message=ContentErrorMsg.PHOTO_NOT_FOUND)
+        if like_count or dislike_count:
+            _, read_permission = self._has_get_permission(photo=photo)
+            # Todo photo like list
+            pass
+        is_self = photo.author_id == self.uid
+        is_content_change, is_edit = False, False
+        if is_self and update_level.is_gt_lv1() or update_level.is_gt_lv10():
+            if description is not None and description != photo.description:
+                photo.update_char_field('description', description)
+                is_content_change = True
+            if album_uuid is not None and album_uuid != photo.album.uuid:
+                photo.album = self._get_album(album_uuid=album_uuid)
+            if privacy and int(privacy) != photo.privacy:
+                photo.privacy, is_edit = self._get_privacy(privacy=privacy), True
+            if read_level and int(read_level) != photo.read_level:
+                photo.read_level, is_edit = self._get_read_level(read_level=read_level), True
+        else:
+            raise ServiceError(code=403, message=ErrorMsg.PERMISSION_DENIED)
+        if is_content_change or is_edit:
+            photo.last_editor_id = self.uid
+            photo.edit_at = timezone.now()
+        if status and int(status) != photo.status:
+            photo.status = self._get_update_status(status, photo, is_content_change)
+        elif is_content_change:
+            _, audit_level = self.get_permission_level(PermissionName.PHOTO_AUDIT, False)
+            if audit_level.is_lt_lv10() and \
+                (photo.status == Photo.ACTIVE or
+                 photo.status == Photo.AUDIT or
+                 photo.status == Photo.FAILED):
+                photo.status = status if Setting().PHOTO_AUDIT else photo.status
+        photo.save()
+        return 200, PhotoService._photo_to_dict(photo=photo)
 
     def _has_get_permission(self, photo):
         is_author = photo.author_id == self.uid
@@ -192,6 +236,38 @@ class PhotoService(Service):
             raise ServiceError(code=403, message=ContentErrorMsg.STATUS_PERMISSION_DENIED)
         return status
 
+    def _get_update_status(self, status, photo, is_content_change):
+        default = photo.status
+        is_self = photo.author_id == self.uid
+        status = PhotoService.choices_format(status, Photo.STATUS_CHOICES, default)
+        if status == photo.status and (status != Photo.ACTIVE and
+                                       status != Photo.FAILED or
+                                       (status == Photo.ACTIVE or
+                                        status == Photo.FAILED) and
+                                       not is_content_change):
+            return status
+        if status == Photo.ACTIVE or status == Photo.AUDIT or status == Photo.FAILED:
+            if Setting().ARTICLE_AUDIT:
+                if is_content_change and status == Photo.AUDIT:
+                    return status
+                _, audit_level = self.get_permission_level(PermissionName.ARTICLE_AUDIT, False)
+                if audit_level.is_gt_lv10():
+                    return status
+                if is_self and (status == Photo.ACTIVE or status == Photo.FAILED):
+                    return Photo.AUDIT
+                raise ServiceError(code=403, message=ContentErrorMsg.STATUS_PERMISSION_DENIED)
+            elif status == Photo.ACTIVE:
+                return status
+        elif status == Photo.CANCEL:
+            if Setting().ARTICLE_CANCEL:
+                _, cancel_level = self.get_permission_level(PermissionName.ARTICLE_CANCEL, False)
+                if cancel_level.is_gt_lv10():
+                    return status
+        elif status == Photo.RECYCLED:
+            if is_self:
+                return status
+        raise ServiceError(code=403, message=ContentErrorMsg.STATUS_PERMISSION_DENIED)
+
     def _get_privacy(self, privacy=Photo.PUBLIC):
         _, privacy_level = self.get_permission_level(PermissionName.PHOTO_PRIVACY, False)
         privacy = PhotoService.choices_format(privacy, Photo.PRIVACY_CHOICES, Photo.PUBLIC)
@@ -239,6 +315,10 @@ class PhotoService(Service):
         photo_dict['author'] = {}
         for field in UserService.USER_PUBLIC_FIELD:
             photo_dict['author'][field] = author_dict[field]
+        last_editor_dict = model_to_dict(photo.last_editor)
+        photo_dict['last_editor'] = {}
+        for field in UserService.USER_PUBLIC_FIELD:
+            photo_dict['last_editor'][field] = last_editor_dict[field]
         for key in kwargs:
             photo_dict[key] = kwargs[key]
         return photo_dict
