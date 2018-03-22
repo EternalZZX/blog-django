@@ -7,7 +7,7 @@ from django.http import HttpResponse, JsonResponse
 from blog.content.photos.services import PhotoService
 from blog.common.message import ErrorMsg
 from blog.common.error import ParamsError
-from blog.common.utils import Response, json_response, str_to_list
+from blog.common.utils import Response, json_response
 from blog.common.setting import AuthType
 
 
@@ -359,4 +359,22 @@ def photo_update(request, photo_uuid):
 
 
 def photo_delete(request, photo_uuid):
-    pass
+    data = QueryDict(request.body)
+    force = data.get('force') == 'true'
+    try:
+        if photo_uuid:
+            id_list = [{'delete_id': photo_uuid, 'force': force}]
+        else:
+            id_list = data.get('id_list')
+            if not isinstance(id_list, (unicode, str)):
+                raise ParamsError()
+            id_list = [{'delete_id': delete_id, 'force': force} for delete_id in id_list.split(';') if delete_id]
+        code, data = 400, map(lambda params: PhotoService(request).delete(**params), id_list)
+        for result in data:
+            if result['status'] == 'SUCCESS':
+                code = 200
+                break
+    except Exception as e:
+        code, data = getattr(e, 'code', 400), \
+                     getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
+    return Response(code=code, data=data)

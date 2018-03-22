@@ -2,6 +2,7 @@ import uuid
 
 from django.utils import timezone
 from django.db import models
+from django.dispatch.dispatcher import receiver
 
 from blog.account.users.models import User
 from blog.content.albums.models import Album
@@ -56,3 +57,11 @@ class Photo(models.Model, BaseModel):
 
     class Meta:
         db_table = 'photo'
+
+
+@receiver(models.signals.pre_delete, sender=Photo)
+def photo_obj_delete(sender, instance, **kwargs):
+    instance.image_large.delete(False)
+    instance.image_middle.delete(False)
+    instance.image_small.delete(False)
+    instance.image_untreated.delete(False)

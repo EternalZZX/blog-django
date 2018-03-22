@@ -180,6 +180,32 @@ class PhotoService(Service):
         photo.save()
         return 200, PhotoService._photo_to_dict(photo=photo)
 
+    def delete(self, delete_id, force):
+        if force:
+            self.has_permission(PermissionName.PHOTO_DELETE)
+        else:
+            self.has_permission(PermissionName.PHOTO_CANCEL)
+        result = {'id': delete_id}
+        try:
+            photo = Photo.objects.get(uuid=delete_id)
+            result['nick'], result['status'] = photo.description, 'SUCCESS'
+            if force:
+                if self._has_delete_permission(photo=photo):
+                    photo.delete()
+                else:
+                    raise ServiceError()
+            else:
+                if Setting().PHOTO_CANCEL and self._has_cancel_permission(photo=photo):
+                    photo.status = Photo.CANCEL
+                    photo.save()
+                else:
+                    raise ServiceError()
+        except Photo.DoesNotExist:
+            result['status'] = 'NOT_FOUND'
+        except ServiceError:
+            result['status'] = 'PERMISSION_DENIED'
+        return result
+
     def _has_get_permission(self, photo):
         is_author = photo.author_id == self.uid
         if is_author and photo.status != Photo.CANCEL:
@@ -197,9 +223,19 @@ class PhotoService(Service):
             cancel_level, _ = self.get_permission_level(PermissionName.PHOTO_CANCEL, False)
             return cancel_level.is_gt_lv10()
         elif photo.status == Photo.AUDIT or photo.status == Photo.FAILED:
-            audit_level, _ = self.get_permission_level(PermissionName.ARTICLE_AUDIT, False)
+            audit_level, _ = self.get_permission_level(PermissionName.PHOTO_AUDIT, False)
             return audit_level.is_gt_lv10()
         return False
+
+    def _has_delete_permission(self, photo):
+        delete_level, _ = self.get_permission_level(PermissionName.PHOTO_DELETE, False)
+        is_self = photo.author_id == self.uid
+        return delete_level.is_gt_lv10() or is_self and delete_level.is_gt_lv1()
+
+    def _has_cancel_permission(self, photo):
+        _, cancel_level = self.get_permission_level(PermissionName.PHOTO_CANCEL, False)
+        is_self = photo.author_id == self.uid
+        return cancel_level.is_gt_lv10() or is_self and cancel_level.is_gt_lv1()
 
     def _get_album(self, album_uuid):
         album = None
@@ -215,12 +251,12 @@ class PhotoService(Service):
         return album
 
     def _get_create_status(self, status, album):
-        default = Photo.AUDIT if Setting().ARTICLE_AUDIT else Photo.ACTIVE
+        default = Photo.AUDIT if Setting().PHOTO_AUDIT else Photo.ACTIVE
         status = PhotoService.choices_format(status, Photo.STATUS_CHOICES, default)
         if status == Photo.AUDIT:
             return default if album else Photo.ACTIVE
         if status == Photo.ACTIVE or status == Photo.FAILED:
-            if album and Setting().ARTICLE_AUDIT:
+            if album and Setting().PHOTO_AUDIT:
                 _, audit_level = self.get_permission_level(PermissionName.PHOTO_AUDIT, False)
                 if audit_level.is_gt_lv10():
                     return status
@@ -247,10 +283,10 @@ class PhotoService(Service):
                                        not is_content_change):
             return status
         if status == Photo.ACTIVE or status == Photo.AUDIT or status == Photo.FAILED:
-            if Setting().ARTICLE_AUDIT:
+            if Setting().PHOTO_AUDIT:
                 if is_content_change and status == Photo.AUDIT:
                     return status
-                _, audit_level = self.get_permission_level(PermissionName.ARTICLE_AUDIT, False)
+                _, audit_level = self.get_permission_level(PermissionName.PHOTO_AUDIT, False)
                 if audit_level.is_gt_lv10():
                     return status
                 if is_self and (status == Photo.ACTIVE or status == Photo.FAILED):
@@ -259,8 +295,8 @@ class PhotoService(Service):
             elif status == Photo.ACTIVE:
                 return status
         elif status == Photo.CANCEL:
-            if Setting().ARTICLE_CANCEL:
-                _, cancel_level = self.get_permission_level(PermissionName.ARTICLE_CANCEL, False)
+            if Setting().PHOTO_CANCEL:
+                _, cancel_level = self.get_permission_level(PermissionName.PHOTO_CANCEL, False)
                 if cancel_level.is_gt_lv10():
                     return status
         elif status == Photo.RECYCLED:
