@@ -331,6 +331,14 @@ class PhotoService(Service):
         return read_level
 
     @staticmethod
+    def get_avatar_url(user_uuid, avatar_uuid):
+        try:
+            return Photo.objects.get(uuid=avatar_uuid,
+                                     author__uuid=user_uuid).image_small.url
+        except Photo.DoesNotExist:
+            return None
+
+    @staticmethod
     def _get_thumbnail(image, stream, size, photo_uuid='pic'):
         pil_image = Image.open(image)
         pil_format = pil_image.format.lower()

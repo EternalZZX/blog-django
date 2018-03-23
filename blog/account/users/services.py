@@ -8,6 +8,7 @@ from django.db.models import Q
 from blog.account.users.models import User, UserPrivacySetting
 from blog.account.roles.models import Role
 from blog.account.groups.models import Group
+from blog.content.photos.services import PhotoService
 from blog.common.utils import paging, model_to_dict, encode
 from blog.common.base import Authorize, Service
 from blog.common.error import ServiceError
@@ -16,10 +17,11 @@ from blog.common.setting import Setting, PermissionName
 
 
 class UserService(Service):
-    USER_PUBLIC_FIELD = ['uuid', 'nick', 'role', 'groups', 'remark', 'create_at']
-    USER_ALL_FIELD = ['id', 'uuid', 'username', 'nick', 'role', 'groups',
-                      'gender', 'email', 'phone', 'qq', 'address', 'remark',
-                      'create_at']
+    USER_PUBLIC_FIELD = ['uuid', 'nick', 'avatar', 'role', 'groups',
+                         'remark', 'create_at']
+    USER_ALL_FIELD = ['id', 'uuid', 'username', 'nick', 'avatar', 'role',
+                      'groups', 'gender', 'email', 'phone', 'qq', 'address',
+                      'remark', 'create_at']
     USER_MANAGE_FIELD = ['status']
     USER_PRIVACY_FIELD = ['gender_privacy', 'email_privacy', 'phone_privacy',
                           'qq_privacy', 'address_privacy']
@@ -143,9 +145,9 @@ class UserService(Service):
         return 201, user_dict
 
     def update(self, user_uuid, username=None, old_password=None,
-               new_password=None, nick=None, role_id=None, group_ids=None,
-               gender=None, email=None, phone=None, qq=None, address=None,
-               status=None, remark=None, **kwargs):
+               new_password=None, nick=None, avatar_uuid=None, role_id=None,
+               group_ids=None, gender=None, email=None, phone=None, qq=None,
+               address=None, status=None, remark=None, **kwargs):
         update_level, update_password_level = self.get_permission_level(PermissionName.USER_UPDATE)
         is_self = self.uuid == user_uuid
         if not is_self and update_level.is_lt_lv9():
@@ -169,6 +171,8 @@ class UserService(Service):
             user.username = username
         if nick and Setting().NICK_UPDATE:
             user.nick = nick
+        if avatar_uuid is not None:
+            user.avatar = PhotoService.get_avatar_url(user_uuid=user.uuid, avatar_uuid=avatar_uuid)
         if gender is not None:
             user.gender = UserService.choices_format(gender, User.GENDER_CHOICES)
         if status is not None:

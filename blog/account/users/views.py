@@ -43,12 +43,13 @@ def user_get(request, uuid):
     HTTP/1.1 200 OK
     {
         "data": {
-            "remark": "C'est la vie",
-            "gender": false,
-            "create_at": "2017-12-06T09:15:49Z",
-            "nick": "EternalZZX",
+            "remark": null,
+            "uuid": "7357d28a-a611-5efd-ae6e-a550a5b95487",
+            "create_at": "2017-12-20T11:19:17Z",
+            "nick": "admin",
             "role": 1,
-            "groups": 1
+            "avatar": "/media/photos/9b19df9b-25f5-5a09-a4ce-b7e0149699dc.jpeg",
+            "groups": null
         }
     }
     @apiUse ErrorData
@@ -92,11 +93,13 @@ def user_list(request):
             "total": 1,
             "users": [
                 {
-                    "nick": "EternalZZX",
-                    "remark": "C'est la vie",
+                    "remark": null,
+                    "uuid": "7357d28a-a611-5efd-ae6e-a550a5b95487",
+                    "create_at": "2017-12-20T11:19:17Z",
+                    "nick": "admin",
                     "role": 1,
-                    "create_at": "2017-12-06T09:15:49Z",
-                    "groups": 1
+                    "avatar": "/media/photos/9b19df9b-25f5-5a09-a4ce-b7e0149699dc.jpeg",
+                    "groups": null
                 }
             ]
         }
@@ -158,25 +161,28 @@ def user_create(request):
     HTTP/1.1 200 OK
     {
         "data": {
-            "email_privacy": 0,
-            "username": "user",
-            "remark": null,
-            "phone_privacy": 0,
-            "uuid": "19890105-81dd-55fc-a202-914fbf1e88a1",
-            "nick": "user",
+            "username": "test",
             "qq": null,
-            "address": null,
-            "qq_privacy": 0,
-            "create_at": "2017-12-15T03:18:25.564Z",
+            "remark": null,
+            "uuid": "4be0643f-1d98-573b-97cd-ca98a65347dd",
             "phone": null,
+            "gender": true,
+            "status": 1,
+            "create_at": "2017-12-20T06:00:07Z",
+            "email": null,
+            "nick": "test",
             "role": 2,
-            "user": 33,
+            "avatar": null,
             "groups": [],
-            "gender": null,
-            "id": 33,
-            "gender_privacy": 2,
-            "address_privacy": 0,
-            "email": null
+            "address": null,
+            "id": 5,
+            "privacy_setting": {
+                "email_privacy": 0,
+                "phone_privacy": 0,
+                "qq_privacy": 0,
+                "gender_privacy": 1,
+                "address_privacy": 0
+            }
         }
     }
     @apiUse ErrorData
@@ -236,6 +242,7 @@ def user_update(request, uuid):
     @apiParam {string} [old_password] 旧密码
     @apiParam {string} [new_password] 新密码
     @apiParam {string} [nick] 昵称
+    @apiParam {string} [avatar_uuid] 用户头像UUID
     @apiParam {number} [role_id] 用户角色ID
     @apiParam {string} [group_ids] 用户组ID列表，e.g.'2;9;32;43'
     @apiParam {number=0, 1} [gender] 性别, Female=0, Male=1
@@ -252,25 +259,28 @@ def user_update(request, uuid):
     HTTP/1.1 200 OK
     {
         "data": {
-            "email_privacy": 0,
-            "username": "user",
-            "remark": null,
-            "phone_privacy": 0,
-            "uuid": "19890105-81dd-55fc-a202-914fbf1e88a1",
-            "nick": "user",
+            "username": "test",
             "qq": null,
-            "address": null,
-            "qq_privacy": 0,
-            "create_at": "2017-12-15T03:18:25.564Z",
+            "remark": null,
+            "uuid": "4be0643f-1d98-573b-97cd-ca98a65347dd",
             "phone": null,
+            "gender": true,
+            "status": 1,
+            "create_at": "2017-12-20T06:00:07Z",
+            "email": null,
+            "nick": "test",
             "role": 2,
-            "user": 33,
+            "avatar": null,
             "groups": [],
-            "gender": null,
-            "id": 33,
-            "gender_privacy": 2,
-            "address_privacy": 0,
-            "email": null
+            "address": null,
+            "id": 5,
+            "privacy_setting": {
+                "email_privacy": 0,
+                "phone_privacy": 0,
+                "qq_privacy": 0,
+                "gender_privacy": 1,
+                "address_privacy": 0
+            }
         }
     }
     @apiUse ErrorData
@@ -285,6 +295,7 @@ def user_update(request, uuid):
     old_password = data.get('old_password')
     new_password = data.get('new_password')
     nick = data.get('nick')
+    avatar_uuid = data.get('avatar_uuid')
     role_id = data.get('role_id')
     group_ids = data.get('group_ids')
     gender = data.get('gender')
@@ -307,6 +318,7 @@ def user_update(request, uuid):
                                                  old_password=old_password,
                                                  new_password=new_password,
                                                  nick=nick,
+                                                 avatar_uuid=avatar_uuid,
                                                  role_id=role_id,
                                                  group_ids=group_ids,
                                                  gender=gender,
