@@ -53,13 +53,15 @@ class PhotoService(Service):
             raise ServiceError(code=404, message=ContentErrorMsg.PHOTO_NOT_FOUND)
         return 200, PhotoService._photo_to_dict(photo=photo)
 
-    def list(self, page=0, page_size=10, album_uuid=None, author_uuid=None,
-             status=None, order_field=None, order='desc', query=None,
-             query_field=None):
+    def list(self, page=0, page_size=10, album_uuid=None, album_system=None,
+             author_uuid=None, status=None, order_field=None, order='desc',
+             query=None, query_field=None):
         query_level, order_level = self.get_permission_level(PermissionName.PHOTO_SELECT)
         photos = Photo.objects.all()
         if album_uuid:
             photos = photos.filter(album__uuid=album_uuid)
+        if album_system:
+            photos = photos.filter(album__system=album_system)
         if author_uuid:
             photos = photos.filter(author__uuid=author_uuid)
         if status:
@@ -237,12 +239,26 @@ class PhotoService(Service):
     def _has_delete_permission(self, photo):
         delete_level, _ = self.get_permission_level(PermissionName.PHOTO_DELETE, False)
         is_self = photo.author_id == self.uid
-        return delete_level.is_gt_lv10() or is_self and delete_level.is_gt_lv1()
+        if is_self and delete_level.is_gt_lv1():
+            return True
+        if delete_level.is_lt_lv10():
+            return False
+        if not photo.album:
+            return True
+        update_level, _ = self.get_permission_level(PermissionName.ALBUM_UPDATE)
+        return update_level.is_gt_lv10()
 
     def _has_cancel_permission(self, photo):
         _, cancel_level = self.get_permission_level(PermissionName.PHOTO_CANCEL, False)
         is_self = photo.author_id == self.uid
-        return cancel_level.is_gt_lv10() or is_self and cancel_level.is_gt_lv1()
+        if is_self and cancel_level.is_gt_lv1():
+            return True
+        if cancel_level.is_lt_lv10():
+            return False
+        if not photo.album:
+            return True
+        update_level, _ = self.get_permission_level(PermissionName.ALBUM_UPDATE)
+        return update_level.is_gt_lv10()
 
     def _get_album(self, album_uuid):
         album = None
@@ -329,14 +345,6 @@ class PhotoService(Service):
             if read_level > self_read_level and read_permission_level.is_lt_lv10():
                 read_level = self_read_level
         return read_level
-
-    @staticmethod
-    def get_avatar_url(user_uuid, avatar_uuid):
-        try:
-            return Photo.objects.get(uuid=avatar_uuid,
-                                     author__uuid=user_uuid).image_small.url
-        except Photo.DoesNotExist:
-            return None
 
     @staticmethod
     def _get_thumbnail(image, stream, size, photo_uuid='pic'):

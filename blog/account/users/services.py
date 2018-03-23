@@ -8,7 +8,8 @@ from django.db.models import Q
 from blog.account.users.models import User, UserPrivacySetting
 from blog.account.roles.models import Role
 from blog.account.groups.models import Group
-from blog.content.photos.services import PhotoService
+from blog.content.albums.models import Album
+from blog.content.photos.models import Photo
 from blog.common.utils import paging, model_to_dict, encode
 from blog.common.base import Authorize, Service
 from blog.common.error import ServiceError
@@ -172,7 +173,7 @@ class UserService(Service):
         if nick and Setting().NICK_UPDATE:
             user.nick = nick
         if avatar_uuid is not None:
-            user.avatar = PhotoService.get_avatar_url(user_uuid=user.uuid, avatar_uuid=avatar_uuid)
+            user.avatar = self._get_avatar_url(user_uuid=user.uuid, avatar_uuid=avatar_uuid)
         if gender is not None:
             user.gender = UserService.choices_format(gender, User.GENDER_CHOICES)
         if status is not None:
@@ -296,3 +297,15 @@ class UserService(Service):
                 setattr(user_privacy_setting, key, value)
         user_privacy_setting.save()
         return user_privacy_setting
+
+    @staticmethod
+    def _get_avatar_url(user_uuid, avatar_uuid):
+        try:
+            photo = Photo.objects.get(Q(uuid=avatar_uuid, author__uuid=user_uuid) |
+                                      Q(uuid=avatar_uuid, album__system=Album.AVATAR_ALBUM))
+            if Setting().PHOTO_THUMBNAIL and photo.image_small:
+                return photo.image_small.url
+            else:
+                return photo.image_large.url
+        except Photo.DoesNotExist:
+            return None

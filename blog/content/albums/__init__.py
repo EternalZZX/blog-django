@@ -50,10 +50,18 @@
 1. MAJOR LEVEL10
 - Album Get    可查看非公有相册
 - Album List   可查看非公有相册
-1. MINOR LEVEL2
+2. MINOR LEVEL2
 - Album Create 可创建相册为私有
 - Album Update 可修改相册为私有
-2. MINOR LEVEL1
+3. MINOR LEVEL1
 - Album Create 可创建相册为受保护
 - Album Update 可修改相册为受保护
+"""
+
+"""
+@apiDefine ALBUM_SYSTEM
+相册系统权限
+1. MAJOR LEVEL10
+- Album Create 可创建相册为系统相册
+- Album Update 可编辑相册为系统相册
 """

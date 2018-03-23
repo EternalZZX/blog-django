@@ -157,8 +157,10 @@ def album_create(request):
     @apiUse Header
     @apiParam {string} name 相册名
     @apiParam {string} [description] 相册描述
+    @apiParam {string} [cover_uuid] 相册封面UUID
     @apiParam {string} [author_uuid={self}] 作者UUID
     @apiParam {number=0, 1, 2} [privacy=1] 相册私有状态, Private=0, Public=1, Protected=2
+    @apiParam {number=0, 1} [system] 系统相册类型, Avatar=0, Cover=1
     @apiSuccess {string} data 创建相册信息详情
     @apiSuccessExample {json} Success-Response:
     HTTP/1.1 200 OK
@@ -189,13 +191,17 @@ def album_create(request):
     """
     name = request.POST.get('name')
     description = request.POST.get('description')
+    cover_uuid = request.POST.get('cover_uuid')
     author_uuid = request.POST.get('author_uuid')
     privacy = request.POST.get('privacy')
+    system = request.POST.get('system')
     try:
         code, data = AlbumService(request).create(name=name,
                                                   description=description,
+                                                  cover_uuid=cover_uuid,
                                                   author_uuid=author_uuid,
-                                                  privacy=privacy)
+                                                  privacy=privacy,
+                                                  system=system)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
@@ -214,8 +220,10 @@ def album_update(request, album_uuid):
     @apiUse Header
     @apiParam {string} name 相册名
     @apiParam {string} [description] 相册描述
+    @apiParam {string} [cover_uuid] 相册封面UUID
     @apiParam {string} [author_uuid={self}] 作者UUID
     @apiParam {number=0, 1, 2} [privacy=1] 相册私有状态, Private=0, Public=1, Protected=2
+    @apiParam {number=0, 1} [system] 系统相册类型, Avatar=0, Cover=1
     @apiSuccess {string} data 编辑相册信息详情
     @apiSuccessExample {json} Success-Response:
     HTTP/1.1 200 OK
@@ -247,14 +255,18 @@ def album_update(request, album_uuid):
     data = QueryDict(request.body)
     name = data.get('name')
     description = data.get('description')
+    cover_uuid = data.get('cover_uuid')
     author_uuid = data.get('author_uuid')
     privacy = data.get('privacy')
+    system = data.get('system')
     try:
         code, data = AlbumService(request).update(album_uuid=album_uuid,
                                                   name=name,
                                                   description=description,
+                                                  cover_uuid=cover_uuid,
                                                   author_uuid=author_uuid,
-                                                  privacy=privacy)
+                                                  privacy=privacy,
+                                                  system=system)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)

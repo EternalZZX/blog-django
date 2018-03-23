@@ -129,6 +129,7 @@ class PermissionName(StaticObject):
     ALBUM_UPDATE = 'album_update'
     ALBUM_SELECT = 'album_select'
     ALBUM_PRIVACY = 'album_privacy'
+    ALBUM_SYSTEM = 'album_system'
 
     PHOTO_CREATE = 'photo_create'
     PHOTO_DELETE = 'photo_delete'

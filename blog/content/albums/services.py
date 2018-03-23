@@ -9,16 +9,17 @@ from django.db.models import Q
 from blog.account.users.models import User
 from blog.account.users.services import UserService
 from blog.content.albums.models import Album
+from blog.content.photos.models import Photo
 from blog.common.base import Service
 from blog.common.error import ServiceError
 from blog.common.message import ErrorMsg, AccountErrorMsg, ContentErrorMsg
 from blog.common.utils import paging, model_to_dict
-from blog.common.setting import PermissionName
+from blog.common.setting import PermissionName, Setting
 
 
 class AlbumService(Service):
-    ALBUM_ALL_FIELD = ['id', 'uuid', 'name', 'description', 'privacy',
-                       'author', 'create_at']
+    ALBUM_ALL_FIELD = ['id', 'uuid', 'name', 'description', 'cover',
+                       'privacy', 'system', 'author', 'create_at']
 
     def get(self, album_uuid):
         self.has_permission(PermissionName.ALBUM_SELECT)
@@ -28,8 +29,7 @@ class AlbumService(Service):
                 raise Album.DoesNotExist
             album_dict = AlbumService._album_to_dict(album=album)
         except Album.DoesNotExist:
-            raise ServiceError(code=404,
-                               message=ContentErrorMsg.ALBUM_NOT_FOUND)
+            raise ServiceError(code=404, message=ContentErrorMsg.ALBUM_NOT_FOUND)
         return 200, album_dict
 
     def list(self, page=0, page_size=10, author_uuid=None, order_field=None,
@@ -73,7 +73,8 @@ class AlbumService(Service):
         albums, total = paging(albums, page=page, page_size=page_size)
         return 200, {'albums': [AlbumService._album_to_dict(album=album) for album in albums], 'total': total}
 
-    def create(self, name, description=None, author_uuid=None, privacy=Album.PUBLIC):
+    def create(self, name, description=None, cover_uuid=None, author_uuid=None,
+               privacy=Album.PUBLIC, system=None):
         create_level, _ = self.get_permission_level(PermissionName.ALBUM_CREATE)
         album_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, (name + self.uuid + str(time.time())).encode('utf-8')))
         author_id = self.uid
@@ -82,17 +83,26 @@ class AlbumService(Service):
                 author_id = User.objects.get(uuid=author_uuid).id
             except User.DoesNotExist:
                 raise ServiceError(message=AccountErrorMsg.USER_NOT_FOUND)
+        cover = None
+        if cover_uuid:
+            cover = self._get_cover_url(user_id=author_id, cover_uuid=cover_uuid)
+        if system:
+            system_level, _ = self.get_permission_level(PermissionName.ALBUM_SYSTEM)
+            if system_level.is_gt_lv10():
+                system = AlbumService.choices_format(system, Album.SYSTEM_ALBUM_CHOICES, None)
         privacy = self._get_privacy(privacy=privacy)
         album = Album.objects.create(uuid=album_uuid,
                                      name=name,
                                      description=description,
+                                     cover=cover,
                                      author_id=author_id,
-                                     privacy=privacy)
+                                     privacy=privacy,
+                                     system=system)
         album_dict = AlbumService._album_to_dict(album=album)
         return 201, album_dict
 
-    def update(self, album_uuid, name=None, description=None,
-               author_uuid=None, privacy=Album.PUBLIC):
+    def update(self, album_uuid, name=None, description=None, cover_uuid=None,
+               author_uuid=None, privacy=Album.PUBLIC, system=None):
         update_level, author_level = self.get_permission_level(PermissionName.ALBUM_UPDATE)
         try:
             album = Album.objects.get(uuid=album_uuid)
@@ -109,8 +119,14 @@ class AlbumService(Service):
                     album.author_id = User.objects.get(uuid=author_uuid).id
                 except User.DoesNotExist:
                     raise ServiceError(message=AccountErrorMsg.USER_NOT_FOUND)
+            if cover_uuid is not None:
+                album.cover = self._get_cover_url(user_id=album.author_id, cover_uuid=cover_uuid)
             if privacy and int(privacy) != album.privacy:
                 album.privacy = self._get_privacy(privacy=privacy)
+            if system is not None:
+                system_level, _ = self.get_permission_level(PermissionName.ALBUM_SYSTEM)
+                if system_level.is_gt_lv10():
+                    album.system = AlbumService.choices_format(system, Album.SYSTEM_ALBUM_CHOICES, None)
         album.save()
         album_dict = AlbumService._album_to_dict(album=album)
         return 200, album_dict
@@ -148,6 +164,18 @@ class AlbumService(Service):
                 privacy == Album.PRIVATE and privacy_level.is_lt_lv2():
             privacy = Album.PUBLIC
         return privacy
+
+    @staticmethod
+    def _get_cover_url(user_id, cover_uuid):
+        try:
+            photo = Photo.objects.get(Q(uuid=cover_uuid, author__id=user_id) |
+                                      Q(uuid=cover_uuid, album__system=Album.COVER_ALBUM))
+            if Setting().PHOTO_THUMBNAIL and photo.image_small:
+                return photo.image_small.url
+            else:
+                return photo.image_large.url
+        except Photo.DoesNotExist:
+            return None
 
     @staticmethod
     def _album_to_dict(album, **kwargs):

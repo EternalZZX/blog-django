@@ -135,8 +135,9 @@ def photo_list(request):
     @apiParam {number} [page=0] 照片信息列表页码, 页码为0时返回所有数据
     @apiParam {number} [page_size=10] 照片信息列表页长
     @apiParam {string} [album_uuid] 照片所属相册
+    @apiParam {number=0, 1} [album_system] 照片所属系统相册类型, Avatar=0, Cover=1
     @apiParam {string} [author_uuid] 照片作者
-    @apiParam {string=0, 1, 2, 3, 4, 5} [status] 照片状态，Cancel=0, Active=1, Audit=2,
+    @apiParam {number=0, 1, 2, 3, 4, 5} [status] 照片状态，Cancel=0, Active=1, Audit=2,
                                                  Failed=3, Recycled=4，状态可拼接，e.g. '123'
     @apiParam {string} [order_field] 照片信息列表排序字段
     @apiParam {string=desc, asc} [order="desc"] 照片信息列表排序方向
@@ -187,6 +188,7 @@ def photo_list(request):
     page = request.GET.get('page')
     page_size = request.GET.get('page_size')
     album_uuid = request.GET.get('album_uuid')
+    album_system = request.GET.get('album_system')
     author_uuid = request.GET.get('author_uuid')
     status = request.GET.get('status')
     order_field = request.GET.get('order_field')
@@ -197,6 +199,7 @@ def photo_list(request):
         code, data = PhotoService(request).list(page=page,
                                                 page_size=page_size,
                                                 album_uuid=album_uuid,
+                                                album_system=album_system,
                                                 author_uuid=author_uuid,
                                                 status=status,
                                                 order_field=order_field,
