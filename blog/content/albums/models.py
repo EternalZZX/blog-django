@@ -17,10 +17,14 @@ class Album(models.Model, BaseModel):
     )
 
     AVATAR_ALBUM = 0
-    COVER_ALBUM = 1
+    ALBUM_COVER_ALBUM = 1
+    SECTION_COVER_ALBUM = 2
+    ARTICLE_COVER_ALBUM = 3
     SYSTEM_ALBUM_CHOICES = (
         (AVATAR_ALBUM, 'avatar album'),
-        (COVER_ALBUM, 'cover album')
+        (ALBUM_COVER_ALBUM, 'album cover album'),
+        (SECTION_COVER_ALBUM, 'section cover album'),
+        (ARTICLE_COVER_ALBUM, 'article cover album'),
     )
 
     id = models.AutoField(primary_key=True)

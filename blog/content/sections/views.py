@@ -193,6 +193,7 @@ def section_create(request):
     @apiParam {string} name 版块名
     @apiParam {string} [nick={name}] 版块昵称
     @apiParam {string} [description] 版块描述
+    @apiParam {string} [cover_uuid] 版块封面UUID
     @apiParam {string} [owner_uuid={self}] 大版主UUID
     @apiParam {string} [moderator_uuids] 版主UUID列表，e.g.'7357d28a-a611-5efd-ae6e-a550a5b95487'
     @apiParam {string} [assistant_uuids] 副版主UUID列表，e.g.'4be0643f-1d98-573b-97cd-ca98a65347dd'
@@ -203,12 +204,12 @@ def section_create(request):
     @apiParam {only_groups=true, false} [default=false] 是否指定组拥有阅读权限
     @apiParam {string} [group_ids] 用户组ID列表，e.g.'2;9;32;43'
     @apiParam {number=0, 1, 2, 3} [kwargs] 权限设置, Owner=0, Moderator=1, Manager=2, All=3,
-                                           参数名'set_permission', 'delete_permission',
-                                           'set_owner', 'set_name', 'set_nick', 'set_description',
+                                           参数名'set_permission', 'delete_permission', 'set_owner',
+                                           'set_name', 'set_nick', 'set_description', 'set_cover',
                                            'set_moderator', 'set_assistant', 'set_status',
                                            'set_cancel', 'cancel_visible', 'set_read_level',
                                            'set_read_user'，
-                                           策略设置, 参数名'article_mute', 'reply_mute',
+                                           策略设置, 参数名'auto_audit', 'article_mute', 'reply_mute',
                                            'max_articles', 'max_articles_one_day'
     @apiSuccess {string} data 创建版块信息详情
     @apiSuccessExample {json} Success-Response:
@@ -216,27 +217,53 @@ def section_create(request):
     {
         "data": {
             "status": 2,
+            "policy": {
+                "max_articles_one_day": null,
+                "max_articles": null,
+                "article_mute": false,
+                "auto_audit": false,
+                "reply_mute": false
+            },
             "description": null,
             "roles": [],
             "permission": {
-                "set_permission": 0,
-                "set_name": 0,
+                "set_cover": 1,
                 "set_description": 2,
-                "set_read_level": 1,
+                "article_edit": 2,
+                "set_moderator": 1,
+                "set_cancel": 1,
+                "set_permission": 0,
                 "cancel_visible": 2,
-                "delete_permission": 0,
                 "set_status": 1,
                 "set_assistant": 1,
-                "set_moderator": 1,
+                "article_delete": 1,
+                "set_read_level": 1,
+                "article_draft": 1,
+                "set_read_user": 1,
+                "article_audit": 2,
+                "set_name": 0,
+                "set_policy": 1,
+                "article_cancel": 2,
+                "delete_permission": 0,
                 "set_nick": 2,
-                "set_cancel": 1,
-                "set_owner": 0,
-                "set_read_user": 1
+                "article_recycled": 1,
+                "set_owner": 0
             },
             "read_level": 0,
-            "create_at": "2018-01-26T09:46:18.038Z",
+            "cover": "/media/photos/9b19df9b-25f5-5a09-a4ce-b7e0149699dc.jpeg",
+            "create_at": "2018-01-26T10:17:05Z",
             "nick": "Test",
-            "moderators": [],
+            "moderators": [
+                {
+                    "remark": null,
+                    "uuid": "7357d28a-a611-5efd-ae6e-a550a5b95487",
+                    "create_at": "2017-12-20T11:19:17Z",
+                    "nick": "admin",
+                    "role": 1,
+                    "avatar": "/media/photos/9b19df9b-25f5-5a09-a4ce-b7e0149699dc.jpeg",
+                    "groups": null
+                }
+            ],
             "only_groups": false,
             "owner": {
                 "remark": null,
@@ -244,13 +271,24 @@ def section_create(request):
                 "create_at": "2017-12-20T11:19:17Z",
                 "nick": "admin",
                 "role": 1,
+                "avatar": "/media/photos/9b19df9b-25f5-5a09-a4ce-b7e0149699dc.jpeg",
                 "groups": []
             },
-            "assistants": [],
+            "assistants": [
+                {
+                    "remark": null,
+                    "uuid": "4be0643f-1d98-573b-97cd-ca98a65347dd",
+                    "create_at": "2017-12-20T06:00:07Z",
+                    "nick": "test",
+                    "role": 2,
+                    "avatar": null,
+                    "groups": null
+                }
+            ],
             "only_roles": false,
             "groups": [],
-            "id": 17,
-            "name": "test3"
+            "id": 18,
+            "name": "test"
         }
     }
     @apiUse ErrorData
@@ -263,6 +301,7 @@ def section_create(request):
     name = request.POST.get('name')
     nick = request.POST.get('nick')
     description = request.POST.get('description')
+    cover_uuid = request.POST.get('cover_uuid')
     owner_uuid = request.POST.get('owner_uuid')
     moderator_uuids = request.POST.get('moderator_uuids')
     assistant_uuids = request.POST.get('assistant_uuids')
@@ -285,6 +324,7 @@ def section_create(request):
         code, data = SectionService(request).create(name=name,
                                                     nick=nick,
                                                     description=description,
+                                                    cover_uuid=cover_uuid,
                                                     owner_uuid=owner_uuid,
                                                     moderator_uuids=moderator_uuids,
                                                     assistant_uuids=assistant_uuids,
@@ -312,6 +352,7 @@ def section_update(request, section_id):
     @apiParam {string} name 版块名
     @apiParam {string} [nick={name}] 版块昵称
     @apiParam {string} [description] 版块描述
+    @apiParam {string} [cover_uuid] 版块封面UUID
     @apiParam {string} [owner_uuid={self}] 大版主UUID
     @apiParam {string} [moderator_uuids] 版主UUID列表，e.g.'7357d28a-a611-5efd-ae6e-a550a5b95487'
     @apiParam {string} [assistant_uuids] 副版主UUID列表，e.g.'4be0643f-1d98-573b-97cd-ca98a65347dd'
@@ -322,12 +363,12 @@ def section_update(request, section_id):
     @apiParam {only_groups=true, false} [default=false] 是否指定组拥有阅读权限
     @apiParam {string} [group_ids] 用户组ID列表，e.g.'2;9;32;43'
     @apiParam {number=0, 1, 2, 3} [kwargs] 权限设置, Owner=0, Moderator=1, Manager=2, All=3,
-                                           参数名'set_permission', 'delete_permission',
-                                           'set_owner', 'set_name', 'set_nick', 'set_description',
+                                           参数名'set_permission', 'delete_permission', 'set_owner',
+                                           'set_name', 'set_nick', 'set_description', 'set_cover',
                                            'set_moderator', 'set_assistant', 'set_status',
                                            'set_cancel', 'cancel_visible', 'set_read_level',
                                            'set_read_user'，
-                                           策略设置, 参数名'article_mute', 'reply_mute',
+                                           策略设置, 参数名'auto_audit', 'article_mute', 'reply_mute',
                                            'max_articles', 'max_articles_one_day'
     @apiSuccess {string} data 编辑版块信息详情
     @apiSuccessExample {json} Success-Response:
@@ -335,27 +376,53 @@ def section_update(request, section_id):
     {
         "data": {
             "status": 2,
+            "policy": {
+                "max_articles_one_day": null,
+                "max_articles": null,
+                "article_mute": false,
+                "auto_audit": false,
+                "reply_mute": false
+            },
             "description": null,
             "roles": [],
             "permission": {
-                "set_permission": 0,
-                "set_name": 0,
+                "set_cover": 1,
                 "set_description": 2,
-                "set_read_level": 1,
-                "cancel_visible": 0,
-                "delete_permission": 0,
+                "article_edit": 2,
+                "set_moderator": 1,
+                "set_cancel": 1,
+                "set_permission": 0,
+                "cancel_visible": 2,
                 "set_status": 1,
                 "set_assistant": 1,
-                "set_moderator": 1,
+                "article_delete": 1,
+                "set_read_level": 1,
+                "article_draft": 1,
+                "set_read_user": 1,
+                "article_audit": 2,
+                "set_name": 0,
+                "set_policy": 1,
+                "article_cancel": 2,
+                "delete_permission": 0,
                 "set_nick": 2,
-                "set_cancel": 1,
-                "set_owner": 0,
-                "set_read_user": 1
+                "article_recycled": 1,
+                "set_owner": 0
             },
             "read_level": 0,
-            "create_at": "2018-01-26T09:46:18Z",
+            "cover": "/media/photos/9b19df9b-25f5-5a09-a4ce-b7e0149699dc.jpeg",
+            "create_at": "2018-01-26T10:17:05Z",
             "nick": "Test",
-            "moderators": [],
+            "moderators": [
+                {
+                    "remark": null,
+                    "uuid": "7357d28a-a611-5efd-ae6e-a550a5b95487",
+                    "create_at": "2017-12-20T11:19:17Z",
+                    "nick": "admin",
+                    "role": 1,
+                    "avatar": "/media/photos/9b19df9b-25f5-5a09-a4ce-b7e0149699dc.jpeg",
+                    "groups": null
+                }
+            ],
             "only_groups": false,
             "owner": {
                 "remark": null,
@@ -363,12 +430,23 @@ def section_update(request, section_id):
                 "create_at": "2017-12-20T11:19:17Z",
                 "nick": "admin",
                 "role": 1,
+                "avatar": "/media/photos/9b19df9b-25f5-5a09-a4ce-b7e0149699dc.jpeg",
                 "groups": []
             },
-            "assistants": [],
+            "assistants": [
+                {
+                    "remark": null,
+                    "uuid": "4be0643f-1d98-573b-97cd-ca98a65347dd",
+                    "create_at": "2017-12-20T06:00:07Z",
+                    "nick": "test",
+                    "role": 2,
+                    "avatar": null,
+                    "groups": null
+                }
+            ],
             "only_roles": false,
             "groups": [],
-            "id": 17,
+            "id": 18,
             "name": "test"
         }
     }
@@ -383,6 +461,7 @@ def section_update(request, section_id):
     name = data.get('name')
     nick = data.get('nick')
     description = data.get('description')
+    cover_uuid = data.get('cover_uuid')
     owner_uuid = data.get('owner_uuid')
     moderator_uuids = data.get('moderator_uuids')
     assistant_uuids = data.get('assistant_uuids')
@@ -414,6 +493,7 @@ def section_update(request, section_id):
                                                     name=name,
                                                     nick=nick,
                                                     description=description,
+                                                    cover_uuid=cover_uuid,
                                                     owner_uuid=owner_uuid,
                                                     moderator_uuids=moderator_uuids,
                                                     assistant_uuids=assistant_uuids,

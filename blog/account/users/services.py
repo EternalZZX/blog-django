@@ -301,8 +301,12 @@ class UserService(Service):
     @staticmethod
     def _get_avatar_url(user_uuid, avatar_uuid):
         try:
-            photo = Photo.objects.get(Q(uuid=avatar_uuid, author__uuid=user_uuid) |
-                                      Q(uuid=avatar_uuid, album__system=Album.AVATAR_ALBUM))
+            photo = Photo.objects.get(Q(uuid=avatar_uuid,
+                                        author__uuid=user_uuid,
+                                        privacy=Photo.PUBLIC) |
+                                      Q(uuid=avatar_uuid,
+                                        album__system=Album.AVATAR_ALBUM,
+                                        privacy=Photo.PUBLIC))
             if Setting().PHOTO_THUMBNAIL and photo.image_small:
                 return photo.image_small.url
             else:

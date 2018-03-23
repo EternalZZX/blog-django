@@ -5,25 +5,27 @@ from django.db.models import Q
 
 from blog.account.groups.models import Group
 from blog.account.users.models import User
-from blog.account.roles.models import Role
 from blog.account.users.services import UserService
+from blog.account.roles.models import Role
+from blog.content.albums.models import Album
+from blog.content.photos.models import Photo
 from blog.content.sections.models import Section, SectionPermission
 from blog.common.base import Service
 from blog.common.error import ServiceError
 from blog.common.message import ErrorMsg, AccountErrorMsg, ContentErrorMsg
 from blog.common.utils import paging, model_to_dict
-from blog.common.setting import PermissionName
+from blog.common.setting import PermissionName, Setting
 
 
 class SectionService(Service):
-    SECTION_ALL_FIELD = ['id', 'name', 'nick', 'description', 'read_level',
-                         'status', 'owner', 'moderators', 'assistants',
-                         'only_roles', 'roles', 'only_groups', 'groups',
-                         'create_at']
+    SECTION_ALL_FIELD = ['id', 'name', 'nick', 'description', 'cover',
+                         'read_level', 'status', 'owner', 'moderators',
+                         'assistants', 'only_roles', 'roles', 'only_groups',
+                         'groups', 'create_at']
     SECTION_POLICY_FIELD = ['auto_audit', 'article_mute', 'reply_mute',
                             'max_articles', 'max_articles_one_day']
     SECTION_PERMISSION_FIELD = ['set_permission', 'delete_permission', 'set_owner',
-                                'set_name', 'set_nick', 'set_description',
+                                'set_name', 'set_nick', 'set_description', 'set_cover',
                                 'set_moderator', 'set_assistant', 'set_status',
                                 'set_cancel', 'cancel_visible', 'set_read_level',
                                 'set_read_user', 'set_policy', 'article_audit',
@@ -105,8 +107,8 @@ class SectionService(Service):
                                                                      read_permission=section_read_list[section.id]))
         return 200, {'sections': section_dict_list, 'total': total}
 
-    def create(self, name, nick=None, description=None, owner_uuid=None,
-               moderator_uuids=None, assistant_uuids=None,
+    def create(self, name, nick=None, description=None, cover_uuid=None,
+               owner_uuid=None, moderator_uuids=None, assistant_uuids=None,
                status=Section.NORMAL, read_level=0, only_roles=False,
                role_ids=None, only_groups=False, group_ids=None, **kwargs):
         self.has_permission(PermissionName.SECTION_CREATE)
@@ -118,11 +120,15 @@ class SectionService(Service):
                 owner_id = User.objects.get(uuid=owner_uuid).id
             except User.DoesNotExist:
                 raise ServiceError(message=AccountErrorMsg.USER_NOT_FOUND)
+        cover = None
+        if cover_uuid:
+            cover = self._get_cover_url(user_id=self.uid, cover_uuid=cover_uuid)
         status = SectionService.choices_format(status, Section.STATUS_CHOICES, Section.NORMAL)
         read_level = int(read_level) if read_level else 0
         section = Section.objects.create(name=name,
                                          nick=nick,
                                          description=description,
+                                         cover=cover,
                                          owner_id=owner_id,
                                          status=status,
                                          read_level=read_level,
@@ -159,9 +165,10 @@ class SectionService(Service):
         return 201, section_dict
 
     def update(self, section_id, name=None, nick=None, description=None,
-               owner_uuid=None, moderator_uuids=None, assistant_uuids=None,
-               status=Section.NORMAL, read_level=0, only_roles=False,
-               role_ids=None, only_groups=False, group_ids=None, **kwargs):
+               cover_uuid=None, owner_uuid=None, moderator_uuids=None,
+               assistant_uuids=None, status=Section.NORMAL, read_level=0,
+               only_roles=False, role_ids=None, only_groups=False,
+               group_ids=None, **kwargs):
         update_level, policy_level = self.get_permission_level(PermissionName.SECTION_UPDATE)
         op = update_level.is_gt_lv9()
         try:
@@ -178,6 +185,8 @@ class SectionService(Service):
             section.nick = nick
         if description is not None and self.has_set_permission(permission.set_description, set_role, op):
             section.update_char_field('description', description)
+        if cover_uuid is not None and self.has_set_permission(permission.set_cover, set_role, op):
+            section.cover = self._get_cover_url(user_id=self.uid, cover_uuid=cover_uuid)
         if owner_uuid and self.has_set_permission(permission.set_owner, set_role, op):
             try:
                 section.owner_id = User.objects.get(uuid=owner_uuid).id
@@ -297,19 +306,20 @@ class SectionService(Service):
         return False
 
     @staticmethod
-    def _section_to_dict(section, **kwargs):
-        section_dict = model_to_dict(section)
-        moderators = section.moderators.values(*UserService.USER_PUBLIC_FIELD).all()
-        section_dict['moderators'] = [model_to_dict(moderator) for moderator in moderators]
-        assistants = section.assistants.values(*UserService.USER_PUBLIC_FIELD).all()
-        section_dict['assistants'] = [model_to_dict(assistant) for assistant in assistants]
-        owner_dict = model_to_dict(section.owner)
-        section_dict['owner'] = {}
-        for field in UserService.USER_PUBLIC_FIELD:
-            section_dict['owner'][field] = owner_dict[field]
-        for key in kwargs:
-            section_dict[key] = kwargs[key]
-        return section_dict
+    def _get_cover_url(user_id, cover_uuid):
+        try:
+            photo = Photo.objects.get(Q(uuid=cover_uuid,
+                                        author__id=user_id,
+                                        privacy=Photo.PUBLIC) |
+                                      Q(uuid=cover_uuid,
+                                        album__system=Album.SECTION_COVER_ALBUM,
+                                        privacy=Photo.PUBLIC))
+            if Setting().PHOTO_THUMBNAIL and photo.image_middle:
+                return photo.image_middle.url
+            else:
+                return photo.image_large.url
+        except Photo.DoesNotExist:
+            return None
 
     @staticmethod
     def _section_permission_update(section, **kwargs):
@@ -339,3 +349,18 @@ class SectionService(Service):
                 setattr(section_policy, key, value)
         section_policy.save()
         return section_policy
+
+    @staticmethod
+    def _section_to_dict(section, **kwargs):
+        section_dict = model_to_dict(section)
+        moderators = section.moderators.values(*UserService.USER_PUBLIC_FIELD).all()
+        section_dict['moderators'] = [model_to_dict(moderator) for moderator in moderators]
+        assistants = section.assistants.values(*UserService.USER_PUBLIC_FIELD).all()
+        section_dict['assistants'] = [model_to_dict(assistant) for assistant in assistants]
+        owner_dict = model_to_dict(section.owner)
+        section_dict['owner'] = {}
+        for field in UserService.USER_PUBLIC_FIELD:
+            section_dict['owner'][field] = owner_dict[field]
+        for key in kwargs:
+            section_dict[key] = kwargs[key]
+        return section_dict

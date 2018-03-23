@@ -6,7 +6,7 @@ from django.http import QueryDict
 from blog.content.albums.services import AlbumService
 from blog.common.message import ErrorMsg
 from blog.common.error import ParamsError
-from blog.common.utils import Response, json_response, str_to_list
+from blog.common.utils import Response, json_response
 
 
 @json_response
@@ -160,7 +160,7 @@ def album_create(request):
     @apiParam {string} [cover_uuid] 相册封面UUID
     @apiParam {string} [author_uuid={self}] 作者UUID
     @apiParam {number=0, 1, 2} [privacy=1] 相册私有状态, Private=0, Public=1, Protected=2
-    @apiParam {number=0, 1} [system] 系统相册类型, Avatar=0, Cover=1
+    @apiParam {number=0, 1} [system] 系统相册类型, Avatar=0, AlbumCover=1, SectionCover=2, ArticleCover=3
     @apiSuccess {string} data 创建相册信息详情
     @apiSuccessExample {json} Success-Response:
     HTTP/1.1 200 OK
@@ -223,7 +223,7 @@ def album_update(request, album_uuid):
     @apiParam {string} [cover_uuid] 相册封面UUID
     @apiParam {string} [author_uuid={self}] 作者UUID
     @apiParam {number=0, 1, 2} [privacy=1] 相册私有状态, Private=0, Public=1, Protected=2
-    @apiParam {number=0, 1} [system] 系统相册类型, Avatar=0, Cover=1
+    @apiParam {number=0, 1} [system] 系统相册类型, Avatar=0, AlbumCover=1, SectionCover=2, ArticleCover=3
     @apiSuccess {string} data 编辑相册信息详情
     @apiSuccessExample {json} Success-Response:
     HTTP/1.1 200 OK

@@ -169,7 +169,7 @@ class AlbumService(Service):
     def _get_cover_url(user_id, cover_uuid):
         try:
             photo = Photo.objects.get(Q(uuid=cover_uuid, author__id=user_id) |
-                                      Q(uuid=cover_uuid, album__system=Album.COVER_ALBUM))
+                                      Q(uuid=cover_uuid, album__system=Album.ALBUM_COVER_ALBUM))
             if Setting().PHOTO_THUMBNAIL and photo.image_small:
                 return photo.image_small.url
             else:
