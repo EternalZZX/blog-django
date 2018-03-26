@@ -114,7 +114,7 @@ class PhotoService(Service):
             raise ServiceError(code=403, message=ContentErrorMsg.PHOTO_LIMIT_EXCEED)
         photo_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, (description + self.uuid + str(time.time())).encode('utf-8')))
         album = self._get_album(album_uuid=album_uuid)
-        status = self._get_create_status(status=status, album=album)
+        status = self._get_create_status(status=status)
         privacy = self._get_privacy(privacy=privacy)
         read_level = self._get_read_level(read_level=read_level)
         stream_large, stream_middle, stream_small = BytesIO(), BytesIO(), BytesIO()
@@ -273,13 +273,13 @@ class PhotoService(Service):
                 raise ServiceError(code=400, message=ContentErrorMsg.ALBUM_NOT_FOUND)
         return album
 
-    def _get_create_status(self, status, album):
+    def _get_create_status(self, status):
         default = Photo.AUDIT if Setting().PHOTO_AUDIT else Photo.ACTIVE
         status = PhotoService.choices_format(status, Photo.STATUS_CHOICES, default)
         if status == Photo.AUDIT:
-            return default if album else Photo.ACTIVE
+            return default
         if status == Photo.ACTIVE or status == Photo.FAILED:
-            if album and Setting().PHOTO_AUDIT:
+            if Setting().PHOTO_AUDIT:
                 _, audit_level = self.get_permission_level(PermissionName.PHOTO_AUDIT, False)
                 if audit_level.is_gt_lv10():
                     return status
@@ -288,7 +288,7 @@ class PhotoService(Service):
                 return Photo.ACTIVE
             raise ServiceError(code=403, message=ContentErrorMsg.STATUS_PERMISSION_DENIED)
         if status == Photo.CANCEL:
-            if album and Setting().PHOTO_CANCEL:
+            if Setting().PHOTO_CANCEL:
                 _, cancel_level = self.get_permission_level(PermissionName.PHOTO_CANCEL, False)
                 if cancel_level.is_gt_lv10():
                     return status

@@ -163,8 +163,8 @@ class ArticleService(Service):
             pass
         is_self = article.author_id == self.uid
         is_content_change, is_edit = False, False
-        set_role = self.section_service.is_manager(section=article.section)
-        edit_permission = self.section_service.has_set_permission(
+        set_role = SectionService.is_manager(user_uuid=self.uuid, section=article.section)
+        edit_permission = SectionService.has_set_permission(
             permission=article.section.sectionpermission.article_edit,
             set_role=set_role,
             op=update_level.is_gt_lv10())
@@ -187,7 +187,7 @@ class ArticleService(Service):
             if section_id is not None and int(section_id) != int(article.section_id):
                 section = self._get_section(section_id=section_id)
                 article.section, is_content_change = section, True
-                set_role = self.section_service.is_manager(section=section)
+                set_role = SectionService.is_manager(user_uuid=self.uuid, section=section)
             if privacy and int(privacy) != article.privacy:
                 article.privacy, is_edit = self._get_privacy(privacy=privacy), True
             if read_level and int(read_level) != article.read_level:
@@ -201,7 +201,7 @@ class ArticleService(Service):
             article.status = self._get_update_status(status, article, set_role, is_content_change)
         elif is_content_change:
             _, audit_level = self.get_permission_level(PermissionName.ARTICLE_AUDIT, False)
-            audit_permission = self.section_service.has_set_permission(
+            audit_permission = SectionService.has_set_permission(
                 permission=article.section.sectionpermission.article_audit,
                 set_role=set_role,
                 op=audit_level.is_gt_lv10())
@@ -257,8 +257,8 @@ class ArticleService(Service):
             if (article.privacy == Article.PUBLIC or privacy_level.is_gt_lv10()) and \
                     (read_level >= article.read_level or read_permission_level.is_gt_lv10()):
                 return True, True
-            set_role = self.section_service.is_manager(section=section)
-            if self.section_service.has_set_permission(
+            set_role = SectionService.is_manager(user_uuid=self.uuid, section=section)
+            if SectionService.has_set_permission(
                     permission=section.sectionpermission.article_audit,
                     set_role=set_role):
                 return True, True
@@ -267,8 +267,8 @@ class ArticleService(Service):
             cancel_level, _ = self.get_permission_level(PermissionName.ARTICLE_CANCEL, False)
             if cancel_level.is_gt_lv10():
                 return True, True
-            set_role = self.section_service.is_manager(section=section)
-            if self.section_service.has_set_permission(
+            set_role = SectionService.is_manager(user_uuid=self.uuid, section=section)
+            if SectionService.has_set_permission(
                     permission=section.sectionpermission.article_delete,
                     set_role=set_role):
                 return True, True
@@ -276,20 +276,20 @@ class ArticleService(Service):
             audit_level, _ = self.get_permission_level(PermissionName.ARTICLE_AUDIT, False)
             if audit_level.is_gt_lv10():
                 return True, True
-            set_role = self.section_service.is_manager(section=section)
-            if self.section_service.has_set_permission(
+            set_role = SectionService.is_manager(user_uuid=self.uuid, section=section)
+            if SectionService.has_set_permission(
                     permission=section.sectionpermission.article_audit,
                     set_role=set_role):
                 return True, True
         elif article.status == Article.DRAFT:
-            set_role = self.section_service.is_manager(section=section)
-            if self.section_service.has_set_permission(
+            set_role = SectionService.is_manager(user_uuid=self.uuid, section=section)
+            if SectionService.has_set_permission(
                     permission=section.sectionpermission.article_draft,
                     set_role=set_role):
                 return True, True
         elif article.status == Article.RECYCLED:
-            set_role = self.section_service.is_manager(section=section)
-            if self.section_service.has_set_permission(
+            set_role = SectionService.is_manager(user_uuid=self.uuid, section=section)
+            if SectionService.has_set_permission(
                     permission=section.sectionpermission.article_recycled,
                     set_role=set_role):
                 return True, True
@@ -300,8 +300,8 @@ class ArticleService(Service):
         is_self = article.author_id == self.uid
         if delete_level.is_gt_lv10() or is_self and delete_level.is_gt_lv1():
             return True
-        set_role = self.section_service.is_manager(section=article.section)
-        if self.section_service.has_set_permission(
+        set_role = SectionService.is_manager(user_uuid=self.uuid, section=article.section)
+        if SectionService.has_set_permission(
                 permission=article.section.sectionpermission.article_delete,
                 set_role=set_role):
             return True
@@ -312,8 +312,8 @@ class ArticleService(Service):
         is_self = article.author_id == self.uid
         if cancel_level.is_gt_lv10() or is_self and cancel_level.is_gt_lv1():
             return True
-        set_role = self.section_service.is_manager(section=article.section)
-        if self.section_service.has_set_permission(
+        set_role = SectionService.is_manager(user_uuid=self.uuid, section=article.section)
+        if SectionService.has_set_permission(
                 permission=article.section.sectionpermission.article_cancel,
                 set_role=set_role):
             return True
@@ -357,10 +357,10 @@ class ArticleService(Service):
         if status == Article.ACTIVE or status == Article.FAILED:
             if section and Setting().ARTICLE_AUDIT:
                 _, audit_level = self.get_permission_level(PermissionName.ARTICLE_AUDIT, False)
-                set_role = self.section_service.is_manager(section=section)
-                if self.section_service.has_set_permission(permission=section.sectionpermission.article_audit,
-                                                           set_role=set_role,
-                                                           op=audit_level.is_gt_lv10()):
+                set_role = SectionService.is_manager(user_uuid=self.uuid, section=section)
+                if SectionService.has_set_permission(permission=section.sectionpermission.article_audit,
+                                                     set_role=set_role,
+                                                     op=audit_level.is_gt_lv10()):
                     return status
                 raise ServiceError(code=403, message=ContentErrorMsg.STATUS_PERMISSION_DENIED)
             elif status == Article.ACTIVE:
@@ -369,10 +369,10 @@ class ArticleService(Service):
         if status == Article.CANCEL:
             if section and Setting().ARTICLE_CANCEL:
                 _, cancel_level = self.get_permission_level(PermissionName.ARTICLE_CANCEL, False)
-                set_role = self.section_service.is_manager(section=section)
-                if self.section_service.has_set_permission(permission=section.sectionpermission.article_cancel,
-                                                           set_role=set_role,
-                                                           op=cancel_level.is_gt_lv10()):
+                set_role = SectionService.is_manager(user_uuid=self.uuid, section=section)
+                if SectionService.has_set_permission(permission=section.sectionpermission.article_cancel,
+                                                     set_role=set_role,
+                                                     op=cancel_level.is_gt_lv10()):
                     return status
             raise ServiceError(code=403, message=ContentErrorMsg.STATUS_PERMISSION_DENIED)
         return status
@@ -393,9 +393,9 @@ class ArticleService(Service):
                 if is_content_change and status == Article.AUDIT:
                     return status
                 _, audit_level = self.get_permission_level(PermissionName.ARTICLE_AUDIT, False)
-                if self.section_service.has_set_permission(permission=section.sectionpermission.article_audit,
-                                                           set_role=set_role,
-                                                           op=audit_level.is_gt_lv10()):
+                if SectionService.has_set_permission(permission=section.sectionpermission.article_audit,
+                                                     set_role=set_role,
+                                                     op=audit_level.is_gt_lv10()):
                     return status
                 if is_self and (status == Article.ACTIVE or
                                 status == Article.FAILED):
@@ -407,16 +407,16 @@ class ArticleService(Service):
             if Setting().ARTICLE_CANCEL:
                 _, cancel_level = self.get_permission_level(PermissionName.ARTICLE_CANCEL, False)
                 if cancel_level.is_gt_lv10() or section and \
-                        self.section_service.has_set_permission(permission=section.sectionpermission.article_cancel,
-                                                                set_role=set_role):
+                        SectionService.has_set_permission(permission=section.sectionpermission.article_cancel,
+                                                          set_role=set_role):
                     return status
         elif status == Article.DRAFT:
-            if is_self or self.section_service.has_set_permission(
+            if is_self or SectionService.has_set_permission(
                     permission=section.sectionpermission.article_draft,
                     set_role=set_role):
                 return status
         elif status == Article.RECYCLED:
-            if is_self or self.section_service.has_set_permission(
+            if is_self or SectionService.has_set_permission(
                     permission=section.sectionpermission.article_recycled,
                     set_role=set_role):
                 return status

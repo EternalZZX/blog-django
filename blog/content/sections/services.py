@@ -30,7 +30,9 @@ class SectionService(Service):
                                 'set_cancel', 'cancel_visible', 'set_read_level',
                                 'set_read_user', 'set_policy', 'article_audit',
                                 'article_edit', 'article_draft', 'article_recycled',
-                                'article_cancel', 'article_delete']
+                                'article_cancel', 'article_delete', 'comment_audit',
+                                'comment_edit', 'comment_recycled', 'comment_cancel',
+                                'comment_delete']
 
     class SectionRole:
         def __init__(self, is_owner, is_moderator, is_assistant):
@@ -174,7 +176,7 @@ class SectionService(Service):
         except Section.DoesNotExist:
             raise ServiceError(code=404,
                                message=ContentErrorMsg.SECTION_NOT_FOUND)
-        set_role = self.is_manager(section=section)
+        set_role = self.is_manager(user_uuid=self.uuid, section=section)
         permission = section.sectionpermission
         if name and self.has_set_permission(permission.set_name, set_role, op) and \
                 SectionService.is_unique(model_obj=Section, exclude_id=section_id, name=name):
@@ -230,7 +232,7 @@ class SectionService(Service):
         try:
             section = Section.objects.get(id=delete_id)
             result['name'], result['status'] = section.nick, 'SUCCESS'
-            set_role = self.is_manager(section=section)
+            set_role = self.is_manager(user_uuid=self.uuid, section=section)
             permission = section.sectionpermission
             if force:
                 if self.has_set_permission(permission.delete_permission, set_role, delete_level.is_gt_lv10()):
@@ -249,22 +251,9 @@ class SectionService(Service):
             result['status'] = 'PERMISSION_DENIED'
         return result
 
-    def is_manager(self, section):
-        is_owner = section.owner_id == self.uid
-        is_moderator, is_assistant = True, True
-        try:
-            section.moderators.get(uuid=self.uuid)
-        except User.DoesNotExist:
-            is_moderator = False
-        try:
-            section.assistants.get(uuid=self.uuid)
-        except User.DoesNotExist:
-            is_assistant = False
-        return self.SectionRole(is_owner, is_moderator, is_assistant)
-
     def has_get_permission(self, section):
         get_level, read_level = self.get_permission_level(PermissionName.SECTION_PERMISSION, False)
-        set_role = self.is_manager(section=section)
+        set_role = self.is_manager(user_uuid=self.uuid, section=section)
         if section.status == Section.CANCEL:
             cancel_visible = section.sectionpermission.cancel_visible
             if SectionService.has_set_permission(permission=cancel_visible,
@@ -302,6 +291,20 @@ class SectionService(Service):
                 permission == SectionPermission.MANAGER and set_role.is_manager:
             return True
         return False
+
+    @staticmethod
+    def is_manager(user_uuid, section):
+        is_owner = section.owner.uuid == user_uuid
+        is_moderator, is_assistant = True, True
+        try:
+            section.moderators.get(uuid=user_uuid)
+        except User.DoesNotExist:
+            is_moderator = False
+        try:
+            section.assistants.get(uuid=user_uuid)
+        except User.DoesNotExist:
+            is_assistant = False
+        return SectionService.SectionRole(is_owner, is_moderator, is_assistant)
 
     @staticmethod
     def _get_cover_url(user_id, cover_uuid):

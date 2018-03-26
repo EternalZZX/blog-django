@@ -18,6 +18,8 @@ class Setting(StaticObject):
     NICK_UPDATE = True
     ARTICLE_CANCEL = True
     ARTICLE_AUDIT = True
+    COMMENT_CANCEL = True
+    COMMENT_AUDIT = True
     PHOTO_CANCEL = True
     PHOTO_AUDIT = True
     PHOTO_THUMBNAIL = True
@@ -46,6 +48,8 @@ class Setting(StaticObject):
             cls.NICK_UPDATE = cls._format_value(settings.get(key=SettingKey.NICK_UPDATE).value)
             cls.ARTICLE_CANCEL = cls._format_value(settings.get(key=SettingKey.ARTICLE_CANCEL).value)
             cls.ARTICLE_AUDIT = cls._format_value(settings.get(key=SettingKey.ARTICLE_AUDIT).value)
+            cls.COMMENT_CANCEL = cls._format_value(settings.get(key=SettingKey.COMMENT_CANCEL).value)
+            cls.COMMENT_AUDIT = cls._format_value(settings.get(key=SettingKey.COMMENT_AUDIT).value)
             cls.PHOTO_CANCEL = cls._format_value(settings.get(key=SettingKey.ARTICLE_CANCEL).value)
             cls.PHOTO_AUDIT = cls._format_value(settings.get(key=SettingKey.PHOTO_AUDIT).value)
             cls.PHOTO_THUMBNAIL = cls._format_value(settings.get(key=SettingKey.PHOTO_THUMBNAIL).value)
@@ -82,6 +86,8 @@ class SettingKey(StaticObject):
     NICK_UPDATE = 'nick_update'
     ARTICLE_CANCEL = 'article_cancel'
     ARTICLE_AUDIT = 'article_audit'
+    COMMENT_CANCEL = 'comment_cancel'
+    COMMENT_AUDIT = 'comment_audit'
     PHOTO_CANCEL = 'photo_cancel'
     PHOTO_AUDIT = 'photo_audit'
     PHOTO_THUMBNAIL = 'photo_thumbnail'
@@ -141,6 +147,14 @@ class PermissionName(StaticObject):
     PHOTO_PRIVACY = 'photo_privacy'
     PHOTO_READ = 'photo_read'
     PHOTO_LIMIT = 'photo_limit'
+
+    COMMENT_CREATE = 'comment_create'
+    COMMENT_DELETE = 'comment_delete'
+    COMMENT_UPDATE = 'comment_update'
+    COMMENT_SELECT = 'comment_select'
+    COMMENT_PERMISSION = 'comment_permission'
+    COMMENT_AUDIT = 'comment_audit'
+    COMMENT_CANCEL = 'comment_cancel'
 
 
 class PermissionLevel(StaticObject):

@@ -81,6 +81,11 @@ class SectionPermission(models.Model):
     article_recycled = models.IntegerField(choices=PERMISSION_CHOICES, default=MODERATOR)
     article_cancel = models.IntegerField(choices=PERMISSION_CHOICES, default=MANAGER)
     article_delete = models.IntegerField(choices=PERMISSION_CHOICES, default=MODERATOR)
+    comment_audit = models.IntegerField(choices=PERMISSION_CHOICES, default=MANAGER)
+    comment_edit = models.IntegerField(choices=PERMISSION_CHOICES, default=MODERATOR)
+    comment_recycled = models.IntegerField(choices=PERMISSION_CHOICES, default=MODERATOR)
+    comment_cancel = models.IntegerField(choices=PERMISSION_CHOICES, default=MANAGER)
+    comment_delete = models.IntegerField(choices=PERMISSION_CHOICES, default=MODERATOR)
 
     class Meta:
         db_table = 'section_permission'

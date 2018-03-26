@@ -3,11 +3,11 @@ import uuid
 from django.utils import timezone
 from django.db import models
 
-from blog.common.tools import BaseModel
 from blog.account.users.models import User
+from blog.content.sections.models import Section
 
 
-class Comment(models.Model, BaseModel):
+class Comment(models.Model):
     CANCEL = 0
     ACTIVE = 1
     AUDIT = 2
@@ -40,6 +40,7 @@ class Comment(models.Model, BaseModel):
     resource_type = models.IntegerField(choices=TYPE_CHOICES, default=ARTICLE)
     resource_uuid = models.CharField(max_length=36)
     resource_author = models.ForeignKey(to=User, related_name='resource_author', null=True)
+    resource_section = models.ForeignKey(to=Section, related_name='resource_section', null=True)
     content = models.TextField(null=True)
     author = models.ForeignKey(to=User, related_name='comment_author')
     status = models.IntegerField(choices=STATUS_CHOICES, default=ACTIVE)
