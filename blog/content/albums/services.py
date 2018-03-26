@@ -83,9 +83,7 @@ class AlbumService(Service):
                 author_id = User.objects.get(uuid=author_uuid).id
             except User.DoesNotExist:
                 raise ServiceError(message=AccountErrorMsg.USER_NOT_FOUND)
-        cover = None
-        if cover_uuid:
-            cover = self._get_cover_url(user_id=author_id, cover_uuid=cover_uuid)
+        cover = self._get_cover_url(user_id=author_id, cover_uuid=cover_uuid)
         if system:
             system_level, _ = self.get_permission_level(PermissionName.ALBUM_SYSTEM)
             if system_level.is_gt_lv10():
@@ -167,6 +165,8 @@ class AlbumService(Service):
 
     @staticmethod
     def _get_cover_url(user_id, cover_uuid):
+        if not cover_uuid:
+            return None
         try:
             photo = Photo.objects.get(Q(uuid=cover_uuid, author__id=user_id) |
                                       Q(uuid=cover_uuid, album__system=Album.ALBUM_COVER_ALBUM))

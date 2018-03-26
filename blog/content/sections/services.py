@@ -120,9 +120,7 @@ class SectionService(Service):
                 owner_id = User.objects.get(uuid=owner_uuid).id
             except User.DoesNotExist:
                 raise ServiceError(message=AccountErrorMsg.USER_NOT_FOUND)
-        cover = None
-        if cover_uuid:
-            cover = self._get_cover_url(user_id=self.uid, cover_uuid=cover_uuid)
+        cover = self._get_cover_url(user_id=self.uid, cover_uuid=cover_uuid)
         status = SectionService.choices_format(status, Section.STATUS_CHOICES, Section.NORMAL)
         read_level = int(read_level) if read_level else 0
         section = Section.objects.create(name=name,
@@ -307,6 +305,8 @@ class SectionService(Service):
 
     @staticmethod
     def _get_cover_url(user_id, cover_uuid):
+        if not cover_uuid:
+            return None
         try:
             photo = Photo.objects.get(Q(uuid=cover_uuid,
                                         author__id=user_id,

@@ -199,6 +199,7 @@ def article_create(request):
     @apiUse Header
     @apiParam {string} title 文章标题
     @apiParam {string} [keywords] 文章关键词，e.g.'keyword1;keyword2'
+    @apiParam {string} [cover_uuid] 文章封面UUID
     @apiParam {string} [overview={content[:200]}] 文章概述
     @apiParam {string} [content] 文章内容
     @apiParam {string} [section_id] 文章所属板块ID
@@ -253,6 +254,7 @@ def article_create(request):
     """
     title = request.POST.get('title')
     keywords = request.POST.get('keywords')
+    cover_uuid = request.POST.get('cover_uuid')
     overview = request.POST.get('overview')
     content = request.POST.get('content')
     section_id = request.POST.get('section_id')
@@ -263,6 +265,7 @@ def article_create(request):
         keywords = str_to_list(keywords)
         code, data = ArticleService(request).create(title=title,
                                                     keywords=keywords,
+                                                    cover_uuid=cover_uuid,
                                                     overview=overview,
                                                     content=content,
                                                     section_id=section_id,
@@ -290,6 +293,7 @@ def article_update(request, article_uuid):
     @apiUse Header
     @apiParam {string} title 文章标题
     @apiParam {string} [keywords] 文章关键词，e.g.'keyword1;keyword2'
+    @apiParam {string} [cover_uuid] 文章封面UUID
     @apiParam {string} [overview] 文章概述
     @apiParam {string} [content] 文章内容
     @apiParam {string} [section_id] 文章所属板块ID
@@ -347,6 +351,7 @@ def article_update(request, article_uuid):
     data = QueryDict(request.body)
     title = data.get('title')
     keywords = data.get('keywords')
+    cover_uuid = data.get('cover_uuid')
     overview = data.get('overview')
     content = data.get('content')
     section_id = data.get('section_id')
@@ -361,6 +366,7 @@ def article_update(request, article_uuid):
         code, data = ArticleService(request).update(article_uuid=article_uuid,
                                                     title=title,
                                                     keywords=keywords,
+                                                    cover_uuid=cover_uuid,
                                                     overview=overview,
                                                     content=content,
                                                     section_id=section_id,

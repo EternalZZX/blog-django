@@ -13,6 +13,8 @@ from blog.account.users.services import UserService
 from blog.content.sections.models import Section
 from blog.content.sections.services import SectionService
 from blog.content.articles.models import Article
+from blog.content.albums.models import Album
+from blog.content.photos.models import Photo
 from blog.common.base import Service
 from blog.common.error import ServiceError
 from blog.common.message import ErrorMsg, ContentErrorMsg
@@ -21,10 +23,11 @@ from blog.common.setting import Setting, PermissionName
 
 
 class ArticleService(Service):
-    ARTICLE_PUBLIC_FIELD = ['id', 'uuid', 'title', 'keywords', 'overview',
-                            'author', 'section', 'status', 'privacy',
-                            'read_level', 'like_count', 'dislike_count',
-                            'create_at', 'last_editor', 'edit_at']
+    ARTICLE_PUBLIC_FIELD = ['id', 'uuid', 'title', 'keywords', 'cover',
+                            'overview', 'author', 'section', 'status',
+                            'privacy', 'read_level', 'like_count',
+                            'dislike_count', 'create_at', 'last_editor',
+                            'edit_at']
 
     def __init__(self, request):
         super(ArticleService, self).__init__(request=request)
@@ -112,15 +115,16 @@ class ArticleService(Service):
             article_dict_list.append(article_dict)
         return 200, {'articles': article_dict_list, 'total': total}
 
-    def create(self, title, keywords=None, overview=None, content=None,
-               section_id=None, status=Article.AUDIT, privacy=Article.PUBLIC,
-               read_level=100):
+    def create(self, title, keywords=None, cover_uuid=None, overview=None,
+               content=None, section_id=None, status=Article.AUDIT,
+               privacy=Article.PUBLIC, read_level=100):
         self.has_permission(PermissionName.ARTICLE_CREATE)
         article_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, (title + self.uuid + str(time.time())).encode('utf-8')))
         keyword_str = ''
         for keyword in keywords:
             keyword_str = keyword_str + keyword + ';'
         keyword_str = keyword_str[:-1] if keyword_str else keyword_str
+        cover = self._get_cover_url(user_id=self.uid, cover_uuid=cover_uuid)
         if not overview and content:
             overview = html_to_str(content[:200])
             if len(content) > 200:
@@ -132,6 +136,7 @@ class ArticleService(Service):
         article = Article.objects.create(uuid=article_uuid,
                                          title=title,
                                          keywords=keyword_str,
+                                         cover=cover,
                                          overview=overview,
                                          content=content,
                                          author_id=self.uid,
@@ -142,10 +147,10 @@ class ArticleService(Service):
                                          last_editor_id=self.uid)
         return 201, ArticleService._article_to_dict(article=article)
 
-    def update(self, article_uuid, title, keywords=None, overview=None,
-               content=None, section_id=None, status=Article.AUDIT,
-               privacy=Article.PUBLIC, read_level=100, like_count=None,
-               dislike_count=None):
+    def update(self, article_uuid, title, keywords=None, cover_uuid=None,
+               overview=None, content=None, section_id=None,
+               status=Article.AUDIT, privacy=Article.PUBLIC, read_level=100,
+               like_count=None, dislike_count=None):
         update_level, _ = self.get_permission_level(PermissionName.ARTICLE_UPDATE)
         try:
             article = Article.objects.get(uuid=article_uuid)
@@ -173,6 +178,8 @@ class ArticleService(Service):
                 keyword_str = keyword_str[:-1] if keyword_str else keyword_str
                 if keyword_str != article.keywords:
                     article.keywords, is_content_change = keyword_str, True
+            if cover_uuid is not None:
+                article.cover = self._get_cover_url(user_id=self.uid, cover_uuid=cover_uuid)
             if overview is not None and overview != article.overview:
                 article.overview, is_content_change = overview, True
             if content is not None and content != article.content:
@@ -433,6 +440,24 @@ class ArticleService(Service):
             if read_level > self_read_level and read_permission_level.is_lt_lv10():
                 read_level = self_read_level
         return read_level
+
+    @staticmethod
+    def _get_cover_url(user_id, cover_uuid):
+        if not cover_uuid:
+            return None
+        try:
+            photo = Photo.objects.get(Q(uuid=cover_uuid,
+                                        author__id=user_id,
+                                        privacy=Photo.PUBLIC) |
+                                      Q(uuid=cover_uuid,
+                                        album__system=Album.ARTICLE_COVER_ALBUM,
+                                        privacy=Photo.PUBLIC))
+            if Setting().PHOTO_THUMBNAIL and photo.image_middle:
+                return photo.image_middle.url
+            else:
+                return photo.image_large.url
+        except Photo.DoesNotExist:
+            return None
 
     @staticmethod
     def _article_to_dict(article, **kwargs):

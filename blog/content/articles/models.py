@@ -40,6 +40,7 @@ class Article(models.Model, BaseModel):
                             editable=False)
     title = models.CharField(max_length=200)
     keywords = models.TextField(null=True)
+    cover = models.CharField(max_length=300, null=True)
     overview = models.CharField(max_length=1000)
     content = models.TextField(null=True)
     content_url = models.CharField(null=True, max_length=1000)
