@@ -42,6 +42,7 @@ INSTALLED_APPS = (
     'blog.account.groups',
     'blog.content.albums',
     'blog.content.articles',
+    'blog.content.comments',
     'blog.content.marks',
     'blog.content.photos',
     'blog.content.sections',
