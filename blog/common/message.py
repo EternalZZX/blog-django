@@ -51,6 +51,8 @@ class ContentErrorMsg:
     SECTION_PERMISSION_DENIED = 'Section permission denied'
     STATUS_PERMISSION_DENIED = 'Status permission denied'
     RESOURCE_NOT_FOUND = 'Resource not found'
+    COMMENT_NOT_FOUND = 'Comment not found'
+    COMMENT_REPLY_ERROR = 'Comment reply error'
 
     def __init__(self):
         pass

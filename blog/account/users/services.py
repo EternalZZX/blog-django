@@ -313,3 +313,11 @@ class UserService(Service):
                 return photo.image_large.url
         except Photo.DoesNotExist:
             return None
+
+    @staticmethod
+    def user_to_dict(user, dict, field):
+        user_dict = model_to_dict(user)
+        dict[field] = {}
+        for user_field in UserService.USER_PUBLIC_FIELD:
+            dict[field][user_field] = user_dict[user_field]
+        return dict

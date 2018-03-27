@@ -29,15 +29,15 @@ class ArticleService(Service):
                             'dislike_count', 'create_at', 'last_editor',
                             'edit_at']
 
-    def __init__(self, request):
-        super(ArticleService, self).__init__(request=request)
+    def __init__(self, request, instance=None):
+        super(ArticleService, self).__init__(request=request, instance=instance)
         self.section_service = SectionService(request=request, instance=self)
 
     def get(self, article_uuid):
         self.has_permission(PermissionName.ARTICLE_SELECT)
         try:
             article = Article.objects.get(uuid=article_uuid)
-            get_permission, read_permission = self._has_get_permission(article=article)
+            get_permission, read_permission = self.has_get_permission(article=article)
             if not get_permission:
                 raise Article.DoesNotExist
             article_dict = ArticleService._article_to_dict(article=article)
@@ -99,7 +99,7 @@ class ArticleService(Service):
                                    message=ErrorMsg.QUERY_PERMISSION_DENIED)
         article_read_list = {}
         for article in articles:
-            get_permission, read_permission = self._has_get_permission(article=article)
+            get_permission, read_permission = self.has_get_permission(article=article)
             if not get_permission:
                 articles = articles.exclude(id=article.id)
             else:
@@ -158,7 +158,7 @@ class ArticleService(Service):
             raise ServiceError(code=404,
                                message=ContentErrorMsg.ARTICLE_NOT_FOUND)
         if like_count or dislike_count:
-            _, read_permission = self._has_get_permission(article=article)
+            _, read_permission = self.has_get_permission(article=article)
             # Todo article like list
             pass
         is_self = article.author_id == self.uid
@@ -239,7 +239,7 @@ class ArticleService(Service):
             result['status'] = 'PERMISSION_DENIED'
         return result
 
-    def _has_get_permission(self, article):
+    def has_get_permission(self, article):
         section = article.section
         is_author = article.author_id == self.uid
         if is_author and article.status != Article.CANCEL:
@@ -462,14 +462,8 @@ class ArticleService(Service):
     @staticmethod
     def _article_to_dict(article, **kwargs):
         article_dict = model_to_dict(article)
-        author_dict = model_to_dict(article.author)
-        article_dict['author'] = {}
-        for field in UserService.USER_PUBLIC_FIELD:
-            article_dict['author'][field] = author_dict[field]
-        last_editor_dict = model_to_dict(article.last_editor)
-        article_dict['last_editor'] = {}
-        for field in UserService.USER_PUBLIC_FIELD:
-            article_dict['last_editor'][field] = last_editor_dict[field]
+        UserService.user_to_dict(article.author, article_dict, 'author')
+        UserService.user_to_dict(article.last_editor, article_dict, 'last_editor')
         for key in kwargs:
             article_dict[key] = kwargs[key]
         return article_dict

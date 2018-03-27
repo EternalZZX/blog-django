@@ -35,7 +35,7 @@ class PhotoService(Service):
         try:
             photo_uuid = url.rsplit('.')[-2].rsplit('/')[-1]
             photo = Photo.objects.get(uuid=photo_uuid)
-            if not self._has_get_permission(photo=photo):
+            if not self.has_get_permission(photo=photo):
                 raise Photo.DoesNotExist
             image_path = os.path.join(MEDIA_ROOT, url.replace(MEDIA_URL, ''))
             image_data = open(image_path, "rb").read()
@@ -47,7 +47,7 @@ class PhotoService(Service):
         self.has_permission(PermissionName.PHOTO_SELECT)
         try:
             photo = Photo.objects.get(uuid=photo_uuid)
-            if not self._has_get_permission(photo=photo):
+            if not self.has_get_permission(photo=photo):
                 raise Photo.DoesNotExist
         except Photo.DoesNotExist:
             raise ServiceError(code=404, message=ContentErrorMsg.PHOTO_NOT_FOUND)
@@ -99,7 +99,7 @@ class PhotoService(Service):
             else:
                 raise ServiceError(code=403, message=ErrorMsg.QUERY_PERMISSION_DENIED)
         for photo in photos:
-            if not self._has_get_permission(photo=photo):
+            if not self.has_get_permission(photo=photo):
                 photos = photos.exclude(id=photo.id)
         photos, total = paging(photos, page=page, page_size=page_size)
         return 200, {'photos': [PhotoService._photo_to_dict(photo) for photo in photos],
@@ -157,7 +157,7 @@ class PhotoService(Service):
         except Photo.DoesNotExist:
             raise ServiceError(code=404, message=ContentErrorMsg.PHOTO_NOT_FOUND)
         if like_count or dislike_count:
-            _, read_permission = self._has_get_permission(photo=photo)
+            self.has_get_permission(photo=photo)
             # Todo photo like list
             pass
         is_self = photo.author_id == self.uid
@@ -215,7 +215,7 @@ class PhotoService(Service):
             result['status'] = 'PERMISSION_DENIED'
         return result
 
-    def _has_get_permission(self, photo):
+    def has_get_permission(self, photo):
         is_author = photo.author_id == self.uid
         if is_author and photo.status != Photo.CANCEL:
             return True
@@ -370,14 +370,8 @@ class PhotoService(Service):
     @staticmethod
     def _photo_to_dict(photo, **kwargs):
         photo_dict = model_to_dict(photo)
-        author_dict = model_to_dict(photo.author)
-        photo_dict['author'] = {}
-        for field in UserService.USER_PUBLIC_FIELD:
-            photo_dict['author'][field] = author_dict[field]
-        last_editor_dict = model_to_dict(photo.last_editor)
-        photo_dict['last_editor'] = {}
-        for field in UserService.USER_PUBLIC_FIELD:
-            photo_dict['last_editor'][field] = last_editor_dict[field]
+        UserService.user_to_dict(photo.author, photo_dict, 'author')
+        UserService.user_to_dict(photo.last_editor, photo_dict, 'last_editor')
         for key in kwargs:
             photo_dict[key] = kwargs[key]
         return photo_dict

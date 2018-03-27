@@ -180,10 +180,7 @@ class AlbumService(Service):
     @staticmethod
     def _album_to_dict(album, **kwargs):
         album_dict = model_to_dict(album)
-        author_dict = model_to_dict(album.author)
-        album_dict['author'] = {}
-        for field in UserService.USER_PUBLIC_FIELD:
-            album_dict['author'][field] = author_dict[field]
+        UserService.user_to_dict(album.author, album_dict, 'author')
         for key in kwargs:
             album_dict[key] = kwargs[key]
         return album_dict

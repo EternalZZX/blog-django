@@ -360,10 +360,7 @@ class SectionService(Service):
         section_dict['moderators'] = [model_to_dict(moderator) for moderator in moderators]
         assistants = section.assistants.values(*UserService.USER_PUBLIC_FIELD).all()
         section_dict['assistants'] = [model_to_dict(assistant) for assistant in assistants]
-        owner_dict = model_to_dict(section.owner)
-        section_dict['owner'] = {}
-        for field in UserService.USER_PUBLIC_FIELD:
-            section_dict['owner'][field] = owner_dict[field]
+        UserService.user_to_dict(section.owner, section_dict, 'owner')
         for key in kwargs:
             section_dict[key] = kwargs[key]
         return section_dict

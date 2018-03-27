@@ -22,12 +22,10 @@ class Comment(models.Model):
     )
 
     ARTICLE = 0
-    COMMENT = 1
-    ALBUM = 2
-    PHOTO = 3
+    ALBUM = 1
+    PHOTO = 2
     TYPE_CHOICES = (
         (ARTICLE, 'article'),
-        (COMMENT, 'comment'),
         (ALBUM, 'album'),
         (PHOTO, 'photo')
     )
@@ -41,6 +39,8 @@ class Comment(models.Model):
     resource_uuid = models.CharField(max_length=36)
     resource_author = models.ForeignKey(to=User, related_name='resource_author', null=True)
     resource_section = models.ForeignKey(to=Section, related_name='resource_section', null=True)
+    parent_uuid = models.CharField(max_length=36, null=True)
+    reply_user = models.ForeignKey(to=User, related_name='reply_user', null=True)
     content = models.TextField(null=True)
     author = models.ForeignKey(to=User, related_name='comment_author')
     status = models.IntegerField(choices=STATUS_CHOICES, default=ACTIVE)
