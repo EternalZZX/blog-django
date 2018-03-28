@@ -111,7 +111,7 @@ def section_list(request):
     @apiParam {string} [order_field] 版块信息列表排序字段
     @apiParam {string=desc, asc} [order="desc"] 版块信息列表排序方向
     @apiParam {string} [query] 搜索内容，若无搜索字段则全局搜索name, nick, description
-    @apiParam {string=name, nick, DjangoFilterParams} [query_field] 搜索字段, 支持Django filter参数
+    @apiParam {string=name, nick, description, DjangoFilterParams} [query_field] 搜索字段, 支持Django filter参数
     @apiSuccess {String} total 版块信息列表总数
     @apiSuccess {String} sections 版块信息列表
     @apiSuccessExample {json} Success-Response:

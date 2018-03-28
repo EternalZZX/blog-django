@@ -4,6 +4,8 @@
 import uuid
 import time
 
+from functools import reduce
+
 from django.db.models import Q
 
 from blog.account.users.services import UserService
@@ -23,6 +25,12 @@ from blog.common.setting import Setting, PermissionName
 
 
 class CommentService(Service):
+    COMMENT_PUBLIC_FIELD = ['id', 'uuid', 'resource_type', 'resource_uuid',
+                            'resource_author', 'resource_section', 'parent_uuid',
+                            'reply_user', 'content', 'author', 'status',
+                            'like_count', 'dislike_count', 'create_at',
+                            'last_editor', 'edit_at']
+
     def get(self, comment_uuid):
         self.has_permission(PermissionName.COMMENT_SELECT)
         try:
@@ -32,6 +40,61 @@ class CommentService(Service):
         except Comment.DoesNotExist:
             raise ServiceError(code=404, message=ContentErrorMsg.COMMENT_NOT_FOUND)
         return 200, CommentService._comment_to_dict(comment=comment)
+
+    def list(self, page=0, page_size=10, resource_type=None, resource_uuid=None,
+             resource_section_id=None, parent_uuid=None, reply_user_uuid=None,
+             author_uuid=None, status=None, order_field=None, order='desc',
+             query=None, query_field=None):
+        query_level, order_level = self.get_permission_level(PermissionName.COMMENT_SELECT)
+        comments = Comment.objects.all()
+        if resource_type and int(resource_type) in dict(Comment.TYPE_CHOICES):
+            comments = comments.filter(resource_type=int(resource_type))
+        if resource_uuid:
+            comments = comments.filter(resource_uuid=resource_uuid)
+        if resource_section_id:
+            comments = comments.filter(resource_section_id=int(resource_section_id))
+        if parent_uuid:
+            comments = comments.filter(Q(uuid=parent_uuid) | Q(parent_uuid=parent_uuid))
+        if reply_user_uuid:
+            comments = comments.filter(reply_user__uuid=reply_user_uuid)
+        if author_uuid:
+            comments = comments.filter(author__uuid=author_uuid)
+        if status:
+            if int(status) in dict(Comment.STATUS_CHOICES):
+                comments = comments.filter(status=int(status))
+            else:
+                comments = comments.filter(reduce(self._status_or, list(status)))
+        if order_field:
+            if (order_level.is_gt_lv1() and order_field in CommentService.COMMENT_PUBLIC_FIELD) \
+                    or order_level.is_gt_lv10():
+                if order == 'desc':
+                    order_field = '-' + order_field
+                comments = comments.order_by(order_field)
+            else:
+                raise ServiceError(code=400, message=ErrorMsg.ORDER_PARAMS_ERROR)
+        if query:
+            if query_field and query_level.is_gt_lv1():
+                if query_field == 'content':
+                    query_field = 'content__icontains'
+                elif query_field == 'author':
+                    query_field = 'author__nick__icontains'
+                elif query_field == 'status':
+                    query_field = 'status'
+                elif query_level.is_lt_lv10():
+                    raise ServiceError(code=403, message=ErrorMsg.QUERY_PERMISSION_DENIED)
+                query_dict = {query_field: query}
+                comments = comments.filter(**query_dict)
+            elif query_level.is_gt_lv2():
+                comments = comments.filter(Q(content__icontains=query) |
+                                           Q(author__nick__icontains=query))
+            else:
+                raise ServiceError(code=403, message=ErrorMsg.QUERY_PERMISSION_DENIED)
+        for comment in comments:
+            if not self._has_get_permission(comment=comment):
+                comments = comments.exclude(id=comment.id)
+        comments, total = paging(comments, page=page, page_size=page_size)
+        return 200, {'comments': [CommentService._comment_to_dict(comment=comment) for comment in comments],
+                     'total': total}
 
     def create(self, resource_type, resource_uuid, reply_uuid=None,
                content=None, status=Comment.AUDIT):

@@ -142,7 +142,7 @@ def photo_list(request):
     @apiParam {string} [order_field] 照片信息列表排序字段
     @apiParam {string=desc, asc} [order="desc"] 照片信息列表排序方向
     @apiParam {string} [query] 搜索内容，若无搜索字段则全局搜索description, author, album
-    @apiParam {string=name, nick, DjangoFilterParams} [query_field] 搜索字段, 支持Django filter参数
+    @apiParam {string=description, author, album, status, DjangoFilterParams} [query_field] 搜索字段, 支持Django filter参数
     @apiSuccess {String} total 照片信息列表总数
     @apiSuccess {String} photos 照片信息列表
     @apiSuccessExample {json} Success-Response:

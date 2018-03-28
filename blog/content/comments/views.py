@@ -102,7 +102,114 @@ def comment_get(request, comment_uuid):
 
 
 def comment_list(request):
-    pass
+    """
+    @api {get} /content/comments/ comment list
+    @apiVersion 0.1.0
+    @apiName comment_list
+    @apiGroup content
+    @apiDescription 获取评论信息列表
+    @apiPermission COMMENT_SELECT
+    @apiPermission COMMENT_PERMISSION
+    @apiPermission COMMENT_CANCEL
+    @apiPermission COMMENT_AUDIT
+    @apiUse Header
+    @apiParam {number} [page=0] 评论信息列表页码, 页码为0时返回所有数据
+    @apiParam {number} [page_size=10] 文评论信息列表页长
+    @apiParam {number=0, 1, 2} [resource_type] 评论资源类型，Article=0, Album=1, Photo=2
+    @apiParam {string} [resource_uuid] 评论资源UUID
+    @apiParam {number} [resource_section_id] 评论资源所属板块
+    @apiParam {string} [parent_uuid] 对话评论UUID
+    @apiParam {string} [reply_user_uuid] 评论回复用户UUID
+    @apiParam {string} [author_uuid] 评论作者
+    @apiParam {number=0, 1, 2, 3, 4} [status] 评论状态，Cancel=0, Active=1, Audit=2,
+                                              Failed=3, Recycled=4，状态可拼接，e.g. '123'
+    @apiParam {string} [order_field] 评论信息列表排序字段
+    @apiParam {string=desc, asc} [order="desc"] 评论信息列表排序方向
+    @apiParam {string} [query] 搜索内容，若无搜索字段则全局搜索content, author
+    @apiParam {string=content, author, status, DjangoFilterParams} [query_field] 搜索字段, 支持Django filter参数
+    @apiSuccess {String} total 评论信息列表总数
+    @apiSuccess {String} comments 评论信息列表
+    @apiSuccessExample {json} Success-Response:
+    HTTP/1.1 200 OK
+    {
+        "data": {
+            "total": 1,
+            "comments": [
+                {
+                    "resource_section": 18,
+                    "reply_user": null,
+                    "edit_at": "2018-03-27T07:14:24Z",
+                    "uuid": "d6fe0af9-90a1-566b-822a-af304f40ee4c",
+                    "author": {
+                        "remark": null,
+                        "uuid": "4be0643f-1d98-573b-97cd-ca98a65347dd",
+                        "create_at": "2017-12-20T06:00:07Z",
+                        "nick": "test",
+                        "role": 2,
+                        "avatar": null,
+                        "groups": []
+                    },
+                    "dislike_count": 0,
+                    "create_at": "2018-03-27T07:53:41Z",
+                    "resource_uuid": "11d9fc3a-051f-5271-b1e1-65c192b63105",
+                    "content": "content...",
+                    "resource_author": 1,
+                    "like_count": 0,
+                    "status": 1,
+                    "last_editor": {
+                        "remark": null,
+                        "uuid": "4be0643f-1d98-573b-97cd-ca98a65347dd",
+                        "create_at": "2017-12-20T06:00:07Z",
+                        "nick": "test",
+                        "role": 2,
+                        "avatar": null,
+                        "groups": []
+                    },
+                    "id": 4,
+                    "resource_type": 0,
+                    "parent_uuid": null
+                }
+            ]
+        }
+    }
+    @apiUse ErrorData
+    @apiErrorExample {json} Error-Response:
+    HTTP/1.1 403 Forbidden
+    {
+        "data": "Query permission denied"
+    }
+    """
+    page = request.GET.get('page')
+    page_size = request.GET.get('page_size')
+    resource_type = request.GET.get('resource_type')
+    resource_uuid = request.GET.get('resource_uuid')
+    resource_section_id = request.GET.get('resource_section_id')
+    parent_uuid = request.GET.get('parent_uuid')
+    reply_user_uuid = request.GET.get('reply_user_uuid')
+    author_uuid = request.GET.get('author_uuid')
+    status = request.GET.get('status')
+    order_field = request.GET.get('order_field')
+    order = request.GET.get('order')
+    query = request.GET.get('query')
+    query_field = request.GET.get('query_field')
+    try:
+        code, data = CommentService(request).list(page=page,
+                                                  page_size=page_size,
+                                                  resource_type=resource_type,
+                                                  resource_uuid=resource_uuid,
+                                                  resource_section_id=resource_section_id,
+                                                  parent_uuid=parent_uuid,
+                                                  reply_user_uuid=reply_user_uuid,
+                                                  author_uuid=author_uuid,
+                                                  status=status,
+                                                  order_field=order_field,
+                                                  order=order,
+                                                  query=query,
+                                                  query_field=query_field)
+    except Exception as e:
+        code, data = getattr(e, 'code', 400), \
+                     getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
+    return Response(code=code, data=data)
 
 
 def comment_create(request):

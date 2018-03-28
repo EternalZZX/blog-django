@@ -103,12 +103,13 @@ def article_list(request):
     @apiParam {number} [page_size=10] 文章信息列表页长
     @apiParam {string} [section_id] 文章所属板块
     @apiParam {string} [author_uuid] 文章作者
-    @apiParam {string=0, 1, 2, 3, 4, 5} [status] 文章状态，Cancel=0, Active=1, Draft=2, Audit=3,
+    @apiParam {number=0, 1, 2, 3, 4, 5} [status] 文章状态，Cancel=0, Active=1, Draft=2, Audit=3,
                                                  Failed=4, Recycled=5，状态可拼接，e.g. '134'
     @apiParam {string} [order_field] 文章信息列表排序字段
     @apiParam {string=desc, asc} [order="desc"] 文章信息列表排序方向
     @apiParam {string} [query] 搜索内容，若无搜索字段则全局搜索title, keywords, content, author, section
-    @apiParam {string=name, nick, DjangoFilterParams} [query_field] 搜索字段, 支持Django filter参数
+    @apiParam {string=title, keywords, content,
+               author, section, status, DjangoFilterParams} [query_field] 搜索字段, 支持Django filter参数
     @apiSuccess {String} total 文章信息列表总数
     @apiSuccess {String} articles 文章信息列表
     @apiSuccessExample {json} Success-Response:
