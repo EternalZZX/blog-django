@@ -100,7 +100,7 @@ class AlbumService(Service):
         return 201, album_dict
 
     def update(self, album_uuid, name=None, description=None, cover_uuid=None,
-               author_uuid=None, privacy=Album.PUBLIC, system=None):
+               author_uuid=None, privacy=None, system=None):
         update_level, author_level = self.get_permission_level(PermissionName.ALBUM_UPDATE)
         try:
             album = Album.objects.get(uuid=album_uuid)

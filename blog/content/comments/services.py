@@ -7,6 +7,7 @@ import time
 from functools import reduce
 
 from django.db.models import Q
+from django.utils import timezone
 
 from blog.account.users.services import UserService
 from blog.content.comments.models import Comment
@@ -118,6 +119,51 @@ class CommentService(Service):
                                          last_editor_id=self.uid)
         return 201, CommentService._comment_to_dict(comment=comment)
 
+    def update(self, comment_uuid, content=None, status=None,
+               like_count=None, dislike_count=None):
+        update_level, _ = self.get_permission_level(PermissionName.COMMENT_UPDATE)
+        try:
+            comment = Comment.objects.get(uuid=comment_uuid)
+        except Comment.DoesNotExist:
+            raise ServiceError(code=404, message=ContentErrorMsg.COMMENT_NOT_FOUND)
+        if like_count or dislike_count:
+            self._has_get_permission(comment=comment)
+            # Todo comment like list
+            pass
+        is_self = comment.author_id == self.uid
+        is_content_change = False
+        edit_permission, set_role = False, None
+        if comment.resource_section:
+            set_role = SectionService.is_manager(user_uuid=self.uuid, section=comment.resource_section)
+            edit_permission = SectionService.has_set_permission(
+                permission=comment.resource_section.sectionpermission.comment_edit,
+                set_role=set_role)
+        if is_self and update_level.is_gt_lv1() or update_level.is_gt_lv10() or edit_permission:
+            if content is not None and content != comment.content:
+                comment.content, is_content_change = content, True
+                comment.last_editor_id = self.uid
+                comment.edit_at = timezone.now()
+        elif not self._has_status_permission(comment=comment, set_role=set_role):
+            raise ServiceError(code=403, message=ErrorMsg.PERMISSION_DENIED)
+        if status and int(status) != comment.status:
+            comment.status = self._get_update_status(status, comment, set_role, is_content_change)
+        elif is_content_change:
+            _, audit_level = self.get_permission_level(PermissionName.COMMENT_AUDIT, False)
+            if comment.resource_section:
+                audit_permission = SectionService.has_set_permission(
+                    permission=comment.resource_section.sectionpermission.comment_audit,
+                    set_role=set_role,
+                    op=audit_level.is_gt_lv10())
+            else:
+                audit_permission = audit_level.is_gt_lv10()
+            if not audit_permission and \
+                (comment.status == Article.ACTIVE or
+                 comment.status == Article.AUDIT or
+                 comment.status == Article.FAILED):
+                comment.status = status if Setting().COMMENT_AUDIT else comment.status
+        comment.save()
+        return 200, CommentService._comment_to_dict(comment=comment)
+
     def _has_get_permission(self, comment):
         section = comment.resource_section
         is_author = comment.author_id == self.uid
@@ -163,18 +209,16 @@ class CommentService(Service):
         if status == Comment.AUDIT:
             return default
         if status == Comment.ACTIVE or status == Comment.FAILED:
-            if Setting().COMMENT_AUDIT:
-                _, audit_level = self.get_permission_level(PermissionName.COMMENT_AUDIT, False)
-                if audit_level.is_gt_lv10():
-                    return status
-                if section:
-                    set_role = SectionService.is_manager(user_uuid=self.uuid, section=section)
-                    if SectionService.has_set_permission(permission=section.sectionpermission.comment_audit,
-                                                         set_role=set_role):
-                        return status
-                raise ServiceError(code=403, message=ContentErrorMsg.STATUS_PERMISSION_DENIED)
-            elif status == Comment.ACTIVE:
+            if not Setting().COMMENT_AUDIT:
                 return Comment.ACTIVE
+            _, audit_level = self.get_permission_level(PermissionName.COMMENT_AUDIT, False)
+            if audit_level.is_gt_lv10():
+                return status
+            if section:
+                set_role = SectionService.is_manager(user_uuid=self.uuid, section=section)
+                if SectionService.has_set_permission(permission=section.sectionpermission.comment_audit,
+                                                     set_role=set_role):
+                    return status
             raise ServiceError(code=403, message=ContentErrorMsg.STATUS_PERMISSION_DENIED)
         if status == Comment.CANCEL:
             if Setting().COMMENT_CANCEL:
@@ -188,6 +232,61 @@ class CommentService(Service):
                         return status
             raise ServiceError(code=403, message=ContentErrorMsg.STATUS_PERMISSION_DENIED)
         return status
+
+    def _get_update_status(self, status, comment, set_role, is_content_change):
+        default = comment.status
+        section = comment.resource_section
+        is_self = comment.author_id == self.uid
+        status = CommentService.choices_format(status, Comment.STATUS_CHOICES, default)
+        if status == comment.status and (status != Comment.ACTIVE and
+                                         status != Comment.FAILED or
+                                         (status == Comment.ACTIVE or
+                                          status == Comment.FAILED) and
+                                         not is_content_change):
+            return status
+        if status == Comment.ACTIVE or status == Comment.AUDIT or status == Comment.FAILED:
+            if not Setting().COMMENT_AUDIT:
+                return Comment.ACTIVE
+            if is_content_change and status == Comment.AUDIT:
+                return status
+            _, audit_level = self.get_permission_level(PermissionName.COMMENT_AUDIT, False)
+            if audit_level.is_gt_lv10():
+                return status
+            if section and SectionService.has_set_permission(permission=section.sectionpermission.comment_audit,
+                                                             set_role=set_role):
+                return status
+            if is_self and is_content_change and status == Comment.ACTIVE:
+                return Comment.AUDIT
+            raise ServiceError(code=403, message=ContentErrorMsg.STATUS_PERMISSION_DENIED)
+        elif status == Comment.CANCEL:
+            if Setting().COMMENT_CANCEL:
+                _, cancel_level = self.get_permission_level(PermissionName.COMMENT_CANCEL, False)
+                if cancel_level.is_gt_lv10() or is_self and cancel_level.is_gt_lv1() or section and \
+                        SectionService.has_set_permission(permission=section.sectionpermission.comment_cancel,
+                                                          set_role=set_role):
+                    return status
+        elif status == Comment.RECYCLED:
+            if is_self or section and SectionService.has_set_permission(
+                    permission=section.sectionpermission.comment_recycled,
+                    set_role=set_role):
+                return status
+        raise ServiceError(code=403, message=ContentErrorMsg.STATUS_PERMISSION_DENIED)
+
+    def _has_status_permission(self, comment, set_role):
+        if comment.author_id == self.uid:
+            return True
+        _, audit_level = self.get_permission_level(PermissionName.COMMENT_AUDIT, False)
+        _, cancel_level = self.get_permission_level(PermissionName.COMMENT_CANCEL, False)
+        if audit_level.is_gt_lv10() or cancel_level.is_gt_lv10():
+            return True
+        if not comment.resource_section:
+            return False
+        if SectionService.has_set_permission(permission=comment.resource_section.sectionpermission.comment_audit,
+                                             set_role=set_role) or \
+                SectionService.has_set_permission(permission=comment.resource_section.sectionpermission.comment_cancel,
+                                                  set_role=set_role):
+            return True
+        return False
 
     def _get_resource(self, resource_type, resource_uuid):
         try:

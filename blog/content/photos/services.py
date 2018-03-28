@@ -149,7 +149,7 @@ class PhotoService(Service):
         return 201, PhotoService._photo_to_dict(photo=photo)
 
     def update(self, photo_uuid, description=None, album_uuid=None,
-               status=Photo.AUDIT, privacy=Photo.PUBLIC, read_level=100,
+               status=None, privacy=None, read_level=None,
                like_count=None, dislike_count=None):
         update_level, _ = self.get_permission_level(PermissionName.PHOTO_UPDATE)
         try:
@@ -172,11 +172,11 @@ class PhotoService(Service):
                 photo.privacy, is_edit = self._get_privacy(privacy=privacy), True
             if read_level and int(read_level) != photo.read_level:
                 photo.read_level, is_edit = self._get_read_level(read_level=read_level), True
-        else:
+            if is_content_change or is_edit:
+                photo.last_editor_id = self.uid
+                photo.edit_at = timezone.now()
+        elif not self._has_status_permission(photo=photo):
             raise ServiceError(code=403, message=ErrorMsg.PERMISSION_DENIED)
-        if is_content_change or is_edit:
-            photo.last_editor_id = self.uid
-            photo.edit_at = timezone.now()
         if status and int(status) != photo.status:
             photo.status = self._get_update_status(status, photo, is_content_change)
         elif is_content_change:
@@ -279,13 +279,11 @@ class PhotoService(Service):
         if status == Photo.AUDIT:
             return default
         if status == Photo.ACTIVE or status == Photo.FAILED:
-            if Setting().PHOTO_AUDIT:
-                _, audit_level = self.get_permission_level(PermissionName.PHOTO_AUDIT, False)
-                if audit_level.is_gt_lv10():
-                    return status
-                raise ServiceError(code=403, message=ContentErrorMsg.STATUS_PERMISSION_DENIED)
-            elif status == Photo.ACTIVE:
+            if not Setting().PHOTO_AUDIT:
                 return Photo.ACTIVE
+            _, audit_level = self.get_permission_level(PermissionName.PHOTO_AUDIT, False)
+            if audit_level.is_gt_lv10():
+                return status
             raise ServiceError(code=403, message=ContentErrorMsg.STATUS_PERMISSION_DENIED)
         if status == Photo.CANCEL:
             if Setting().PHOTO_CANCEL:
@@ -306,26 +304,34 @@ class PhotoService(Service):
                                        not is_content_change):
             return status
         if status == Photo.ACTIVE or status == Photo.AUDIT or status == Photo.FAILED:
-            if Setting().PHOTO_AUDIT:
-                if is_content_change and status == Photo.AUDIT:
-                    return status
-                _, audit_level = self.get_permission_level(PermissionName.PHOTO_AUDIT, False)
-                if audit_level.is_gt_lv10():
-                    return status
-                if is_self and (status == Photo.ACTIVE or status == Photo.FAILED):
-                    return Photo.AUDIT
-                raise ServiceError(code=403, message=ContentErrorMsg.STATUS_PERMISSION_DENIED)
-            elif status == Photo.ACTIVE:
+            if not Setting().PHOTO_AUDIT:
+                return Photo.ACTIVE
+            if is_content_change and status == Photo.AUDIT:
                 return status
+            _, audit_level = self.get_permission_level(PermissionName.PHOTO_AUDIT, False)
+            if audit_level.is_gt_lv10():
+                return status
+            if is_self and is_content_change and status == Photo.ACTIVE:
+                return Photo.AUDIT
+            raise ServiceError(code=403, message=ContentErrorMsg.STATUS_PERMISSION_DENIED)
         elif status == Photo.CANCEL:
             if Setting().PHOTO_CANCEL:
                 _, cancel_level = self.get_permission_level(PermissionName.PHOTO_CANCEL, False)
-                if cancel_level.is_gt_lv10():
+                if cancel_level.is_gt_lv10() or is_self and cancel_level.is_gt_lv1():
                     return status
         elif status == Photo.RECYCLED:
             if is_self:
                 return status
         raise ServiceError(code=403, message=ContentErrorMsg.STATUS_PERMISSION_DENIED)
+
+    def _has_status_permission(self, photo):
+        if photo.author_id == self.uid:
+            return True
+        _, audit_level = self.get_permission_level(PermissionName.COMMENT_AUDIT, False)
+        _, cancel_level = self.get_permission_level(PermissionName.COMMENT_CANCEL, False)
+        if audit_level.is_gt_lv10() or cancel_level.is_gt_lv10():
+            return True
+        return False
 
     def _get_privacy(self, privacy=Photo.PUBLIC):
         _, privacy_level = self.get_permission_level(PermissionName.PHOTO_PRIVACY, False)

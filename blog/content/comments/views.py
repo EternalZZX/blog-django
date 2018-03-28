@@ -301,7 +301,90 @@ def comment_create(request):
 
 
 def comment_update(request, comment_uuid):
-    pass
+    """
+    @api {put} /content/comments/{uuid}/ comment update
+    @apiVersion 0.1.0
+    @apiName comment_update
+    @apiGroup content
+    @apiDescription 编辑评论
+    @apiPermission COMMENT_UPDATE
+    @apiPermission COMMENT_CANCEL
+    @apiPermission COMMENT_AUDIT
+    @apiUse Header
+    @apiParam {string} [content] 评论内容
+    @apiParam {number=0, 1, 2, 3, 4} [status=1] 评论状态, Cancel=0, Active=1, Audit=2,
+                                                Failed=3, Recycled=4
+    @apiParam {number} [like_count=1] 评论点赞
+    @apiParam {number} [dislike_count=1] 评论取消点赞
+    @apiSuccess {string} data 编辑评论信息详情
+    @apiSuccessExample {json} Success-Response:
+    HTTP/1.1 200 OK
+    {
+        "data": {
+            "resource_section": 18,
+            "reply_user": {
+                "remark": null,
+                "uuid": "4be0643f-1d98-573b-97cd-ca98a65347dd",
+                "create_at": "2017-12-20T06:00:07Z",
+                "nick": "test",
+                "role": 2,
+                "avatar": null,
+                "groups": []
+            },
+            "edit_at": "2018-03-28T09:23:50.816Z",
+            "uuid": "40905eb5-02c3-5951-bdc4-0274ff78bd3c",
+            "author": {
+                "remark": null,
+                "uuid": "4be0643f-1d98-573b-97cd-ca98a65347dd",
+                "create_at": "2017-12-20T06:00:07Z",
+                "nick": "test",
+                "role": 2,
+                "avatar": null,
+                "groups": []
+            },
+            "dislike_count": 0,
+            "create_at": "2018-03-27T08:04:54Z",
+            "resource_uuid": "11d9fc3a-051f-5271-b1e1-65c192b63105",
+            "content": "test",
+            "resource_author": 1,
+            "like_count": 0,
+            "status": 1,
+            "last_editor": {
+                "remark": null,
+                "uuid": "7357d28a-a611-5efd-ae6e-a550a5b95487",
+                "create_at": "2017-12-20T11:19:17Z",
+                "nick": "admin",
+                "role": 1,
+                "avatar": "/media/photos/9b19df9b-25f5-5a09-a4ce-b7e0149699dc.jpeg",
+                "groups": []
+            },
+            "id": 7,
+            "resource_type": 0,
+            "parent_uuid": "b20db0ca-d448-567e-870d-a4f2f6607eec"
+        }
+    }
+    @apiUse ErrorData
+    @apiErrorExample {json} Error-Response:
+    HTTP/1.1 403 Forbidden
+    {
+        "data": "Permission denied"
+    }
+    """
+    data = QueryDict(request.body)
+    content = data.get('content')
+    status = data.get('status')
+    like_count = data.get('like_count')
+    dislike_count = data.get('dislike_count')
+    try:
+        code, data = CommentService(request).update(comment_uuid=comment_uuid,
+                                                    content=content,
+                                                    status=status,
+                                                    like_count=like_count,
+                                                    dislike_count=dislike_count)
+    except Exception as e:
+        code, data = getattr(e, 'code', 400), \
+                     getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
+    return Response(code=code, data=data)
 
 
 def comment_delete(request, comment_uuid):

@@ -166,7 +166,7 @@ class SectionService(Service):
 
     def update(self, section_id, name=None, nick=None, description=None,
                cover_uuid=None, owner_uuid=None, moderator_uuids=None,
-               assistant_uuids=None, status=Section.NORMAL, read_level=0,
+               assistant_uuids=None, status=None, read_level=None,
                only_roles=False, role_ids=None, only_groups=False,
                group_ids=None, **kwargs):
         update_level, policy_level = self.get_permission_level(PermissionName.SECTION_UPDATE)
