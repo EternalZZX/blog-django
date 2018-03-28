@@ -157,12 +157,38 @@ class CommentService(Service):
             else:
                 audit_permission = audit_level.is_gt_lv10()
             if not audit_permission and \
-                (comment.status == Article.ACTIVE or
-                 comment.status == Article.AUDIT or
-                 comment.status == Article.FAILED):
+                (comment.status == Comment.ACTIVE or
+                 comment.status == Comment.AUDIT or
+                 comment.status == Comment.FAILED):
                 comment.status = status if Setting().COMMENT_AUDIT else comment.status
         comment.save()
         return 200, CommentService._comment_to_dict(comment=comment)
+
+    def delete(self, delete_id, force):
+        if force:
+            self.has_permission(PermissionName.COMMENT_DELETE)
+        else:
+            self.has_permission(PermissionName.COMMENT_CANCEL)
+        result = {'id': delete_id}
+        try:
+            comment = Comment.objects.get(uuid=delete_id)
+            result['name'], result['status'] = comment.content[:30] + '...', 'SUCCESS'
+            if force:
+                if self._has_delete_permission(comment=comment):
+                    comment.delete()
+                else:
+                    raise ServiceError()
+            else:
+                if Setting().COMMENT_CANCEL and self._has_cancel_permission(comment=comment):
+                    comment.status = Comment.CANCEL
+                    comment.save()
+                else:
+                    raise ServiceError()
+        except Comment.DoesNotExist:
+            result['status'] = 'NOT_FOUND'
+        except ServiceError:
+            result['status'] = 'PERMISSION_DENIED'
+        return result
 
     def _has_get_permission(self, comment):
         section = comment.resource_section
@@ -199,6 +225,30 @@ class CommentService(Service):
         elif section and comment.status == Comment.RECYCLED:
             set_role = SectionService.is_manager(user_uuid=self.uuid, section=section)
             if SectionService.has_set_permission(permission=section.sectionpermission.comment_recycled,
+                                                 set_role=set_role):
+                return True
+        return False
+
+    def _has_delete_permission(self, comment):
+        delete_level, _ = self.get_permission_level(PermissionName.COMMENT_DELETE, False)
+        is_self = comment.author_id == self.uid
+        if delete_level.is_gt_lv10() or is_self and delete_level.is_gt_lv1():
+            return True
+        if comment.resource_section:
+            set_role = SectionService.is_manager(user_uuid=self.uuid, section=comment.resource_section)
+            if SectionService.has_set_permission(permission=comment.resource_section.sectionpermission.comment_delete,
+                                                 set_role=set_role):
+                return True
+        return False
+
+    def _has_cancel_permission(self, comment):
+        _, cancel_level = self.get_permission_level(PermissionName.COMMENT_CANCEL, False)
+        is_self = comment.author_id == self.uid
+        if cancel_level.is_gt_lv10() or is_self and cancel_level.is_gt_lv1():
+            return True
+        if comment.resource_section:
+            set_role = SectionService.is_manager(user_uuid=self.uuid, section=comment.resource_section)
+            if SectionService.has_set_permission(permission=comment.resource_section.sectionpermission.comment_cancel,
                                                  set_role=set_role):
                 return True
         return False

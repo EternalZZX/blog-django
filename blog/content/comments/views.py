@@ -51,7 +51,7 @@ def comment_get(request, comment_uuid):
                 "create_at": "2017-12-20T11:19:17Z",
                 "nick": "admin",
                 "role": 1,
-                "avatar": "/media/photos/7357d28a-a611-5efd-ae6e-a550a5b95487/small/9b19df9b-25f5-5a09-a4ce-b7e0149699dc.jpeg",
+                "avatar": "/media/photos/9b19df9b-25f5-5a09-a4ce-b7e0149699dc.jpeg",
                 "groups": []
             },
             "edit_at": "2018-03-27T08:49:22Z",
@@ -241,7 +241,7 @@ def comment_create(request):
                 "create_at": "2017-12-20T11:19:17Z",
                 "nick": "admin",
                 "role": 1,
-                "avatar": "/media/photos/7357d28a-a611-5efd-ae6e-a550a5b95487/small/9b19df9b-25f5-5a09-a4ce-b7e0149699dc.jpeg",
+                "avatar": "/media/photos/9b19df9b-25f5-5a09-a4ce-b7e0149699dc.jpeg",
                 "groups": []
             },
             "edit_at": "2018-03-27T08:49:22.637Z",
@@ -388,4 +388,53 @@ def comment_update(request, comment_uuid):
 
 
 def comment_delete(request, comment_uuid):
-    pass
+    """
+    @api {delete} /content/comments/[uuid]/ comment delete
+    @apiVersion 0.1.0
+    @apiName comment_delete
+    @apiGroup content
+    @apiDescription 删除评论
+    @apiPermission COMMENT_DELETE
+    @apiPermission COMMENT_CANCEL
+    @apiUse Header
+    @apiParam {string} [id_list] 删除评论uuid列表，e.g.'11d9fc3a-051f-5271-b1e1-65c192b63105;',
+                                 当使用URL参数uuid时该参数忽略
+    @apiParam {bool=true, false} [force=false] 强制删除
+    @apiSuccess {string} data 评论删除信息详情
+    @apiSuccessExample {json} Success-Response:
+    HTTP/1.1 200 OK
+    {
+        "data": [
+            {
+                "status": "SUCCESS",
+                "id": "11d9fc3a-051f-5271-b1e1-65c192b63105",
+                "name": "content..."
+            }
+        ]
+    }
+    @apiUse ErrorData
+    @apiErrorExample {json} Error-Response:
+    HTTP/1.1 403 Forbidden
+    {
+        "data": "Permission denied"
+    }
+    """
+    data = QueryDict(request.body)
+    force = data.get('force') == 'true'
+    try:
+        if comment_uuid:
+            id_list = [{'delete_id': comment_uuid, 'force': force}]
+        else:
+            id_list = data.get('id_list')
+            if not isinstance(id_list, (unicode, str)):
+                raise ParamsError()
+            id_list = [{'delete_id': delete_id, 'force': force} for delete_id in id_list.split(';') if delete_id]
+        code, data = 400, map(lambda params: CommentService(request).delete(**params), id_list)
+        for result in data:
+            if result['status'] == 'SUCCESS':
+                code = 200
+                break
+    except Exception as e:
+        code, data = getattr(e, 'code', 400), \
+                     getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
+    return Response(code=code, data=data)
