@@ -294,6 +294,7 @@ class SectionService(Service):
 
     @staticmethod
     def is_manager(user_uuid, section):
+        # Todo save section manager to redis
         is_owner = section.owner.uuid == user_uuid
         is_moderator, is_assistant = True, True
         try:

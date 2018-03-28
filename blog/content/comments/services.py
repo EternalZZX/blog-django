@@ -23,6 +23,16 @@ from blog.common.setting import Setting, PermissionName
 
 
 class CommentService(Service):
+    def get(self, comment_uuid):
+        self.has_permission(PermissionName.COMMENT_SELECT)
+        try:
+            comment = Comment.objects.get(uuid=comment_uuid)
+            if not self._has_get_permission(comment=comment):
+                raise Comment.DoesNotExist
+        except Comment.DoesNotExist:
+            raise ServiceError(code=404, message=ContentErrorMsg.COMMENT_NOT_FOUND)
+        return 200, CommentService._comment_to_dict(comment=comment)
+
     def create(self, resource_type, resource_uuid, reply_uuid=None,
                content=None, status=Comment.AUDIT):
         self.has_permission(PermissionName.COMMENT_CREATE)
@@ -44,6 +54,45 @@ class CommentService(Service):
                                          status=status,
                                          last_editor_id=self.uid)
         return 201, CommentService._comment_to_dict(comment=comment)
+
+    def _has_get_permission(self, comment):
+        section = comment.resource_section
+        is_author = comment.author_id == self.uid
+        if is_author and comment.status != Comment.CANCEL:
+            return True
+        permission_level, _ = self.get_permission_level(PermissionName.COMMENT_PERMISSION, False)
+        if permission_level.is_gt_lv10():
+            return True
+        if section:
+            _, read_permission = SectionService(request=self.request, instance=self).has_get_permission(section)
+            if not read_permission:
+                return False
+        if comment.status == Comment.ACTIVE:
+            return True
+        elif comment.status == Comment.CANCEL:
+            cancel_level, _ = self.get_permission_level(PermissionName.COMMENT_CANCEL, False)
+            if cancel_level.is_gt_lv10():
+                return True
+            if section:
+                set_role = SectionService.is_manager(user_uuid=self.uuid, section=section)
+                if SectionService.has_set_permission(permission=section.sectionpermission.comment_delete,
+                                                     set_role=set_role):
+                    return True
+        elif comment.status == Comment.AUDIT or comment.status == Comment.FAILED:
+            audit_level, _ = self.get_permission_level(PermissionName.COMMENT_AUDIT, False)
+            if audit_level.is_gt_lv10():
+                return True
+            if section:
+                set_role = SectionService.is_manager(user_uuid=self.uuid, section=section)
+                if SectionService.has_set_permission(permission=section.sectionpermission.comment_audit,
+                                                     set_role=set_role):
+                    return True
+        elif section and comment.status == Comment.RECYCLED:
+            set_role = SectionService.is_manager(user_uuid=self.uuid, section=section)
+            if SectionService.has_set_permission(permission=section.sectionpermission.comment_recycled,
+                                                 set_role=set_role):
+                return True
+        return False
 
     def _get_create_status(self, status, section):
         default = Comment.AUDIT if Setting().COMMENT_AUDIT else Comment.ACTIVE
