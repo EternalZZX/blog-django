@@ -43,7 +43,7 @@ class CommentService(Service):
         return 200, CommentService._comment_to_dict(comment=comment)
 
     def list(self, page=0, page_size=10, resource_type=None, resource_uuid=None,
-             resource_section_id=None, parent_uuid=None, reply_user_uuid=None,
+             resource_section_id=None, parent_uuid=None, reply_uuid=None,
              author_uuid=None, status=None, order_field=None, order='desc',
              query=None, query_field=None):
         query_level, order_level = self.get_permission_level(PermissionName.COMMENT_SELECT)
@@ -55,9 +55,9 @@ class CommentService(Service):
         if resource_section_id:
             comments = comments.filter(resource_section_id=int(resource_section_id))
         if parent_uuid:
-            comments = comments.filter(Q(uuid=parent_uuid) | Q(parent_uuid=parent_uuid))
-        if reply_user_uuid:
-            comments = comments.filter(reply_user__uuid=reply_user_uuid)
+            comments = comments.filter(Q(uuid=parent_uuid) | Q(parent_comment__uuid=parent_uuid))
+        if reply_uuid:
+            comments = comments.filter(Q(uuid=reply_uuid) | Q(reply_comment__uuid=reply_uuid))
         if author_uuid:
             comments = comments.filter(author__uuid=author_uuid)
         if status:
@@ -102,7 +102,7 @@ class CommentService(Service):
         self.has_permission(PermissionName.COMMENT_CREATE)
         resource_type = CommentService.choices_format(resource_type, Comment.TYPE_CHOICES, None)
         resource, section = self._get_resource(resource_type, resource_uuid)
-        parent_uuid, reply_user_id = self._get_reply(reply_uuid=reply_uuid)
+        parent_comment, reply_comment = self._get_reply(reply_uuid=reply_uuid, resource_uuid=resource_uuid)
         comment_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS,
                                       (resource_uuid + self.uuid + str(time.time())).encode('utf-8')))
         status = self._get_create_status(status=status, section=section)
@@ -111,8 +111,8 @@ class CommentService(Service):
                                          resource_uuid=resource_uuid,
                                          resource_author_id=resource.author_id,
                                          resource_section=section,
-                                         parent_uuid=parent_uuid,
-                                         reply_user_id=reply_user_id,
+                                         parent_comment=parent_comment,
+                                         reply_comment=reply_comment,
                                          content=content,
                                          author_id=self.uid,
                                          status=status,
@@ -363,27 +363,26 @@ class CommentService(Service):
             raise ServiceError(code=404, message=ContentErrorMsg.RESOURCE_NOT_FOUND)
         return resource, section
 
-    def _get_reply(self, reply_uuid):
-        parent_uuid, reply_user_id = None, None
+    def _get_reply(self, reply_uuid, resource_uuid):
+        parent_comment, reply_comment = None, None
         if reply_uuid:
             try:
-                reply_comment = Comment.objects.get(uuid=reply_uuid)
+                reply_comment = Comment.objects.get(uuid=reply_uuid, resource_uuid=resource_uuid)
                 if reply_comment.author_id == self.uid:
                     raise ServiceError(message=ContentErrorMsg.COMMENT_REPLY_ERROR)
-                if reply_comment.parent_uuid and reply_comment.reply_user_id == self.uid:
-                    parent_uuid = reply_comment.parent_uuid
+                if reply_comment.parent_comment and reply_comment.reply_comment.author_id == self.uid:
+                    parent_comment = reply_comment.parent_comment
                 else:
-                    parent_uuid = reply_uuid
-                reply_user_id = reply_comment.author_id
+                    parent_comment = reply_comment
             except Comment.DoesNotExist:
                 raise ServiceError(code=404, message=ContentErrorMsg.COMMENT_NOT_FOUND)
-        return parent_uuid, reply_user_id
+        return parent_comment, reply_comment
 
     @staticmethod
     def _comment_to_dict(comment, **kwargs):
         comment_dict = model_to_dict(comment)
-        if comment.reply_user:
-            UserService.user_to_dict(comment.reply_user, comment_dict, 'reply_user')
+        if comment.reply_comment:
+            UserService.user_to_dict(comment.reply_comment.author, comment_dict, 'reply_user')
         UserService.user_to_dict(comment.author, comment_dict, 'author')
         UserService.user_to_dict(comment.last_editor, comment_dict, 'last_editor')
         for key in kwargs:

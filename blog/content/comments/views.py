@@ -119,7 +119,7 @@ def comment_list(request):
     @apiParam {string} [resource_uuid] 评论资源UUID
     @apiParam {number} [resource_section_id] 评论资源所属板块
     @apiParam {string} [parent_uuid] 对话评论UUID
-    @apiParam {string} [reply_user_uuid] 评论回复用户UUID
+    @apiParam {string} [reply_uuid] 回复评论UUID
     @apiParam {string} [author_uuid] 评论作者
     @apiParam {number=0, 1, 2, 3, 4} [status] 评论状态，Cancel=0, Active=1, Audit=2,
                                               Failed=3, Recycled=4，状态可拼接，e.g. '123'
@@ -185,7 +185,7 @@ def comment_list(request):
     resource_uuid = request.GET.get('resource_uuid')
     resource_section_id = request.GET.get('resource_section_id')
     parent_uuid = request.GET.get('parent_uuid')
-    reply_user_uuid = request.GET.get('reply_user_uuid')
+    reply_uuid = request.GET.get('reply_uuid')
     author_uuid = request.GET.get('author_uuid')
     status = request.GET.get('status')
     order_field = request.GET.get('order_field')
@@ -199,7 +199,7 @@ def comment_list(request):
                                                   resource_uuid=resource_uuid,
                                                   resource_section_id=resource_section_id,
                                                   parent_uuid=parent_uuid,
-                                                  reply_user_uuid=reply_user_uuid,
+                                                  reply_uuid=reply_uuid,
                                                   author_uuid=author_uuid,
                                                   status=status,
                                                   order_field=order_field,
