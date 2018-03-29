@@ -44,7 +44,7 @@ class Photo(models.Model, BaseModel):
     image_small = models.ImageField(upload_to=photo_small_path, null=True)
     image_untreated = models.ImageField(upload_to=photo_untreated_path, null=True)
     description = models.CharField(max_length=200)
-    author = models.ForeignKey(to=User, related_name='photo_author')
+    author = models.ForeignKey(to=User, related_name='photos_create')
     album = models.ForeignKey(Album, null=True, on_delete=models.SET_NULL)
     status = models.IntegerField(choices=STATUS_CHOICES, default=ACTIVE)
     privacy = models.IntegerField(choices=PRIVACY_CHOICES, default=PUBLIC)
@@ -52,7 +52,7 @@ class Photo(models.Model, BaseModel):
     like_count = models.IntegerField(default=0)
     dislike_count = models.IntegerField(default=0)
     create_at = models.DateTimeField(auto_now_add=True)
-    last_editor = models.ForeignKey(to=User, related_name='photo_last_editor')
+    last_editor = models.ForeignKey(to=User, related_name='photos_edit')
     edit_at = models.DateTimeField(default=timezone.now())
 
     class Meta:

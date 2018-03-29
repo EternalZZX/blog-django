@@ -57,7 +57,8 @@ class UserPrivacySetting(models.Model):
         (PROTECTED, 'protected')
     )
 
-    user = models.OneToOneField(User, primary_key=True)
+    user = models.OneToOneField(User, primary_key=True,
+                                related_name='privacy', on_delete=models.CASCADE)
     gender_privacy = models.IntegerField(choices=PRIVACY_CHOICES, default=PUBLIC)
     email_privacy = models.IntegerField(choices=PRIVACY_CHOICES, default=PRIVATE)
     phone_privacy = models.IntegerField(choices=PRIVACY_CHOICES, default=PRIVATE)
@@ -69,7 +70,8 @@ class UserPrivacySetting(models.Model):
 
 
 class UserSign(models.Model):
-    user = models.OneToOneField(User, primary_key=True)
+    user = models.OneToOneField(User, primary_key=True,
+                                related_name='sign', on_delete=models.CASCADE)
     sign_up_at = models.DateTimeField(auto_now_add=True)
     sign_in_last = models.DateTimeField(null=True)
     sign_in_err = models.IntegerField(default=0)

@@ -7,7 +7,7 @@ class Role(models.Model):
     nick = models.CharField(max_length=200)
     role_level = models.IntegerField(default=0)
     default = models.BooleanField(default=False)
-    permissions = models.ManyToManyField('Permission', through='RolePermission')
+    permissions = models.ManyToManyField(to='Permission', through='RolePermission')
     create_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

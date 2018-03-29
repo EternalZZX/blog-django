@@ -2,6 +2,7 @@ import uuid
 
 from django.utils import timezone
 from django.db import models
+from django.dispatch import receiver
 
 from blog.common.tools import BaseModel
 from blog.account.users.models import User
@@ -44,16 +45,29 @@ class Article(models.Model, BaseModel):
     overview = models.CharField(max_length=1000)
     content = models.TextField(null=True)
     content_url = models.CharField(null=True, max_length=1000)
-    author = models.ForeignKey(to=User, related_name='author')
+    author = models.ForeignKey(to=User, related_name='articles_create')
     section = models.ForeignKey(Section, null=True, on_delete=models.SET_NULL)
     status = models.IntegerField(choices=STATUS_CHOICES, default=ACTIVE)
     privacy = models.IntegerField(choices=PRIVACY_CHOICES, default=PUBLIC)
     read_level = models.IntegerField(default=100)
-    like_count = models.IntegerField(default=0)
-    dislike_count = models.IntegerField(default=0)
     create_at = models.DateTimeField(auto_now_add=True)
-    last_editor = models.ForeignKey(to=User, related_name='last_editor')
+    last_editor = models.ForeignKey(to=User, related_name='articles_edit')
     edit_at = models.DateTimeField(default=timezone.now())
 
     class Meta:
         db_table = 'article'
+
+
+class ArticleMetaData(models.Model):
+    article = models.OneToOneField(Article, primary_key=True,
+                                   related_name='metadata', on_delete=models.CASCADE)
+    read_count = models.IntegerField(default=0)
+    comment_count = models.IntegerField(default=0)
+    like_count = models.IntegerField(default=0)
+    dislike_count = models.IntegerField(default=0)
+
+
+@receiver(models.signals.post_save, sender=Article, dispatch_uid='models.article_obj_create')
+def article_obj_create(sender, instance, created, **kwargs):
+    if created:
+        ArticleMetaData.objects.create(article=instance)

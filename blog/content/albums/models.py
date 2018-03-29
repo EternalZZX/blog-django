@@ -35,7 +35,7 @@ class Album(models.Model, BaseModel):
     name = models.CharField(max_length=200)
     description = models.TextField(null=True)
     cover = models.CharField(max_length=300, null=True)
-    author = models.ForeignKey(to=User, related_name='album_author')
+    author = models.ForeignKey(to=User)
     privacy = models.IntegerField(choices=PRIVACY_CHOICES, default=PUBLIC)
     system = models.IntegerField(choices=SYSTEM_ALBUM_CHOICES, null=True)
     create_at = models.DateTimeField(auto_now_add=True)

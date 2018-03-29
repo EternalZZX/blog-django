@@ -34,14 +34,26 @@ class RedisClient(object):
     def delete(self, name):
         return self.client.delete(name)
 
+    def set_add(self, name, *values):
+        return self.client.sadd(name, *values)
+
+    def set_all(self, name):
+        return self.client.smembers(name)
+
+    def set_count(self, name):
+        return self.client.scard(name)
+
+    def set_delete(self, name, *values):
+        return self.client.srem(name, *values)
+
     def hash_set(self, name, key, value):
         return self.client.hset(name, key, value)
 
     def hash_get(self, name, key):
         return self.client.hget(name, key)
 
-    def hash_delete(self, name, key):
-        return self.client.hdel(name, key)
+    def hash_delete(self, name, *keys):
+        return self.client.hdel(name, *keys)
 
 
 class MemcachedClient(object):

@@ -23,14 +23,14 @@ class Section(models.Model, BaseModel):
     description = models.TextField(null=True)
     cover = models.CharField(max_length=300, null=True)
     owner = models.ForeignKey(User)
-    moderators = models.ManyToManyField(to=User, related_name='moderator')
-    assistants = models.ManyToManyField(to=User, related_name='assistant')
+    moderators = models.ManyToManyField(to=User, related_name='sections_moderator')
+    assistants = models.ManyToManyField(to=User, related_name='sections_assistant')
     status = models.IntegerField(choices=STATUS_CHOICES, default=NORMAL)
     read_level = models.IntegerField(default=0)
     only_roles = models.BooleanField(default=False)
-    roles = models.ManyToManyField(to=Role, related_name='role')
+    roles = models.ManyToManyField(to=Role, related_name='sections_role')
     only_groups = models.BooleanField(default=False)
-    groups = models.ManyToManyField(to=Group, related_name='group')
+    groups = models.ManyToManyField(to=Group, related_name='sections_group')
     create_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -38,7 +38,8 @@ class Section(models.Model, BaseModel):
 
 
 class SectionPolicy(models.Model):
-    section = models.OneToOneField(Section, primary_key=True)
+    section = models.OneToOneField(Section, related_name='policy',
+                                   primary_key=True, on_delete=models.CASCADE)
     auto_audit = models.BooleanField(default=False)
     article_mute = models.BooleanField(default=False)
     reply_mute = models.BooleanField(default=False)
@@ -59,7 +60,8 @@ class SectionPermission(models.Model):
         (MANAGER, 'owner, moderator and assistant')
     )
 
-    section = models.OneToOneField(Section, primary_key=True)
+    section = models.OneToOneField(Section, related_name='permission',
+                                   primary_key=True, on_delete=models.CASCADE)
     set_permission = models.IntegerField(choices=PERMISSION_CHOICES, default=OWNER)
     delete_permission = models.IntegerField(choices=PERMISSION_CHOICES, default=OWNER)
     set_owner = models.IntegerField(choices=PERMISSION_CHOICES, default=OWNER)
