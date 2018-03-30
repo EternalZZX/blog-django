@@ -55,7 +55,7 @@ INSTALLED_APPS = (
 MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    # 'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -103,7 +103,8 @@ MEDIA_URL = '/media/'
 APPEND_SLASH = False
 
 # Redis
-REDIS_HOSTS = ['127.0.0.1']
+REDIS_HOSTS = '127.0.0.1'
+REDIS_PASSWORD = 'qwer4321'
 
 # Memcached
 MEMCACHED_HOSTS = ['127.0.0.1:11211']
@@ -111,8 +112,18 @@ MEMCACHED_HOSTS = ['127.0.0.1:11211']
 # Celery
 djcelery.setup_loader()
 
-BROKER_URL = 'redis://127.0.0.1:6379/1'
-CELERY_RESULT_BACKEND = 'redis://127.0.0.1:6379/1'
+CELERY_REDIS_DB = '1'
+CELERY_REDIS_HOST = '127.0.0.1'
+CELERY_REDIS_PASSWORD = 'qwer4321'
+CELERY_REDIS_PORT = '6379'
+REDIS_CONFIG_INFO = 'redis://:%s@%s:%s/%s'%(
+    CELERY_REDIS_PASSWORD,
+    CELERY_REDIS_HOST,
+    CELERY_REDIS_PORT,
+    CELERY_REDIS_DB
+)
+BROKER_URL = REDIS_CONFIG_INFO
+CELERY_RESULT_BACKEND = REDIS_CONFIG_INFO
 
 CELERY_IMPORTS = ('blog.scheduler.tasks', )
 

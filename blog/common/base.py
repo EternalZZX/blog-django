@@ -17,16 +17,24 @@ from blog.account.roles.models import Role, RolePermission
 from blog.common.error import AuthError, ServiceError
 from blog.common.message import ErrorMsg, AccountErrorMsg
 from blog.common.setting import Setting, PermissionName, PermissionLevel, AuthType
-from blog.settings import REDIS_HOSTS, MEMCACHED_HOSTS
+from blog.settings import REDIS_HOSTS, REDIS_PASSWORD, MEMCACHED_HOSTS
 
 
 class RedisClient(object):
-    def __init__(self):
-        pool = redis.ConnectionPool(host=REDIS_HOSTS, port=6379, db=0)
-        self.client = redis.Redis(connection_pool=pool)
+    __pool = None
 
-    def set(self, name, value):
-        return self.client.set(name, value)
+    def __init__(self):
+        if not self.__pool:
+            self._init_pool()
+        self.client = redis.StrictRedis(connection_pool=self.__pool)
+
+    @classmethod
+    def _init_pool(cls):
+        cls.__pool = redis.ConnectionPool(host=REDIS_HOSTS, port=6379,
+                                          db=0, password=REDIS_PASSWORD)
+
+    def set(self, name, value, ex=None):
+        return self.client.set(name, value, ex)
 
     def get(self, name):
         return self.client.get(name)
@@ -75,7 +83,7 @@ class MemcachedClient(object):
 
 class Authorize(object):
     def gen_token(self, uuid):
-        if not Setting().SESSION_LIMIT and MemcachedClient().get(key=uuid):
+        if not Setting().SESSION_LIMIT and RedisClient().get(name=uuid):
             token = self.update_token(uuid=uuid)
         else:
             rand = MD5.new()
@@ -86,7 +94,7 @@ class Authorize(object):
         return token
 
     def update_token(self, token=None, uuid=None, role_id=None):
-        if uuid and MemcachedClient().get(key=uuid):
+        if uuid and RedisClient().get(name=uuid):
             user_id, role_id_stamp, md5_stamp, time_stamp = self._parse_memcached_value(uuid=uuid)
             token = base64.b64encode('ETE' + md5_stamp + base64.b64encode(uuid)).rstrip('=')
         elif token:
@@ -105,16 +113,18 @@ class Authorize(object):
         return None
 
     def auth_token(self, token):
+        if not token:
+            raise AuthError()
         uuid, user_id, role_id, md5_stamp, time_stamp = self._auth_token_md5(token=token)
         if Setting().TOKEN_EXPIRATION and time.time() - int(time_stamp) > Setting().TOKEN_EXPIRATION_TIME:
-            MemcachedClient().delete(uuid)
+            RedisClient().delete(name=uuid)
             raise AuthError(code=419, message=AccountErrorMsg.TOKEN_TIMEOUT)
         self._save_token(uuid=uuid, md5=md5_stamp, user_id=user_id, role_id=role_id)
         return uuid, user_id, role_id
 
     @staticmethod
     def cancel_token(uuid):
-        MemcachedClient().delete(key=uuid)
+        RedisClient().delete(name=uuid)
 
     def _auth_token_md5(self, token):
         uuid, md5 = self._parse_token(token=token)
@@ -122,7 +132,7 @@ class Authorize(object):
             raise AuthError()
         user_id, role_id, md5_stamp, time_stamp = self._parse_memcached_value(uuid=uuid)
         if not md5_stamp:
-            raise AuthError()
+            raise AuthError(code=419, message=AccountErrorMsg.TOKEN_TIMEOUT)
         if md5_stamp != md5:
             raise AuthError(code=418, message=AccountErrorMsg.UNEXPECTED_FLAG)
         return uuid, user_id, role_id, md5_stamp, time_stamp
@@ -141,7 +151,7 @@ class Authorize(object):
         if not user_id or not role_id:
             raise AuthError()
         value = md5 + '&' + time_stamp + '&' + str(user_id) + '&' + str(role_id)
-        MemcachedClient().set(key=uuid, value=value)
+        RedisClient().set(name=uuid, value=value, ex=Setting().TOKEN_EXPIRATION_TIME)
 
     @staticmethod
     def _parse_token(token):
@@ -161,7 +171,7 @@ class Authorize(object):
 
     @staticmethod
     def _parse_memcached_value(uuid):
-        value = MemcachedClient().get(key=uuid)
+        value = RedisClient().get(name=uuid)
         if not value:
             return None, None, None, None
         value_list = value.split('&')
@@ -181,7 +191,7 @@ class Grant(object):
                 self.set_permission(role=role)
 
     def get_permission(self, role_id):
-        value = MemcachedClient().get(key='PERMISSION_' + str(role_id))
+        value = RedisClient().hash_get(name='ROLE_PERMISSION', key=str(role_id))
         if value:
             return json.loads(value)
         else:
@@ -207,7 +217,7 @@ class Grant(object):
                     perm[v]['value'] = int(grant.value)
             except RolePermission.DoesNotExist:
                 perm[v] = {'state': False}
-        MemcachedClient().set('PERMISSION_' + str(role.id), json.dumps(perm))
+        RedisClient().hash_set(name='ROLE_PERMISSION', key=str(role.id), value=json.dumps(perm))
         return perm
 
 
