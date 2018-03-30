@@ -8,10 +8,14 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.7/ref/settings/
 """
 
-# Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
-BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+import djcelery
 
+from celery.schedules import crontab
+
+
+# Build paths inside the project like this: os.path.join(BASE_DIR, ...)
+BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.7/howto/deployment/checklist/
@@ -26,9 +30,7 @@ TEMPLATE_DEBUG = True
 
 ALLOWED_HOSTS = ['127.0.0.1', '0.0.0.0']
 
-
 # Application definition
-
 INSTALLED_APPS = (
     'django.contrib.admin',
     'django.contrib.auth',
@@ -36,6 +38,7 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'djcelery',
     'blog.account',
     'blog.account.users',
     'blog.account.roles',
@@ -46,6 +49,7 @@ INSTALLED_APPS = (
     'blog.content.marks',
     'blog.content.photos',
     'blog.content.sections',
+    'blog.scheduler'
 )
 
 MIDDLEWARE_CLASSES = (
@@ -62,10 +66,8 @@ ROOT_URLCONF = 'blog.urls'
 
 WSGI_APPLICATION = 'blog.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/1.7/ref/settings/#databases
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -79,7 +81,6 @@ DATABASES = {
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.7/topics/i18n/
-
 LANGUAGE_CODE = 'zh_hans'
 
 TIME_ZONE = 'Asia/Shanghai'
@@ -92,7 +93,6 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.7/howto/static-files/
-
 DATA_DIR = os.path.join(BASE_DIR, 'data').replace('\\', '/')
 
 STATIC_URL = '/static/'
@@ -107,3 +107,26 @@ REDIS_HOSTS = ['127.0.0.1']
 
 # Memcached
 MEMCACHED_HOSTS = ['127.0.0.1:11211']
+
+# Celery
+djcelery.setup_loader()
+
+BROKER_URL = 'redis://127.0.0.1:6379/1'
+CELERY_RESULT_BACKEND = 'redis://127.0.0.1:6379/1'
+
+CELERY_IMPORTS = ('blog.scheduler.tasks', )
+
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_ACCEPT_CONTENT = ['application/json', 'json', 'msgpack']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+
+CELERYBEAT_SCHEDULER = 'djcelery.schedulers.DatabaseScheduler'
+CELERYBEAT_SCHEDULE = {
+    'sync_redis': {
+        "task": "sync_redis",
+        "schedule": crontab(minute='*/1'),
+        "args": (),
+        "enabled": True
+    }
+}

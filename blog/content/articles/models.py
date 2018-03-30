@@ -52,7 +52,7 @@ class Article(models.Model, BaseModel):
     read_level = models.IntegerField(default=100)
     create_at = models.DateTimeField(auto_now_add=True)
     last_editor = models.ForeignKey(to=User, related_name='articles_edit')
-    edit_at = models.DateTimeField(default=timezone.now())
+    edit_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
         db_table = 'article'

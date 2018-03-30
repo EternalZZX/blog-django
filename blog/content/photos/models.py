@@ -53,7 +53,7 @@ class Photo(models.Model, BaseModel):
     dislike_count = models.IntegerField(default=0)
     create_at = models.DateTimeField(auto_now_add=True)
     last_editor = models.ForeignKey(to=User, related_name='photos_edit')
-    edit_at = models.DateTimeField(default=timezone.now())
+    edit_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
         db_table = 'photo'

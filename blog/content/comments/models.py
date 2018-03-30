@@ -39,7 +39,7 @@ class Comment(models.Model):
     resource_uuid = models.CharField(max_length=36)
     resource_author = models.ForeignKey(to=User, related_name='resource_comment', null=True)
     resource_section = models.ForeignKey(to=Section, related_name='resource_section', null=True)
-    parent_comment = models.ForeignKey(to='self', related_name='parent', null=True)
+    dialog_uuid = models.CharField(max_length=73, null=True)
     reply_comment = models.ForeignKey(to='self', related_name='reply', null=True)
     content = models.TextField(null=True)
     author = models.ForeignKey(to=User, related_name='comments_create')
@@ -48,7 +48,7 @@ class Comment(models.Model):
     dislike_count = models.IntegerField(default=0)
     create_at = models.DateTimeField(auto_now_add=True)
     last_editor = models.ForeignKey(to=User, related_name='comments_edit')
-    edit_at = models.DateTimeField(default=timezone.now())
+    edit_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
         db_table = 'comment'

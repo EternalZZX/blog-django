@@ -184,7 +184,7 @@ def comment_list(request):
     resource_type = request.GET.get('resource_type')
     resource_uuid = request.GET.get('resource_uuid')
     resource_section_id = request.GET.get('resource_section_id')
-    parent_uuid = request.GET.get('parent_uuid')
+    dialog_uuid = request.GET.get('dialog_uuid')
     reply_uuid = request.GET.get('reply_uuid')
     author_uuid = request.GET.get('author_uuid')
     status = request.GET.get('status')
@@ -198,7 +198,7 @@ def comment_list(request):
                                                   resource_type=resource_type,
                                                   resource_uuid=resource_uuid,
                                                   resource_section_id=resource_section_id,
-                                                  parent_uuid=parent_uuid,
+                                                  dialog_uuid=dialog_uuid,
                                                   reply_uuid=reply_uuid,
                                                   author_uuid=author_uuid,
                                                   status=status,

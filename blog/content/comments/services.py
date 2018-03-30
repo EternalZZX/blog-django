@@ -27,8 +27,8 @@ from blog.common.setting import Setting, PermissionName
 
 class CommentService(Service):
     COMMENT_PUBLIC_FIELD = ['id', 'uuid', 'resource_type', 'resource_uuid',
-                            'resource_author', 'resource_section', 'parent_uuid',
-                            'reply_user', 'content', 'author', 'status',
+                            'resource_author', 'resource_section', 'dialog_uuid',
+                            'reply_comment', 'content', 'author', 'status',
                             'like_count', 'dislike_count', 'create_at',
                             'last_editor', 'edit_at']
 
@@ -43,7 +43,7 @@ class CommentService(Service):
         return 200, CommentService._comment_to_dict(comment=comment)
 
     def list(self, page=0, page_size=10, resource_type=None, resource_uuid=None,
-             resource_section_id=None, parent_uuid=None, reply_uuid=None,
+             resource_section_id=None, dialog_uuid=None, reply_uuid=None,
              author_uuid=None, status=None, order_field=None, order='desc',
              query=None, query_field=None):
         query_level, order_level = self.get_permission_level(PermissionName.COMMENT_SELECT)
@@ -54,8 +54,9 @@ class CommentService(Service):
             comments = comments.filter(resource_uuid=resource_uuid)
         if resource_section_id:
             comments = comments.filter(resource_section_id=int(resource_section_id))
-        if parent_uuid:
-            comments = comments.filter(Q(uuid=parent_uuid) | Q(parent_comment__uuid=parent_uuid))
+        if dialog_uuid:
+            comments = comments.filter(Q(uuid=dialog_uuid.split(' ')[0]) |
+                                       Q(dialog_uuid=dialog_uuid))
         if reply_uuid:
             comments = comments.filter(Q(uuid=reply_uuid) | Q(reply_comment__uuid=reply_uuid))
         if author_uuid:
@@ -102,7 +103,7 @@ class CommentService(Service):
         self.has_permission(PermissionName.COMMENT_CREATE)
         resource_type = CommentService.choices_format(resource_type, Comment.TYPE_CHOICES, None)
         resource, section = self._get_resource(resource_type, resource_uuid)
-        parent_comment, reply_comment = self._get_reply(reply_uuid=reply_uuid, resource_uuid=resource_uuid)
+        dialog_uuid, reply_comment = self._get_reply(reply_uuid=reply_uuid, resource_uuid=resource_uuid)
         comment_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS,
                                       (resource_uuid + self.uuid + str(time.time())).encode('utf-8')))
         status = self._get_create_status(status=status, section=section)
@@ -111,7 +112,7 @@ class CommentService(Service):
                                          resource_uuid=resource_uuid,
                                          resource_author_id=resource.author_id,
                                          resource_section=section,
-                                         parent_comment=parent_comment,
+                                         dialog_uuid=dialog_uuid,
                                          reply_comment=reply_comment,
                                          content=content,
                                          author_id=self.uid,
@@ -364,19 +365,21 @@ class CommentService(Service):
         return resource, section
 
     def _get_reply(self, reply_uuid, resource_uuid):
-        parent_comment, reply_comment = None, None
+        dialog_uuid, reply_comment = None, None
         if reply_uuid:
             try:
                 reply_comment = Comment.objects.get(uuid=reply_uuid, resource_uuid=resource_uuid)
                 if reply_comment.author_id == self.uid:
                     raise ServiceError(message=ContentErrorMsg.COMMENT_REPLY_ERROR)
-                if reply_comment.parent_comment and reply_comment.reply_comment.author_id == self.uid:
-                    parent_comment = reply_comment.parent_comment
+                if reply_comment.dialog_uuid and reply_comment.reply_comment.author_id == self.uid:
+                    dialog_uuid = reply_comment.dialog_uuid
                 else:
-                    parent_comment = reply_comment
+                    dialog_uuid = reply_uuid + ' ' + \
+                                  str(uuid.uuid5(uuid.NAMESPACE_DNS,
+                                                 (reply_uuid + self.uuid + str(time.time())).encode('utf-8')))
             except Comment.DoesNotExist:
                 raise ServiceError(code=404, message=ContentErrorMsg.COMMENT_NOT_FOUND)
-        return parent_comment, reply_comment
+        return dialog_uuid, reply_comment
 
     @staticmethod
     def _comment_to_dict(comment, **kwargs):
