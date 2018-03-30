@@ -288,7 +288,7 @@ class UserService(Service):
 
     @staticmethod
     def _user_privacy_update(user, **kwargs):
-        user_privacy_setting = UserPrivacySetting.objects.get(user=user)
+        user_privacy_setting = user.privacy
         for key in kwargs:
             if key in UserService.USER_PRIVACY_FIELD and kwargs[key]:
                 value = int(kwargs[key])

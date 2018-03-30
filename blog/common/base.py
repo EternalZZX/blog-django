@@ -63,6 +63,12 @@ class RedisClient(object):
     def hash_delete(self, name, *keys):
         return self.client.hdel(name, *keys)
 
+    def hash_increase(self, name, key, amount=1):
+        return self.client.hincrby(name, key, amount)
+
+    def hash_all(self, name):
+        return self.client.hgetall(name)
+
 
 class MemcachedClient(object):
     def __init__(self):

@@ -65,6 +65,11 @@ class ArticleMetaData(models.Model):
     comment_count = models.IntegerField(default=0)
     like_count = models.IntegerField(default=0)
     dislike_count = models.IntegerField(default=0)
+    like_users = models.ManyToManyField(to=User, related_name='articles_like')
+    dislike_users = models.ManyToManyField(to=User, related_name='articles_dislike')
+
+    class Meta:
+        db_table = 'article_metadata'
 
 
 @receiver(models.signals.post_save, sender=Article, dispatch_uid='models.article_obj_create')

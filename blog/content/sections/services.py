@@ -51,10 +51,10 @@ class SectionService(Service):
                 raise Section.DoesNotExist
             section_dict = SectionService._section_to_dict(section=section,
                                                            read_permission=read_permission)
-            permission_dict = model_to_dict(section.sectionpermission)
+            permission_dict = model_to_dict(section.permission)
             del permission_dict['section']
             section_dict['permission'] = permission_dict
-            policy_dict = model_to_dict(section.sectionpolicy)
+            policy_dict = model_to_dict(section.policy)
             del policy_dict['section']
             section_dict['policy'] = policy_dict
         except Section.DoesNotExist:
@@ -177,7 +177,7 @@ class SectionService(Service):
             raise ServiceError(code=404,
                                message=ContentErrorMsg.SECTION_NOT_FOUND)
         set_role = self.is_manager(user_uuid=self.uuid, section=section)
-        permission = section.sectionpermission
+        permission = section.permission
         if name and self.has_set_permission(permission.set_name, set_role, op) and \
                 SectionService.is_unique(model_obj=Section, exclude_id=section_id, name=name):
             section.name = name
@@ -215,13 +215,13 @@ class SectionService(Service):
         if self.has_set_permission(permission.set_permission, set_role, update_level.is_gt_lv10()):
             permission_dict = model_to_dict(SectionService._section_permission_update(section, **kwargs))
         else:
-            permission_dict = model_to_dict(section.sectionpermission)
+            permission_dict = model_to_dict(section.permission)
         del permission_dict['section']
         section_dict['permission'] = permission_dict
         if self.has_set_permission(permission.set_policy, set_role, policy_level.is_gt_lv10()):
             policy_dict = model_to_dict(SectionService._section_policy_update(section, **kwargs))
         else:
-            policy_dict = model_to_dict(section.sectionpolicy)
+            policy_dict = model_to_dict(section.policy)
         del policy_dict['section']
         section_dict['policy'] = policy_dict
         return 200, section_dict
@@ -233,7 +233,7 @@ class SectionService(Service):
             section = Section.objects.get(id=delete_id)
             result['name'], result['status'] = section.nick, 'SUCCESS'
             set_role = self.is_manager(user_uuid=self.uuid, section=section)
-            permission = section.sectionpermission
+            permission = section.permission
             if force:
                 if self.has_set_permission(permission.delete_permission, set_role, delete_level.is_gt_lv10()):
                     section.delete()
@@ -255,7 +255,7 @@ class SectionService(Service):
         get_level, read_level = self.get_permission_level(PermissionName.SECTION_PERMISSION, False)
         set_role = self.is_manager(user_uuid=self.uuid, section=section)
         if section.status == Section.CANCEL:
-            cancel_visible = section.sectionpermission.cancel_visible
+            cancel_visible = section.permission.cancel_visible
             if SectionService.has_set_permission(permission=cancel_visible,
                                                  set_role=set_role):
                 return True, True
@@ -327,7 +327,7 @@ class SectionService(Service):
 
     @staticmethod
     def _section_permission_update(section, **kwargs):
-        section_permission = section.sectionpermission
+        section_permission = section.permission
         for key in kwargs:
             if key in SectionService.SECTION_PERMISSION_FIELD and kwargs[key]:
                 value = int(kwargs[key])
@@ -339,7 +339,7 @@ class SectionService(Service):
 
     @staticmethod
     def _section_policy_update(section, **kwargs):
-        section_policy = section.sectionpolicy
+        section_policy = section.policy
         for key in kwargs:
             if key in SectionService.SECTION_POLICY_FIELD and kwargs[key] is not None:
                 if kwargs[key] == 'true':

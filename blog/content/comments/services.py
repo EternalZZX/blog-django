@@ -137,7 +137,7 @@ class CommentService(Service):
         if comment.resource_section:
             set_role = SectionService.is_manager(user_uuid=self.uuid, section=comment.resource_section)
             edit_permission = SectionService.has_set_permission(
-                permission=comment.resource_section.sectionpermission.comment_edit,
+                permission=comment.resource_section.permission.comment_edit,
                 set_role=set_role)
         if is_self and update_level.is_gt_lv1() or update_level.is_gt_lv10() or edit_permission:
             if content is not None and content != comment.content:
@@ -152,7 +152,7 @@ class CommentService(Service):
             _, audit_level = self.get_permission_level(PermissionName.COMMENT_AUDIT, False)
             if comment.resource_section:
                 audit_permission = SectionService.has_set_permission(
-                    permission=comment.resource_section.sectionpermission.comment_audit,
+                    permission=comment.resource_section.permission.comment_audit,
                     set_role=set_role,
                     op=audit_level.is_gt_lv10())
             else:
@@ -211,7 +211,7 @@ class CommentService(Service):
                 return True
             if section:
                 set_role = SectionService.is_manager(user_uuid=self.uuid, section=section)
-                if SectionService.has_set_permission(permission=section.sectionpermission.comment_delete,
+                if SectionService.has_set_permission(permission=section.permission.comment_delete,
                                                      set_role=set_role):
                     return True
         elif comment.status == Comment.AUDIT or comment.status == Comment.FAILED:
@@ -220,12 +220,12 @@ class CommentService(Service):
                 return True
             if section:
                 set_role = SectionService.is_manager(user_uuid=self.uuid, section=section)
-                if SectionService.has_set_permission(permission=section.sectionpermission.comment_audit,
+                if SectionService.has_set_permission(permission=section.permission.comment_audit,
                                                      set_role=set_role):
                     return True
         elif section and comment.status == Comment.RECYCLED:
             set_role = SectionService.is_manager(user_uuid=self.uuid, section=section)
-            if SectionService.has_set_permission(permission=section.sectionpermission.comment_recycled,
+            if SectionService.has_set_permission(permission=section.permission.comment_recycled,
                                                  set_role=set_role):
                 return True
         return False
@@ -237,7 +237,7 @@ class CommentService(Service):
             return True
         if comment.resource_section:
             set_role = SectionService.is_manager(user_uuid=self.uuid, section=comment.resource_section)
-            if SectionService.has_set_permission(permission=comment.resource_section.sectionpermission.comment_delete,
+            if SectionService.has_set_permission(permission=comment.resource_section.permission.comment_delete,
                                                  set_role=set_role):
                 return True
         return False
@@ -249,7 +249,7 @@ class CommentService(Service):
             return True
         if comment.resource_section:
             set_role = SectionService.is_manager(user_uuid=self.uuid, section=comment.resource_section)
-            if SectionService.has_set_permission(permission=comment.resource_section.sectionpermission.comment_cancel,
+            if SectionService.has_set_permission(permission=comment.resource_section.permission.comment_cancel,
                                                  set_role=set_role):
                 return True
         return False
@@ -267,7 +267,7 @@ class CommentService(Service):
                 return status
             if section:
                 set_role = SectionService.is_manager(user_uuid=self.uuid, section=section)
-                if SectionService.has_set_permission(permission=section.sectionpermission.comment_audit,
+                if SectionService.has_set_permission(permission=section.permission.comment_audit,
                                                      set_role=set_role):
                     return status
             raise ServiceError(code=403, message=ContentErrorMsg.STATUS_PERMISSION_DENIED)
@@ -278,7 +278,7 @@ class CommentService(Service):
                     return status
                 if section:
                     set_role = SectionService.is_manager(user_uuid=self.uuid, section=section)
-                    if SectionService.has_set_permission(permission=section.sectionpermission.comment_cancel,
+                    if SectionService.has_set_permission(permission=section.permission.comment_cancel,
                                                          set_role=set_role):
                         return status
             raise ServiceError(code=403, message=ContentErrorMsg.STATUS_PERMISSION_DENIED)
@@ -303,7 +303,7 @@ class CommentService(Service):
             _, audit_level = self.get_permission_level(PermissionName.COMMENT_AUDIT, False)
             if audit_level.is_gt_lv10():
                 return status
-            if section and SectionService.has_set_permission(permission=section.sectionpermission.comment_audit,
+            if section and SectionService.has_set_permission(permission=section.permission.comment_audit,
                                                              set_role=set_role):
                 return status
             if is_self and is_content_change and status == Comment.ACTIVE:
@@ -313,12 +313,12 @@ class CommentService(Service):
             if Setting().COMMENT_CANCEL:
                 _, cancel_level = self.get_permission_level(PermissionName.COMMENT_CANCEL, False)
                 if cancel_level.is_gt_lv10() or is_self and cancel_level.is_gt_lv1() or section and \
-                        SectionService.has_set_permission(permission=section.sectionpermission.comment_cancel,
+                        SectionService.has_set_permission(permission=section.permission.comment_cancel,
                                                           set_role=set_role):
                     return status
         elif status == Comment.RECYCLED:
             if is_self or section and SectionService.has_set_permission(
-                    permission=section.sectionpermission.comment_recycled,
+                    permission=section.permission.comment_recycled,
                     set_role=set_role):
                 return status
         raise ServiceError(code=403, message=ContentErrorMsg.STATUS_PERMISSION_DENIED)
@@ -332,9 +332,9 @@ class CommentService(Service):
             return True
         if not comment.resource_section:
             return False
-        if SectionService.has_set_permission(permission=comment.resource_section.sectionpermission.comment_audit,
+        if SectionService.has_set_permission(permission=comment.resource_section.permission.comment_audit,
                                              set_role=set_role) or \
-                SectionService.has_set_permission(permission=comment.resource_section.sectionpermission.comment_cancel,
+                SectionService.has_set_permission(permission=comment.resource_section.permission.comment_cancel,
                                                   set_role=set_role):
             return True
         return False

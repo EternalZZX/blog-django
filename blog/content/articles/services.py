@@ -15,7 +15,7 @@ from blog.content.sections.services import SectionService
 from blog.content.articles.models import Article
 from blog.content.albums.models import Album
 from blog.content.photos.models import Photo
-from blog.common.base import Service
+from blog.common.base import Service, RedisClient
 from blog.common.error import ServiceError
 from blog.common.message import ErrorMsg, ContentErrorMsg
 from blog.common.utils import paging, model_to_dict, html_to_str
@@ -44,6 +44,8 @@ class ArticleService(Service):
         except Article.DoesNotExist:
             raise ServiceError(code=404,
                                message=ContentErrorMsg.ARTICLE_NOT_FOUND)
+        article.metadata.read_count = article.metadata.read_count + 1
+        article.metadata.save()
         return 200, article_dict
 
     def list(self, page=0, page_size=10, section_id=None, author_uuid=None,
@@ -165,7 +167,7 @@ class ArticleService(Service):
         is_content_change, is_edit = False, False
         set_role = SectionService.is_manager(user_uuid=self.uuid, section=article.section)
         edit_permission = SectionService.has_set_permission(
-            permission=article.section.sectionpermission.article_edit,
+            permission=article.section.permission.article_edit,
             set_role=set_role,
             op=update_level.is_gt_lv10())
         if is_self and update_level.is_gt_lv1() or edit_permission:
@@ -202,7 +204,7 @@ class ArticleService(Service):
         elif is_content_change:
             _, audit_level = self.get_permission_level(PermissionName.ARTICLE_AUDIT, False)
             audit_permission = SectionService.has_set_permission(
-                permission=article.section.sectionpermission.article_audit,
+                permission=article.section.permission.article_audit,
                 set_role=set_role,
                 op=audit_level.is_gt_lv10())
             if not audit_permission and \
@@ -261,7 +263,7 @@ class ArticleService(Service):
                 return True, True
             set_role = SectionService.is_manager(user_uuid=self.uuid, section=section)
             if SectionService.has_set_permission(
-                    permission=section.sectionpermission.article_audit,
+                    permission=section.permission.article_audit,
                     set_role=set_role):
                 return True, True
             return article.privacy != Article.PRIVATE, False
@@ -271,7 +273,7 @@ class ArticleService(Service):
                 return True, True
             set_role = SectionService.is_manager(user_uuid=self.uuid, section=section)
             if SectionService.has_set_permission(
-                    permission=section.sectionpermission.article_delete,
+                    permission=section.permission.article_delete,
                     set_role=set_role):
                 return True, True
         elif article.status == Article.AUDIT or article.status == Article.FAILED:
@@ -280,19 +282,19 @@ class ArticleService(Service):
                 return True, True
             set_role = SectionService.is_manager(user_uuid=self.uuid, section=section)
             if SectionService.has_set_permission(
-                    permission=section.sectionpermission.article_audit,
+                    permission=section.permission.article_audit,
                     set_role=set_role):
                 return True, True
         elif article.status == Article.DRAFT:
             set_role = SectionService.is_manager(user_uuid=self.uuid, section=section)
             if SectionService.has_set_permission(
-                    permission=section.sectionpermission.article_draft,
+                    permission=section.permission.article_draft,
                     set_role=set_role):
                 return True, True
         elif article.status == Article.RECYCLED:
             set_role = SectionService.is_manager(user_uuid=self.uuid, section=section)
             if SectionService.has_set_permission(
-                    permission=section.sectionpermission.article_recycled,
+                    permission=section.permission.article_recycled,
                     set_role=set_role):
                 return True, True
         return False, False
@@ -304,7 +306,7 @@ class ArticleService(Service):
             return True
         set_role = SectionService.is_manager(user_uuid=self.uuid, section=article.section)
         if SectionService.has_set_permission(
-                permission=article.section.sectionpermission.article_delete,
+                permission=article.section.permission.article_delete,
                 set_role=set_role):
             return True
         return False
@@ -316,7 +318,7 @@ class ArticleService(Service):
             return True
         set_role = SectionService.is_manager(user_uuid=self.uuid, section=article.section)
         if SectionService.has_set_permission(
-                permission=article.section.sectionpermission.article_cancel,
+                permission=article.section.permission.article_cancel,
                 set_role=set_role):
             return True
         return False
@@ -331,7 +333,7 @@ class ArticleService(Service):
                     raise ServiceError(code=400, message=ContentErrorMsg.SECTION_NOT_FOUND)
                 if not read_permission:
                     raise ServiceError(code=403, message=ContentErrorMsg.SECTION_PERMISSION_DENIED)
-                section_policy = section.sectionpolicy
+                section_policy = section.policy
                 if section_policy.article_mute:
                     raise ServiceError(code=403, message=ContentErrorMsg.SECTION_PERMISSION_DENIED)
                 if section_policy.max_articles is not None and \
@@ -361,7 +363,7 @@ class ArticleService(Service):
                 return Article.ACTIVE
             _, audit_level = self.get_permission_level(PermissionName.ARTICLE_AUDIT, False)
             set_role = SectionService.is_manager(user_uuid=self.uuid, section=section)
-            if SectionService.has_set_permission(permission=section.sectionpermission.article_audit,
+            if SectionService.has_set_permission(permission=section.permission.article_audit,
                                                  set_role=set_role,
                                                  op=audit_level.is_gt_lv10()):
                 return status
@@ -370,7 +372,7 @@ class ArticleService(Service):
             if section and Setting().ARTICLE_CANCEL:
                 _, cancel_level = self.get_permission_level(PermissionName.ARTICLE_CANCEL, False)
                 set_role = SectionService.is_manager(user_uuid=self.uuid, section=section)
-                if SectionService.has_set_permission(permission=section.sectionpermission.article_cancel,
+                if SectionService.has_set_permission(permission=section.permission.article_cancel,
                                                      set_role=set_role,
                                                      op=cancel_level.is_gt_lv10()):
                     return status
@@ -394,7 +396,7 @@ class ArticleService(Service):
             if is_content_change and status == Article.AUDIT:
                 return status
             _, audit_level = self.get_permission_level(PermissionName.ARTICLE_AUDIT, False)
-            if SectionService.has_set_permission(permission=section.sectionpermission.article_audit,
+            if SectionService.has_set_permission(permission=section.permission.article_audit,
                                                  set_role=set_role,
                                                  op=audit_level.is_gt_lv10()):
                 return status
@@ -405,17 +407,17 @@ class ArticleService(Service):
             if Setting().ARTICLE_CANCEL:
                 _, cancel_level = self.get_permission_level(PermissionName.ARTICLE_CANCEL, False)
                 if cancel_level.is_gt_lv10() or is_self and cancel_level.is_gt_lv1() or section and \
-                        SectionService.has_set_permission(permission=section.sectionpermission.article_cancel,
+                        SectionService.has_set_permission(permission=section.permission.article_cancel,
                                                           set_role=set_role):
                     return status
         elif status == Article.DRAFT:
             if is_self or section and SectionService.has_set_permission(
-                    permission=section.sectionpermission.article_draft,
+                    permission=section.permission.article_draft,
                     set_role=set_role):
                 return status
         elif status == Article.RECYCLED:
             if is_self or section and SectionService.has_set_permission(
-                    permission=section.sectionpermission.article_recycled,
+                    permission=section.permission.article_recycled,
                     set_role=set_role):
                 return status
         raise ServiceError(code=403, message=ContentErrorMsg.STATUS_PERMISSION_DENIED)
@@ -429,10 +431,10 @@ class ArticleService(Service):
             return True
         if not article.section:
             return False
-        if SectionService.has_set_permission(article.section.sectionpermission.comment_audit, set_role) or \
-                SectionService.has_set_permission(article.section.sectionpermission.comment_cancel, set_role) or \
-                SectionService.has_set_permission(article.section.sectionpermission.article_draft, set_role) or \
-                SectionService.has_set_permission(article.section.sectionpermission.article_recycled, set_role):
+        if SectionService.has_set_permission(article.section.permission.comment_audit, set_role) or \
+                SectionService.has_set_permission(article.section.permission.comment_cancel, set_role) or \
+                SectionService.has_set_permission(article.section.permission.article_draft, set_role) or \
+                SectionService.has_set_permission(article.section.permission.article_recycled, set_role):
             return True
         return False
 
@@ -454,6 +456,12 @@ class ArticleService(Service):
             if read_level > self_read_level and read_permission_level.is_lt_lv10():
                 read_level = self_read_level
         return read_level
+
+    def _add_read_count(self, article):
+        read_count = RedisClient().hash_get(name='ARTICLE_METADATA', key=article.uuid)
+        if not read_count:
+            read_count = article.metadata.read_count + 1
+        RedisClient().hash_set(name='ARTICLE_READ_COUNT', key=article.uuid, value=read_count)
 
     @staticmethod
     def _get_cover_url(user_id, cover_uuid):
@@ -481,3 +489,53 @@ class ArticleService(Service):
         for key in kwargs:
             article_dict[key] = kwargs[key]
         return article_dict
+
+
+class ArticleMetadataService(object):
+    class Metadata:
+        def __init__(self, *args):
+            self.read_count = int(args[0])
+            self.comment_count = int(args[1])
+            self.like_count = int(args[2])
+            self.dislike_count = int(args[3])
+            self.time_stamp = int(args[4])
+
+    def get_metadata(self, article):
+        value = RedisClient().hash_get(name='ARTICLE_METADATA', key=article.uuid)
+        if not value:
+            return self._get_sql_metadata(article=article)
+        value_list = value.split('&')
+        if len(value_list) != 5:
+            return self._get_sql_metadata(article=article)
+        return self.Metadata(*value_list)
+
+    def update_count(self, article, field, operate=1):
+        metadata = self.get_metadata(article=article)
+        count = getattr(metadata, field)
+        count = count + 1 if operate else count - 1
+        setattr(metadata, field, count)
+        self._set_redis_metadata(article=article, metadata=metadata)
+
+    def add_comment_count(self, article):
+        metadata = self.get_metadata(article=article)
+        metadata.comment_count = metadata.comment_count + 1
+        self._set_redis_metadata(article=article, metadata=metadata)
+
+    def _get_sql_metadata(self, article):
+        read_count = article.metadata.read_count
+        comment_count = article.metadata.comment_count
+        like_count = article.metadata.like_count
+        dislike_count = article.metadata.dislike_count
+        time_stamp = str(time.time()).split('.')[0]
+        metadata = self.Metadata([read_count, comment_count, like_count, dislike_count, time_stamp])
+        self._set_redis_metadata(article=article, metadata=metadata)
+        return metadata
+
+    @staticmethod
+    def _set_redis_metadata(article, metadata):
+        value = str(metadata.read_count) + '&' + \
+                str(metadata.comment_count) + '&' + \
+                str(metadata.like_count) + '&' + \
+                str(metadata.dislike_count) + '&' + \
+                str(metadata.time_stamp)
+        RedisClient().hash_set(name='ARTICLE_METADATA', key=article.uuid, value=value)
