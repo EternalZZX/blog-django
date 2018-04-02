@@ -77,8 +77,14 @@ def article_get(request, article_uuid):
         "data": "Article not found"
     }
     """
+    like_list_type = request.GET.get('like_list_type')
+    like_list_start = request.GET.get('like_list_start')
+    like_list_end = request.GET.get('like_list_end')
     try:
-        code, data = ArticleService(request).get(article_uuid=article_uuid)
+        code, data = ArticleService(request).get(article_uuid=article_uuid,
+                                                 like_list_type=like_list_type,
+                                                 like_list_start=like_list_start,
+                                                 like_list_end=like_list_end)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)

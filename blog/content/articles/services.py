@@ -23,29 +23,42 @@ from blog.common.setting import Setting, PermissionName
 
 
 class ArticleService(Service):
-    ARTICLE_PUBLIC_FIELD = ['id', 'uuid', 'title', 'keywords', 'cover',
-                            'overview', 'author', 'section', 'status',
-                            'privacy', 'read_level', 'like_count',
-                            'dislike_count', 'create_at', 'last_editor',
-                            'edit_at']
+    ARTICLE_ORDER_FIELD = ['id', 'title', 'overview', 'author', 'section',
+                           'status', 'privacy', 'read_level', 'create_at',
+                           'last_editor', 'edit_at', 'read_count',
+                           'comment_count', 'like_count', 'dislike_count']
+    METADATA_ORDER_FIELD = ['read_count', 'comment_count', 'like_count',
+                            'dislike_count']
 
     def __init__(self, request, instance=None):
         super(ArticleService, self).__init__(request=request, instance=instance)
         self.section_service = SectionService(request=request, instance=self)
 
-    def get(self, article_uuid):
+    def get(self, article_uuid, like_list_type=None, like_list_start=0, like_list_end=10):
         self.has_permission(PermissionName.ARTICLE_SELECT)
         try:
             article = Article.objects.get(uuid=article_uuid)
             get_permission, read_permission = self.has_get_permission(article=article)
             if not get_permission:
                 raise Article.DoesNotExist
-            article_dict = ArticleService._article_to_dict(article=article)
         except Article.DoesNotExist:
             raise ServiceError(code=404,
                                message=ContentErrorMsg.ARTICLE_NOT_FOUND)
-        article.metadata.read_count = article.metadata.read_count + 1
-        article.metadata.save()
+        if like_list_type is None:
+            metadata = ArticleMetadataService().update_count(
+                article=article, read_count=ArticleMetadataService.OPERATE_ADD)
+            article_dict = ArticleService._article_to_dict(article=article, metadata=metadata)
+        else:
+            metadata, like_user_ids, _ = ArticleMetadataService().get_like_list(article=article,
+                                                                                start=like_list_start,
+                                                                                end=like_list_end,
+                                                                                list_type=like_list_type)
+            like_users = []
+            for user_id in like_user_ids:
+                like_users.append(UserService.get_user_dict(user_id=user_id))
+            article_dict = ArticleService._article_to_dict(article=article,
+                                                           metadata=metadata,
+                                                           like_users=like_users)
         return 200, article_dict
 
     def list(self, page=0, page_size=10, section_id=None, author_uuid=None,
@@ -63,8 +76,10 @@ class ArticleService(Service):
             else:
                 articles = articles.filter(reduce(self._status_or, list(status)))
         if order_field:
-            if (order_level.is_gt_lv1() and order_field in ArticleService.ARTICLE_PUBLIC_FIELD) \
+            if (order_level.is_gt_lv1() and order_field in ArticleService.ARTICLE_ORDER_FIELD) \
                     or order_level.is_gt_lv10():
+                if order_field in ArticleService.METADATA_ORDER_FIELD:
+                    order_field = 'metadata__' + order_field
                 if order == 'desc':
                     order_field = '-' + order_field
                 articles = articles.order_by(order_field)
@@ -109,8 +124,10 @@ class ArticleService(Service):
         articles, total = paging(articles, page=page, page_size=page_size)
         article_dict_list = []
         for article in articles:
+            metadata = ArticleMetadataService().get_metadata(article=article)
             article_dict = ArticleService._article_to_dict(
                 article=article,
+                metadata=metadata,
                 read_permission=article_read_list[article.id])
             del article_dict['content']
             del article_dict['content_url']
@@ -151,16 +168,21 @@ class ArticleService(Service):
 
     def update(self, article_uuid, title, keywords=None, cover_uuid=None,
                overview=None, content=None, section_id=None, status=None,
-               privacy=None, read_level=None, like_count=None,
-               dislike_count=None):
-        update_level, _ = self.get_permission_level(PermissionName.ARTICLE_UPDATE)
+               privacy=None, read_level=None, like_operate=None):
+        update_level, like_level = self.get_permission_level(PermissionName.ARTICLE_UPDATE)
         try:
             article = Article.objects.get(uuid=article_uuid)
         except Article.DoesNotExist:
             raise ServiceError(code=404,
                                message=ContentErrorMsg.ARTICLE_NOT_FOUND)
-        if like_count or dislike_count:
+        metadata = None
+        if like_operate is not None:
+            if like_level.is_lt_lv1():
+                raise ServiceError(code=403, message=ErrorMsg.PERMISSION_DENIED)
             _, read_permission = self.has_get_permission(article=article)
+            metadata = ArticleMetadataService().update_count(article=article,
+                                                             field='like_count',
+                                                             operate=like_operate)
             # Todo article like list
             pass
         is_self = article.author_id == self.uid
@@ -213,7 +235,9 @@ class ArticleService(Service):
                  article.status == Article.FAILED):
                 article.status = status if Setting().ARTICLE_AUDIT else article.status
         article.save()
-        return 200, ArticleService._article_to_dict(article=article)
+        if not metadata:
+            metadata = ArticleMetadataService().get_metadata(article=article)
+        return 200, ArticleService._article_to_dict(article=article, metadata=metadata)
 
     def delete(self, delete_id, force):
         if force:
@@ -457,12 +481,6 @@ class ArticleService(Service):
                 read_level = self_read_level
         return read_level
 
-    def _add_read_count(self, article):
-        read_count = RedisClient().hash_get(name='ARTICLE_METADATA', key=article.uuid)
-        if not read_count:
-            read_count = article.metadata.read_count + 1
-        RedisClient().hash_set(name='ARTICLE_READ_COUNT', key=article.uuid, value=read_count)
-
     @staticmethod
     def _get_cover_url(user_id, cover_uuid):
         if not cover_uuid:
@@ -482,16 +500,40 @@ class ArticleService(Service):
             return None
 
     @staticmethod
-    def _article_to_dict(article, **kwargs):
+    def _article_to_dict(article, metadata=None, **kwargs):
         article_dict = model_to_dict(article)
         UserService.user_to_dict(article.author, article_dict, 'author')
         UserService.user_to_dict(article.last_editor, article_dict, 'last_editor')
+        if metadata:
+            article_dict['metadata'] = {}
+            article_dict['metadata']['read_count'] = metadata.read_count
+            article_dict['metadata']['comment_count'] = metadata.comment_count
+            article_dict['metadata']['like_count'] = metadata.like_count
+            article_dict['metadata']['dislike_count'] = metadata.dislike_count
         for key in kwargs:
             article_dict[key] = kwargs[key]
         return article_dict
 
 
 class ArticleMetadataService(object):
+    METADATA_KEY = 'ARTICLE_METADATA'
+    LIKE_LIST_KEY = 'ARTICLE_LIKE_LIST'
+    DISLIKE_LIST_KEY = 'ARTICLE_DISLIKE_LIST'
+
+    OPERATE_ADD = 1
+    OPERATE_MINUS = 0
+
+    OPERATE_LIKE = 1
+    OPERATE_DISLIKE = 0
+
+    LIKE_LIST = 1
+    DISLIKE_LIST = 2
+    ALL_LIST = 3
+
+
+    def __init__(self):
+        self.redis_client = RedisClient()
+
     class Metadata:
         def __init__(self, *args):
             self.read_count = int(args[0])
@@ -500,42 +542,151 @@ class ArticleMetadataService(object):
             self.dislike_count = int(args[3])
             self.time_stamp = int(args[4])
 
-    def get_metadata(self, article):
-        value = RedisClient().hash_get(name='ARTICLE_METADATA', key=article.uuid)
+    def get_metadata(self, article, update_stamp=True):
+        value = self.redis_client.hash_get(name=self.METADATA_KEY, key=article.uuid)
         if not value:
             return self._get_sql_metadata(article=article)
         value_list = value.split('&')
         if len(value_list) != 5:
             return self._get_sql_metadata(article=article)
-        return self.Metadata(*value_list)
+        metadata = self.Metadata(*value_list)
+        if update_stamp:
+            metadata.time_stamp = int(time.time())
+            self._set_redis_metadata(article=article, metadata=metadata)
+        return metadata
 
-    def update_count(self, article, field, operate=1):
-        metadata = self.get_metadata(article=article)
-        count = getattr(metadata, field)
-        count = count + 1 if operate else count - 1
-        setattr(metadata, field, count)
-        self._set_redis_metadata(article=article, metadata=metadata)
+    def get_like_list(self, article, start=0, end=-1, list_type=LIKE_LIST, update_stamp=True):
+        list_type = int(list_type)
+        like_users, dislike_users = None, None
+        metadata = self.get_metadata(article=article) if update_stamp else None
+        start = 0 if start is None else int(start)
+        end = -1 if end is None or int(end) == -1 else int(end) + 1
+        like_list_key, dislike_list_key = self._get_like_list_key(article.uuid)
+        if list_type in (self.LIKE_LIST, self.ALL_LIST):
+            like_users = self.redis_client.sorted_set_range(like_list_key, start, end)
+            if not like_users:
+                return self._get_sql_like_list(article=article)
+            like_users.remove('PLACEHOLDER')
+        if list_type in (self.LIKE_LIST, self.ALL_LIST):
+            dislike_users = self.redis_client.sorted_set_range(dislike_list_key, start, end)
+            if not dislike_users:
+                return self._get_sql_like_list(article=article)
+            dislike_users.remove('PLACEHOLDER')
+        if list_type == self.LIKE_LIST:
+            return metadata, like_users, None
+        elif list_type == self.DISLIKE_LIST:
+            return metadata, None, dislike_users
+        else:
+            return metadata, like_users, dislike_users
 
-    def add_comment_count(self, article):
-        metadata = self.get_metadata(article=article)
-        metadata.comment_count = metadata.comment_count + 1
+    def update_count(self, article, **kwargs):
+        metadata = self.get_metadata(article=article, update_stamp=False)
+        for field in kwargs:
+            count = getattr(metadata, field)
+            count = count + 1 if int(kwargs[field]) == self.OPERATE_ADD else count - 1
+            setattr(metadata, field, count)
+        metadata.time_stamp = int(time.time())
         self._set_redis_metadata(article=article, metadata=metadata)
+        return metadata
+
+    def update_like_list(self, article, user_uid, operate=OPERATE_LIKE):
+        like_list_key, dislike_list_key = self._get_like_list_key(article.uuid)
+        time_stamp = int(time.time())
+        operate_dict = {}
+        metadata, like_users, dislike_users = self.get_like_list(article=article,
+                                                                 list_type=self.ALL_LIST)
+        if int(operate) == self.OPERATE_LIKE:
+            if user_uid in dislike_users:
+                self.redis_client.sorted_set_delete(dislike_list_key, user_uid)
+                operate_dict['dislike_count'] = self.OPERATE_MINUS
+            self.redis_client.sorted_set_add(like_list_key, time_stamp, user_uid)
+            operate_dict['like_count'] = self.OPERATE_ADD
+        elif int(operate) == self.OPERATE_DISLIKE:
+            if user_uid in like_users:
+                self.redis_client.sorted_set_delete(like_list_key, user_uid)
+                operate_dict['like_count'] = self.OPERATE_MINUS
+            self.redis_client.sorted_set_add(dislike_list_key, time_stamp, user_uid)
+            operate_dict['dislike_count'] = self.OPERATE_ADD
+        self.update_count(article=article, **operate_dict)
+
+    def sync_metadata(self):
+        metadata_dict = self.redis_client.hash_all(name=self.METADATA_KEY)
+        for article_uuid, value in metadata_dict.items():
+            value_list = value.split('&')
+            if len(value_list) != 5:
+                self.redis_client.hash_delete(self.METADATA_KEY, article_uuid)
+                like_list_key, dislike_list_key = self._get_like_list_key(article_uuid)
+                self.redis_client.delete(like_list_key, dislike_list_key)
+                continue
+            metadata = self.Metadata(*value_list)
+            self._set_sql_metadata(article_uuid=article_uuid, metadata=metadata)
+
+    def _set_redis_metadata(self, article, metadata):
+        value = str(metadata.read_count) + '&' + \
+                str(metadata.comment_count) + '&' + \
+                str(metadata.like_count) + '&' + \
+                str(metadata.dislike_count) + '&' + \
+                str(metadata.time_stamp)
+        self.redis_client.hash_set(name=self.METADATA_KEY, key=article.uuid, value=value)
+
+    def _set_redis_like_list(self, article, like_users, dislike_users):
+        like_list_key, dislike_list_key = self._get_like_list_key(article.uuid)
+        time_stamp = int(time.time())
+        self.redis_client.delete(like_list_key, dislike_list_key)
+        self.redis_client.sorted_set_add(like_list_key, time_stamp, 'PLACEHOLDER')
+        self.redis_client.sorted_set_add(dislike_list_key, time_stamp, 'PLACEHOLDER')
+        for user_uid in like_users:
+            self.redis_client.sorted_set_add(like_list_key, time_stamp, user_uid)
+        for user_uid in dislike_users:
+            self.redis_client.sorted_set_add(dislike_list_key, time_stamp, user_uid)
 
     def _get_sql_metadata(self, article):
         read_count = article.metadata.read_count
         comment_count = article.metadata.comment_count
         like_count = article.metadata.like_count
         dislike_count = article.metadata.dislike_count
-        time_stamp = str(time.time()).split('.')[0]
-        metadata = self.Metadata([read_count, comment_count, like_count, dislike_count, time_stamp])
+        time_stamp = str(int(time.time()))
+        metadata = self.Metadata(read_count, comment_count, like_count, dislike_count, time_stamp)
         self._set_redis_metadata(article=article, metadata=metadata)
         return metadata
 
-    @staticmethod
-    def _set_redis_metadata(article, metadata):
-        value = str(metadata.read_count) + '&' + \
-                str(metadata.comment_count) + '&' + \
-                str(metadata.like_count) + '&' + \
-                str(metadata.dislike_count) + '&' + \
-                str(metadata.time_stamp)
-        RedisClient().hash_set(name='ARTICLE_METADATA', key=article.uuid, value=value)
+    def _get_sql_like_list(self, article):
+        like_users = article.metadata.like_users.all()
+        like_users = list(user.id for user in like_users)
+        dislike_users = article.metadata.dislike_users.all()
+        dislike_users = list(user.id for user in dislike_users)
+        self._set_redis_like_list(article=article,
+                                  like_users=like_users,
+                                  dislike_users=dislike_users)
+        return like_users, dislike_users
+
+    def _set_sql_metadata(self, article_uuid, metadata):
+        like_list_key, dislike_list_key = self._get_like_list_key(article_uuid)
+        try:
+            article = Article.objects.get(uuid=article_uuid)
+            article.metadata.read_count = metadata.read_count
+            article.metadata.comment_count = metadata.comment_count
+            article.metadata.like_count = metadata.like_count
+            article.metadata.dislike_count = metadata.dislike_count
+            if self.redis_client.exists(name=like_list_key):
+                _, like_users, dislike_users = self.get_like_list(article=article,
+                                                                  list_type=self.ALL_LIST,
+                                                                  update_stamp=False)
+                article.metadata.like_users.clear()
+                for user_uid in like_users:
+                    article.metadata.like_users.add(user_uid)
+                article.metadata.dislike_users.clear()
+                for user_uid in dislike_users:
+                    article.metadata.dislike_users.add(user_uid)
+            article.metadata.save()
+            if time.time() - metadata.time_stamp > Setting().HOT_EXPIRATION_TIME:
+                self.redis_client.hash_delete(self.METADATA_KEY, article_uuid)
+                self.redis_client.delete(like_list_key, dislike_list_key)
+        except Article.DoesNotExist:
+            self.redis_client.hash_delete(self.METADATA_KEY, article_uuid)
+            self.redis_client.delete(like_list_key, dislike_list_key)
+
+    def _get_like_list_key(self, article_uuid):
+        like_list_key = self.LIKE_LIST_KEY + '&' + article_uuid
+        dislike_list_key = self.DISLIKE_LIST_KEY + '&' + article_uuid
+        return like_list_key, dislike_list_key

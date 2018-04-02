@@ -39,8 +39,11 @@ class RedisClient(object):
     def get(self, name):
         return self.client.get(name)
 
-    def delete(self, name):
-        return self.client.delete(name)
+    def exists(self, name):
+        return self.client.exists(name)
+
+    def delete(self, *names):
+        return self.client.delete(*names)
 
     def set_add(self, name, *values):
         return self.client.sadd(name, *values)
@@ -68,6 +71,23 @@ class RedisClient(object):
 
     def hash_all(self, name):
         return self.client.hgetall(name)
+
+    def hash_keys(self, name):
+        return self.client.hkeys(name)
+
+    def sorted_set_add(self, name, *args, **kwargs):
+        return self.client.zadd(name, *args, **kwargs)
+
+    def sorted_set_range(self, name, start=0, end=-1, desc=True,
+                         withscores=False, score_cast_func=int):
+        return self.client.zrange(name, start, end, desc,
+                                  withscores, score_cast_func)
+
+    def sorted_set_count(self, name):
+        return self.client.zcard(name)
+
+    def sorted_set_delete(self, name, *values):
+        return self.client.zrem(name, *values)
 
 
 class MemcachedClient(object):
@@ -146,7 +166,7 @@ class Authorize(object):
     @staticmethod
     def _save_token(uuid, md5, time_stamp=None, user_id=None, role_id=None):
         if not time_stamp:
-            time_stamp = str(time.time()).split('.')[0]
+            time_stamp = str(int(time.time()))
         if not user_id or not role_id:
             try:
                 user = User.objects.get(uuid=uuid)

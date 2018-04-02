@@ -13,7 +13,7 @@ from blog.account.users.services import UserService
 from blog.content.comments.models import Comment
 from blog.content.sections.services import SectionService
 from blog.content.articles.models import Article
-from blog.content.articles.services import ArticleService
+from blog.content.articles.services import ArticleService, ArticleMetadataService
 from blog.content.albums.models import Album
 from blog.content.albums.services import AlbumService
 from blog.content.photos.models import Photo
@@ -118,6 +118,9 @@ class CommentService(Service):
                                          author_id=self.uid,
                                          status=status,
                                          last_editor_id=self.uid)
+        if resource_type == Comment.ARTICLE:
+            ArticleMetadataService().update_count(article=resource,
+                                                  comment_count=ArticleMetadataService.OPERATE_ADD)
         return 201, CommentService._comment_to_dict(comment=comment)
 
     def update(self, comment_uuid, content=None, status=None,

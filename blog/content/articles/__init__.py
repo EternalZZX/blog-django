@@ -67,10 +67,10 @@
 1. MAJOR LEVEL10
 - Article Get    可查看非公有文章
 - Article List   可查看非公有文章
-1. MINOR LEVEL2
+2. MINOR LEVEL2
 - Article Create 可创建文章为私有
 - Article Update 可修改文章为私有
-2. MINOR LEVEL1
+3. MINOR LEVEL1
 - Article Create 可创建文章为受保护
 - Article Update 可修改文章为受保护
 """
@@ -94,8 +94,10 @@
 文章编辑权限
 1. MAJOR LEVEL10
 - Article Update 可编辑所有文章
-1. MAJOR LEVEL1
+2. MAJOR LEVEL1
 - Article Update 可编辑自身文章
+3. MINOR LEVEL1
+- Article Update 可点赞文章
 """
 
 """
@@ -103,6 +105,6 @@
 文章删除权限
 1. MAJOR LEVEL10
 - Article Delete 可删除所有文章
-1. MAJOR LEVEL1
+2. MAJOR LEVEL1
 - Article Delete 可删除自身文章
 """

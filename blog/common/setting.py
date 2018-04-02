@@ -26,6 +26,7 @@ class Setting(StaticObject):
     PHOTO_LARGE_SIZE = 2560
     PHOTO_MIDDLE_SIZE = 800
     PHOTO_SMALL_SIZE = 200
+    HOT_EXPIRATION_TIME = 604800
 
     __instance = True
 
@@ -56,6 +57,7 @@ class Setting(StaticObject):
             cls.PHOTO_LARGE_SIZE = cls._format_value(settings.get(key=SettingKey.PHOTO_LARGE_SIZE).value, 'int')
             cls.PHOTO_MIDDLE_SIZE = cls._format_value(settings.get(key=SettingKey.PHOTO_MIDDLE_SIZE).value, 'int')
             cls.PHOTO_SMALL_SIZE = cls._format_value(settings.get(key=SettingKey.PHOTO_SMALL_SIZE).value, 'int')
+            cls.HOT_EXPIRATION_TIME = cls._format_value(settings.get(key=SettingKey.HOT_EXPIRATION_TIME).value, 'int')
         except ServerSetting.DoesNotExist:
             raise ServerError(code=503, message=ErrorMsg.SETTING_ERROR)
 
@@ -94,6 +96,7 @@ class SettingKey(StaticObject):
     PHOTO_LARGE_SIZE = 'photo_large_size'
     PHOTO_MIDDLE_SIZE = 'photo_middle_size'
     PHOTO_SMALL_SIZE = 'photo_small_size'
+    HOT_EXPIRATION_TIME = 'hot_expiration_time'
 
 
 class PermissionName(StaticObject):

@@ -315,9 +315,18 @@ class UserService(Service):
             return None
 
     @staticmethod
-    def user_to_dict(user, dict, field):
+    def get_user_dict(user_id):
+        user = User.objects.get(id=user_id)
         user_dict = model_to_dict(user)
-        dict[field] = {}
+        user_public_dict = {}
         for user_field in UserService.USER_PUBLIC_FIELD:
-            dict[field][user_field] = user_dict[user_field]
-        return dict
+            user_public_dict[user_field] = user_dict[user_field]
+        return user_public_dict
+
+    @staticmethod
+    def user_to_dict(user, dictionary, field):
+        user_dict = model_to_dict(user)
+        dictionary[field] = {}
+        for user_field in UserService.USER_PUBLIC_FIELD:
+            dictionary[field][user_field] = user_dict[user_field]
+        return dictionary
