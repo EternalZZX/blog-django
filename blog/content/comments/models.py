@@ -45,8 +45,6 @@ class Comment(models.Model):
     content = models.TextField(null=True)
     author = models.ForeignKey(to=User, related_name='comments_create')
     status = models.IntegerField(choices=STATUS_CHOICES, default=ACTIVE)
-    like_count = models.IntegerField(default=0)
-    dislike_count = models.IntegerField(default=0)
     create_at = models.DateTimeField(auto_now_add=True)
     last_editor = models.ForeignKey(to=User, related_name='comments_edit')
     edit_at = models.DateTimeField(default=timezone.now)

@@ -37,6 +37,9 @@ def album_get(request, album_uuid):
     @apiPermission ALBUM_SELECT
     @apiPermission ALBUM_PRIVACY
     @apiUse Header
+    @apiParam {number=1, 2, 3} [like_list_type] 查看点赞列表类型, Like=1, Dislike=2, All=3
+    @apiParam {number} [like_list_start=0] 查看点赞用户列表起始下标
+    @apiParam {number} [like_list_end=10] 查看点赞用户列表结束下标, -1时返回所有数据
     @apiSuccess {string} data 相册信息详情
     @apiSuccessExample {json} Success-Response:
     HTTP/1.1 200 OK
@@ -65,8 +68,14 @@ def album_get(request, album_uuid):
         "data": "Album not found"
     }
     """
+    like_list_type = request.GET.get('like_list_type')
+    like_list_start = request.GET.get('like_list_start')
+    like_list_end = request.GET.get('like_list_end')
     try:
-        code, data = AlbumService(request).get(album_uuid=album_uuid)
+        code, data = AlbumService(request).get(album_uuid=album_uuid,
+                                               like_list_type=like_list_type,
+                                               like_list_start=like_list_start,
+                                               like_list_end=like_list_end)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
@@ -224,6 +233,7 @@ def album_update(request, album_uuid):
     @apiParam {string} [author_uuid={self}] 作者UUID
     @apiParam {number=0, 1, 2} [privacy=1] 相册私有状态, Private=0, Public=1, Protected=2
     @apiParam {number=0, 1} [system] 系统相册类型, Avatar=0, AlbumCover=1, SectionCover=2, ArticleCover=3
+    @apiParam {number=0, 1} [like_operate] 相册点赞 Like=1, Dislike=0
     @apiSuccess {string} data 编辑相册信息详情
     @apiSuccessExample {json} Success-Response:
     HTTP/1.1 200 OK
@@ -259,6 +269,7 @@ def album_update(request, album_uuid):
     author_uuid = data.get('author_uuid')
     privacy = data.get('privacy')
     system = data.get('system')
+    like_operate = data.get('like_operate')
     try:
         code, data = AlbumService(request).update(album_uuid=album_uuid,
                                                   name=name,
@@ -266,7 +277,8 @@ def album_update(request, album_uuid):
                                                   cover_uuid=cover_uuid,
                                                   author_uuid=author_uuid,
                                                   privacy=privacy,
-                                                  system=system)
+                                                  system=system,
+                                                  like_operate=like_operate)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)

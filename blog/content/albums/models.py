@@ -1,6 +1,7 @@
 import uuid
 
 from django.db import models
+from django.dispatch import receiver
 
 from blog.common.tools import BaseModel
 from blog.account.users.models import User
@@ -42,3 +43,23 @@ class Album(models.Model, BaseModel):
 
     class Meta:
         db_table = 'album'
+
+
+class AlbumMetaData(models.Model):
+    album = models.OneToOneField(Album, primary_key=True,
+                                 related_name='metadata', on_delete=models.CASCADE)
+    read_count = models.IntegerField(default=0)
+    comment_count = models.IntegerField(default=0)
+    like_count = models.IntegerField(default=0)
+    dislike_count = models.IntegerField(default=0)
+    like_users = models.ManyToManyField(to=User, related_name='albums_like')
+    dislike_users = models.ManyToManyField(to=User, related_name='albums_dislike')
+
+    class Meta:
+        db_table = 'album_metadata'
+
+
+@receiver(models.signals.post_save, sender=Album, dispatch_uid='models.album_obj_create')
+def album_obj_create(sender, instance, created, **kwargs):
+    if created:
+        AlbumMetaData.objects.create(album=instance)
