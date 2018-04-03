@@ -9,6 +9,7 @@ from functools import reduce
 from django.db.models import Q
 from django.utils import timezone
 
+from blog.account.users.models import User
 from blog.account.users.services import UserService
 from blog.content.comments.models import Comment
 from blog.content.sections.services import SectionService
@@ -18,21 +19,23 @@ from blog.content.albums.models import Album
 from blog.content.albums.services import AlbumService
 from blog.content.photos.models import Photo
 from blog.content.photos.services import PhotoService
-from blog.common.base import Service
+from blog.common.base import Service, MetadataService
 from blog.common.error import ServiceError
 from blog.common.message import ErrorMsg, ContentErrorMsg
-from blog.common.utils import paging, model_to_dict
+from blog.common.utils import ignored, paging, model_to_dict
 from blog.common.setting import Setting, PermissionName
 
 
 class CommentService(Service):
-    COMMENT_PUBLIC_FIELD = ['id', 'uuid', 'resource_type', 'resource_uuid',
-                            'resource_author', 'resource_section', 'dialog_uuid',
-                            'reply_comment', 'content', 'author', 'status',
-                            'like_count', 'dislike_count', 'create_at',
-                            'last_editor', 'edit_at']
+    COMMENT_ORDER_FIELD = ['id', 'resource_type', 'resource_uuid', 'resource_author',
+                           'resource_section', 'dialog_uuid', 'reply_comment',
+                           'author', 'status', 'create_at', 'last_editor',
+                           'edit_at', 'read_count', 'comment_count', 'like_count',
+                           'dislike_count']
+    METADATA_ORDER_FIELD = ['read_count', 'comment_count', 'like_count',
+                            'dislike_count']
 
-    def get(self, comment_uuid):
+    def get(self, comment_uuid, like_list_type=None, like_list_start=0, like_list_end=10):
         self.has_permission(PermissionName.COMMENT_SELECT)
         try:
             comment = Comment.objects.get(uuid=comment_uuid)
@@ -40,7 +43,23 @@ class CommentService(Service):
                 raise Comment.DoesNotExist
         except Comment.DoesNotExist:
             raise ServiceError(code=404, message=ContentErrorMsg.COMMENT_NOT_FOUND)
-        return 200, CommentService._comment_to_dict(comment=comment)
+        if like_list_type is None:
+            metadata = CommentMetadataService().update_metadata_count(resource=comment,
+                                                                      read_count=CommentMetadataService.OPERATE_ADD)
+            is_like_user = CommentMetadataService().is_like_user(resource=comment, user_id=self.uid)
+            comment_dict = CommentService._comment_to_dict(comment=comment,
+                                                           metadata=metadata,
+                                                           is_like_user=is_like_user)
+        else:
+            like_level, _ = self.get_permission_level(PermissionName.COMMENT_LIKE)
+            if like_level.is_gt_lv10() or like_level.is_gt_lv1() and \
+                    int(like_list_type) == CommentMetadataService.LIKE_LIST:
+                metadata, like_user_dict = CommentMetadataService().get_metadata_dict(
+                    resource=comment, start=like_list_start, end=like_list_end, list_type=like_list_type)
+                comment_dict = CommentService._comment_to_dict(comment=comment, metadata=metadata, **like_user_dict)
+            else:
+                raise ServiceError(code=403, message=ErrorMsg.PERMISSION_DENIED)
+        return 200, comment_dict
 
     def list(self, page=0, page_size=10, resource_type=None, resource_uuid=None,
              resource_section_id=None, dialog_uuid=None, reply_uuid=None,
@@ -67,8 +86,10 @@ class CommentService(Service):
             else:
                 comments = comments.filter(reduce(self._status_or, list(status)))
         if order_field:
-            if (order_level.is_gt_lv1() and order_field in CommentService.COMMENT_PUBLIC_FIELD) \
+            if (order_level.is_gt_lv1() and order_field in CommentService.COMMENT_ORDER_FIELD) \
                     or order_level.is_gt_lv10():
+                if order_field in CommentService.METADATA_ORDER_FIELD:
+                    order_field = 'metadata__' + order_field
                 if order == 'desc':
                     order_field = '-' + order_field
                 comments = comments.order_by(order_field)
@@ -95,8 +116,12 @@ class CommentService(Service):
             if not self._has_get_permission(comment=comment):
                 comments = comments.exclude(id=comment.id)
         comments, total = paging(comments, page=page, page_size=page_size)
-        return 200, {'comments': [CommentService._comment_to_dict(comment=comment) for comment in comments],
-                     'total': total}
+        comment_dict_list = []
+        for comment in comments:
+            metadata = CommentMetadataService().get_metadata_count(resource=comment)
+            comment_dict = CommentService._comment_to_dict(comment=comment, metadata=metadata)
+            comment_dict_list.append(comment_dict)
+        return 200, {'comments': comment_dict_list, 'total': total}
 
     def create(self, resource_type, resource_uuid, reply_uuid=None,
                content=None, status=Comment.AUDIT):
@@ -119,21 +144,22 @@ class CommentService(Service):
                                          status=status,
                                          last_editor_id=self.uid)
         if resource_type == Comment.ARTICLE:
-            ArticleMetadataService().update_metadata_count(article=resource,
+            ArticleMetadataService().update_metadata_count(resource=resource,
+                                                           comment_count=ArticleMetadataService.OPERATE_ADD)
+        if reply_comment:
+            CommentMetadataService().update_metadata_count(resource=reply_comment,
                                                            comment_count=ArticleMetadataService.OPERATE_ADD)
         return 201, CommentService._comment_to_dict(comment=comment)
 
-    def update(self, comment_uuid, content=None, status=None,
-               like_count=None, dislike_count=None):
+    def update(self, comment_uuid, content=None, status=None, like_operate=None):
         update_level, _ = self.get_permission_level(PermissionName.COMMENT_UPDATE)
         try:
             comment = Comment.objects.get(uuid=comment_uuid)
         except Comment.DoesNotExist:
             raise ServiceError(code=404, message=ContentErrorMsg.COMMENT_NOT_FOUND)
-        if like_count or dislike_count:
-            self._has_get_permission(comment=comment)
-            # Todo comment like list
-            pass
+        if like_operate is not None:
+            metadata = self._update_like_list(comment=comment, operate=like_operate)
+            return 200, CommentService._comment_to_dict(comment=comment, metadata=metadata)
         is_self = comment.author_id == self.uid
         is_content_change = False
         edit_permission, set_role = False, None
@@ -166,7 +192,8 @@ class CommentService(Service):
                  comment.status == Comment.FAILED):
                 comment.status = status if Setting().COMMENT_AUDIT else comment.status
         comment.save()
-        return 200, CommentService._comment_to_dict(comment=comment)
+        metadata = CommentMetadataService().get_metadata_count(resource=comment)
+        return 200, CommentService._comment_to_dict(comment=comment, metadata=metadata)
 
     def delete(self, delete_id, force):
         if force:
@@ -384,13 +411,85 @@ class CommentService(Service):
                 raise ServiceError(code=404, message=ContentErrorMsg.COMMENT_NOT_FOUND)
         return dialog_uuid, reply_comment
 
+    def _update_like_list(self, comment, operate):
+        _, like_level = self.get_permission_level(PermissionName.COMMENT_LIKE)
+        if like_level.is_lt_lv1():
+            raise ServiceError(code=403, message=ErrorMsg.PERMISSION_DENIED)
+        _, read_permission = self._has_get_permission(comment=comment)
+        if not read_permission:
+            raise ServiceError(code=403, message=ErrorMsg.PERMISSION_DENIED)
+        return CommentMetadataService().update_like_list(resource=comment, user_id=self.uid, operate=operate)
+
     @staticmethod
-    def _comment_to_dict(comment, **kwargs):
+    def _comment_to_dict(comment, metadata=None, **kwargs):
         comment_dict = model_to_dict(comment)
         if comment.reply_comment:
             UserService.user_to_dict(comment.reply_comment.author, comment_dict, 'reply_user')
         UserService.user_to_dict(comment.author, comment_dict, 'author')
         UserService.user_to_dict(comment.last_editor, comment_dict, 'last_editor')
+        comment_dict['metadata'] = {}
+        comment_dict['metadata']['read_count'] = metadata.read_count if metadata else 0
+        comment_dict['metadata']['comment_count'] = metadata.comment_count if metadata else 0
+        comment_dict['metadata']['like_count'] = metadata.like_count if metadata else 0
+        comment_dict['metadata']['dislike_count'] = metadata.dislike_count if metadata else 0
         for key in kwargs:
             comment_dict[key] = kwargs[key]
         return comment_dict
+
+
+class CommentMetadataService(MetadataService):
+    METADATA_KEY = 'COMMENT_METADATA'
+    LIKE_LIST_KEY = 'COMMENT_LIKE_LIST'
+    DISLIKE_LIST_KEY = 'COMMENT_DISLIKE_LIST'
+
+    def get_metadata_dict(self, resource, start=0, end=-1, list_type=MetadataService.LIKE_LIST):
+        metadata, like_user_ids, dislike_user_ids = self.get_metadata(resource=resource,
+                                                                      start=start,
+                                                                      end=end,
+                                                                      list_type=list_type)
+        user_dict = {}
+        if like_user_ids is not None:
+            like_users = [UserService.get_user_dict(user_id=user_id) for user_id in like_user_ids]
+            user_dict['like_users'] = like_users
+        if dislike_user_ids is not None:
+            dislike_users = [UserService.get_user_dict(user_id=user_id) for user_id in dislike_user_ids]
+            user_dict['dislike_users'] = dislike_users
+        return metadata, user_dict
+
+    def sync_metadata(self):
+        metadata_dict = self.redis_client.hash_all(name=self.METADATA_KEY)
+        for resource_uuid, value in metadata_dict.items():
+            value_list = value.split('&')
+            if len(value_list) != 5:
+                self.redis_client.hash_delete(self.METADATA_KEY, resource_uuid)
+                like_list_key, dislike_list_key = self._get_like_list_key(resource_uuid)
+                self.redis_client.delete(like_list_key, dislike_list_key)
+                continue
+            metadata = self.Metadata(*value_list)
+            self._set_sql_metadata(resource_uuid=resource_uuid, metadata=metadata)
+
+    def _set_sql_metadata(self, resource_uuid, metadata):
+        like_list_key, dislike_list_key = self._get_like_list_key(resource_uuid)
+        try:
+            comment = Comment.objects.get(uuid=resource_uuid)
+            comment.metadata.read_count = metadata.read_count
+            comment.metadata.comment_count = metadata.comment_count
+            comment.metadata.like_count = metadata.like_count
+            comment.metadata.dislike_count = metadata.dislike_count
+            if self.redis_client.exists(name=like_list_key):
+                like_users, dislike_users = self._get_like_list(resource=comment, list_type=self.ALL_LIST)
+                comment.metadata.like_users.clear()
+                for user_uid in like_users:
+                    with ignored(User.DoesNotExist):
+                        comment.metadata.like_users.add(user_uid)
+                comment.metadata.dislike_users.clear()
+                for user_uid in dislike_users:
+                    with ignored(User.DoesNotExist):
+                        comment.metadata.dislike_users.add(user_uid)
+            comment.metadata.save()
+            if time.time() - metadata.time_stamp > Setting().HOT_EXPIRATION_TIME:
+                self.redis_client.hash_delete(self.METADATA_KEY, resource_uuid)
+                self.redis_client.delete(like_list_key, dislike_list_key)
+        except Comment.DoesNotExist:
+            self.redis_client.hash_delete(self.METADATA_KEY, resource_uuid)
+            self.redis_client.delete(like_list_key, dislike_list_key)

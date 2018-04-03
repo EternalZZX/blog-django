@@ -2,6 +2,7 @@ import uuid
 
 from django.utils import timezone
 from django.db import models
+from django.dispatch import receiver
 
 from blog.account.users.models import User
 from blog.content.sections.models import Section
@@ -52,3 +53,23 @@ class Comment(models.Model):
 
     class Meta:
         db_table = 'comment'
+
+
+class CommentMetaData(models.Model):
+    comment = models.OneToOneField(Comment, primary_key=True,
+                                   related_name='metadata', on_delete=models.CASCADE)
+    read_count = models.IntegerField(default=0)
+    comment_count = models.IntegerField(default=0)
+    like_count = models.IntegerField(default=0)
+    dislike_count = models.IntegerField(default=0)
+    like_users = models.ManyToManyField(to=User, related_name='comments_like')
+    dislike_users = models.ManyToManyField(to=User, related_name='comments_dislike')
+
+    class Meta:
+        db_table = 'comment_metadata'
+
+
+@receiver(models.signals.post_save, sender=Comment, dispatch_uid='models.comment_obj_create')
+def comment_obj_create(sender, instance, created, **kwargs):
+    if created:
+        CommentMetaData.objects.create(comment=instance)

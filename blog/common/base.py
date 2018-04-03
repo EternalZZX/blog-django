@@ -143,14 +143,14 @@ class Authorize(object):
             raise AuthError()
         uuid, user_id, role_id, md5_stamp, time_stamp = self._auth_token_md5(token=token)
         if Setting().TOKEN_EXPIRATION and time.time() - int(time_stamp) > Setting().TOKEN_EXPIRATION_TIME:
-            RedisClient().delete(name=uuid)
+            RedisClient().delete(uuid)
             raise AuthError(code=419, message=AccountErrorMsg.TOKEN_TIMEOUT)
         self._save_token(uuid=uuid, md5=md5_stamp, user_id=user_id, role_id=role_id)
         return uuid, user_id, role_id
 
     @staticmethod
     def cancel_token(uuid):
-        RedisClient().delete(name=uuid)
+        RedisClient().delete(uuid)
 
     def _auth_token_md5(self, token):
         uuid, md5 = self._parse_token(token=token)
@@ -401,3 +401,161 @@ class Service(object):
     @staticmethod
     def _status_or(a, b):
         return (a if isinstance(a, Q) else Q(status=int(a))) | Q(status=int(b))
+
+
+class MetadataService(object):
+    METADATA_KEY = 'RESOURCE_METADATA'
+    LIKE_LIST_KEY = 'RESOURCE_LIKE_LIST'
+    DISLIKE_LIST_KEY = 'RESOURCE_DISLIKE_LIST'
+
+    OPERATE_ADD = 1
+    OPERATE_MINUS = 0
+    OPERATE_LIKE = 1
+    OPERATE_DISLIKE = 0
+
+    LIKE_LIST = 1
+    DISLIKE_LIST = 2
+    ALL_LIST = 3
+
+    NONE_USER = 0
+    LIKE_USER = 1
+    DISLIKE_USER = 2
+
+    def __init__(self):
+        self.redis_client = RedisClient()
+
+    class Metadata:
+        def __init__(self, *args):
+            self.read_count = int(args[0])
+            self.comment_count = int(args[1])
+            self.like_count = int(args[2])
+            self.dislike_count = int(args[3])
+            self.time_stamp = int(args[4])
+
+    def get_metadata(self, resource, start=0, end=-1, list_type=LIKE_LIST):
+        metadata = self.get_metadata_count(resource=resource)
+        like_users, dislike_users = self._get_like_list(resource, start, end, list_type)
+        return metadata, like_users, dislike_users
+
+    def get_metadata_count(self, resource):
+        metadata = self._get_metadata_count(resource=resource)
+        metadata.time_stamp = int(time.time())
+        self._set_redis_metadata_count(resource=resource, metadata=metadata)
+        return metadata
+
+    def update_metadata_count(self, resource, **kwargs):
+        metadata = self._get_metadata_count(resource=resource)
+        for field in kwargs:
+            count = getattr(metadata, field)
+            count = count + 1 if int(kwargs[field]) == self.OPERATE_ADD else count - 1
+            setattr(metadata, field, count)
+        metadata.time_stamp = int(time.time())
+        self._set_redis_metadata_count(resource=resource, metadata=metadata)
+        return metadata
+
+    def update_like_list(self, resource, user_id, operate=OPERATE_LIKE):
+        user_id = str(user_id)
+        like_list_key, dislike_list_key = self._get_like_list_key(resource.uuid)
+        time_stamp = int(time.time())
+        operate_dict = {}
+        like_users, dislike_users = self._get_like_list(resource=resource, list_type=self.ALL_LIST)
+        if int(operate) == self.OPERATE_LIKE:
+            if user_id in dislike_users:
+                self.redis_client.sorted_set_delete(dislike_list_key, user_id)
+                operate_dict['dislike_count'] = self.OPERATE_MINUS
+            if user_id not in like_users:
+                self.redis_client.sorted_set_add(like_list_key, time_stamp, user_id)
+                operate_dict['like_count'] = self.OPERATE_ADD
+            else:
+                self.redis_client.sorted_set_delete(like_list_key, user_id)
+                operate_dict['like_count'] = self.OPERATE_MINUS
+        elif int(operate) == self.OPERATE_DISLIKE:
+            if user_id in like_users:
+                self.redis_client.sorted_set_delete(like_list_key, user_id)
+                operate_dict['like_count'] = self.OPERATE_MINUS
+            if user_id not in dislike_users:
+                self.redis_client.sorted_set_add(dislike_list_key, time_stamp, user_id)
+                operate_dict['dislike_count'] = self.OPERATE_ADD
+            else:
+                self.redis_client.sorted_set_delete(dislike_list_key, user_id)
+                operate_dict['dislike_count'] = self.OPERATE_MINUS
+        return self.update_metadata_count(resource=resource, **operate_dict)
+
+    def is_like_user(self, resource, user_id):
+        like_users, _ = self._get_like_list(resource=resource, list_type=self.LIKE_LIST)
+        if str(user_id) in like_users:
+            return self.LIKE_USER
+        _, dislike_users = self._get_like_list(resource=resource, list_type=self.DISLIKE_LIST)
+        if str(user_id) in dislike_users:
+            return self.DISLIKE_USER
+        return self.NONE_USER
+
+    def _get_metadata_count(self, resource):
+        value = self.redis_client.hash_get(name=self.METADATA_KEY, key=resource.uuid)
+        if not value:
+            return self._get_sql_metadata_count(resource=resource)
+        value_list = value.split('&')
+        if len(value_list) != 5:
+            return self._get_sql_metadata_count(resource=resource)
+        return self.Metadata(*value_list)
+
+    def _get_like_list(self, resource, start=0, end=-1, list_type=LIKE_LIST):
+        start = 0 if start is None else int(start)
+        end = -1 if end is None or int(end) == -1 else int(end) + 1
+        list_type, like_users, dislike_users = int(list_type), None, None
+        like_list_key, dislike_list_key = self._get_like_list_key(resource.uuid)
+        if list_type in (self.LIKE_LIST, self.ALL_LIST):
+            like_users = self.redis_client.sorted_set_range(like_list_key, start, end)
+            if not like_users:
+                return self._get_sql_like_list(resource=resource)
+            like_users.remove('PLACEHOLDER')
+        if list_type in (self.DISLIKE_LIST, self.ALL_LIST):
+            dislike_users = self.redis_client.sorted_set_range(dislike_list_key, start, end)
+            if not dislike_users:
+                return self._get_sql_like_list(resource=resource)
+            dislike_users.remove('PLACEHOLDER')
+        return like_users, dislike_users
+
+    def _set_redis_metadata_count(self, resource, metadata):
+        value = str(metadata.read_count) + '&' + \
+                str(metadata.comment_count) + '&' + \
+                str(metadata.like_count) + '&' + \
+                str(metadata.dislike_count) + '&' + \
+                str(metadata.time_stamp)
+        self.redis_client.hash_set(name=self.METADATA_KEY, key=resource.uuid, value=value)
+
+    def _set_redis_like_list(self, resource, like_users, dislike_users):
+        like_list_key, dislike_list_key = self._get_like_list_key(resource.uuid)
+        time_stamp = int(time.time())
+        self.redis_client.delete(like_list_key, dislike_list_key)
+        self.redis_client.sorted_set_add(like_list_key, time_stamp, 'PLACEHOLDER')
+        self.redis_client.sorted_set_add(dislike_list_key, time_stamp, 'PLACEHOLDER')
+        for user_uid in like_users:
+            self.redis_client.sorted_set_add(like_list_key, time_stamp, user_uid)
+        for user_uid in dislike_users:
+            self.redis_client.sorted_set_add(dislike_list_key, time_stamp, user_uid)
+
+    def _get_sql_metadata_count(self, resource):
+        read_count = resource.metadata.read_count
+        comment_count = resource.metadata.comment_count
+        like_count = resource.metadata.like_count
+        dislike_count = resource.metadata.dislike_count
+        time_stamp = str(int(time.time()))
+        metadata = self.Metadata(read_count, comment_count, like_count, dislike_count, time_stamp)
+        self._set_redis_metadata_count(resource=resource, metadata=metadata)
+        return metadata
+
+    def _get_sql_like_list(self, resource):
+        like_users = resource.metadata.like_users.all()
+        like_users = list(user.id for user in like_users)
+        dislike_users = resource.metadata.dislike_users.all()
+        dislike_users = list(user.id for user in dislike_users)
+        self._set_redis_like_list(resource=resource,
+                                  like_users=like_users,
+                                  dislike_users=dislike_users)
+        return like_users, dislike_users
+
+    def _get_like_list_key(self, resource_uuid):
+        like_list_key = self.LIKE_LIST_KEY + '&' + resource_uuid
+        dislike_list_key = self.DISLIKE_LIST_KEY + '&' + resource_uuid
+        return like_list_key, dislike_list_key

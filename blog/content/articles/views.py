@@ -41,6 +41,9 @@ def article_get(request, article_uuid):
     @apiPermission ARTICLE_CANCEL
     @apiPermission ARTICLE_AUDIT
     @apiUse Header
+    @apiParam {number=1, 2, 3} [like_list_type] 查看点赞列表类型, Like=1, Dislike=2, All=3
+    @apiParam {number} [like_list_start=0] 查看点赞用户列表起始下标
+    @apiParam {number} [like_list_end=10] 查看点赞用户列表结束下标, -1时返回所有数据
     @apiSuccess {string} data 文章信息详情
     @apiSuccessExample {json} Success-Response:
     HTTP/1.1 200 OK
@@ -308,8 +311,7 @@ def article_update(request, article_uuid):
                                                    Failed=4, Recycled=5
     @apiParam {number=0, 1, 2} [privacy=1] 文章私有状态, Private=0, Public=1, Protected=2
     @apiParam {number} [read_level=100] 文章需求阅读等级
-    @apiParam {number} [like_count=1] 文章点赞
-    @apiParam {number} [dislike_count=1] 文章取消点赞
+    @apiParam {number=0, 1} [like_operate] 文章点赞 Like=1, Dislike=0
     @apiSuccess {string} data 编辑文章信息详情
     @apiSuccessExample {json} Success-Response:
     HTTP/1.1 200 OK
@@ -365,8 +367,7 @@ def article_update(request, article_uuid):
     status = data.get('status')
     privacy = data.get('privacy')
     read_level = data.get('read_level')
-    like_count = data.get('like_count')
-    dislike_count = data.get('dislike_count')
+    like_operate = data.get('like_operate')
     try:
         if keywords is not None:
             keywords = str_to_list(keywords)
@@ -380,8 +381,7 @@ def article_update(request, article_uuid):
                                                     status=status,
                                                     privacy=privacy,
                                                     read_level=read_level,
-                                                    like_count=like_count,
-                                                    dislike_count=dislike_count)
+                                                    like_operate=like_operate)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)

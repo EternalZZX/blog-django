@@ -39,6 +39,9 @@ def comment_get(request, comment_uuid):
     @apiPermission COMMENT_CANCEL
     @apiPermission COMMENT_AUDIT
     @apiUse Header
+    @apiParam {number=1, 2, 3} [like_list_type] 查看点赞列表类型, Like=1, Dislike=2, All=3
+    @apiParam {number} [like_list_start=0] 查看点赞用户列表起始下标
+    @apiParam {number} [like_list_end=10] 查看点赞用户列表结束下标, -1时返回所有数据
     @apiSuccess {string} data 评论信息详情
     @apiSuccessExample {json} Success-Response:
     HTTP/1.1 200 OK
@@ -93,8 +96,14 @@ def comment_get(request, comment_uuid):
         "data": "Comment not found"
     }
     """
+    like_list_type = request.GET.get('like_list_type')
+    like_list_start = request.GET.get('like_list_start')
+    like_list_end = request.GET.get('like_list_end')
     try:
-        code, data = CommentService(request).get(comment_uuid=comment_uuid)
+        code, data = CommentService(request).get(comment_uuid=comment_uuid,
+                                                 like_list_type=like_list_type,
+                                                 like_list_start=like_list_start,
+                                                 like_list_end=like_list_end)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
@@ -314,8 +323,7 @@ def comment_update(request, comment_uuid):
     @apiParam {string} [content] 评论内容
     @apiParam {number=0, 1, 2, 3, 4} [status=1] 评论状态, Cancel=0, Active=1, Audit=2,
                                                 Failed=3, Recycled=4
-    @apiParam {number} [like_count=1] 评论点赞
-    @apiParam {number} [dislike_count=1] 评论取消点赞
+    @apiParam {number=0, 1} [like_operate] 评论点赞 Like=1, Dislike=0
     @apiSuccess {string} data 编辑评论信息详情
     @apiSuccessExample {json} Success-Response:
     HTTP/1.1 200 OK
@@ -373,14 +381,12 @@ def comment_update(request, comment_uuid):
     data = QueryDict(request.body)
     content = data.get('content')
     status = data.get('status')
-    like_count = data.get('like_count')
-    dislike_count = data.get('dislike_count')
+    like_operate = data.get('like_operate')
     try:
         code, data = CommentService(request).update(comment_uuid=comment_uuid,
                                                     content=content,
                                                     status=status,
-                                                    like_count=like_count,
-                                                    dislike_count=dislike_count)
+                                                    like_operate=like_operate)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
