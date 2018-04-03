@@ -132,6 +132,7 @@ class PermissionName(StaticObject):
     ARTICLE_CANCEL = 'article_cancel'
     ARTICLE_PRIVACY = 'article_privacy'
     ARTICLE_READ = 'article_read'
+    ARTICLE_LIKE = 'article_like'
 
     ALBUM_CREATE = 'album_create'
     ALBUM_DELETE = 'album_delete'
@@ -139,6 +140,7 @@ class PermissionName(StaticObject):
     ALBUM_SELECT = 'album_select'
     ALBUM_PRIVACY = 'album_privacy'
     ALBUM_SYSTEM = 'album_system'
+    ALBUM_LIKE = 'album_like'
 
     PHOTO_CREATE = 'photo_create'
     PHOTO_DELETE = 'photo_delete'
@@ -150,6 +152,7 @@ class PermissionName(StaticObject):
     PHOTO_PRIVACY = 'photo_privacy'
     PHOTO_READ = 'photo_read'
     PHOTO_LIMIT = 'photo_limit'
+    PHOTO_LIKE = 'photo_like'
 
     COMMENT_CREATE = 'comment_create'
     COMMENT_DELETE = 'comment_delete'
@@ -158,6 +161,7 @@ class PermissionName(StaticObject):
     COMMENT_PERMISSION = 'comment_permission'
     COMMENT_AUDIT = 'comment_audit'
     COMMENT_CANCEL = 'comment_cancel'
+    COMMENT_LIKE = 'comment_like'
 
 
 class PermissionLevel(StaticObject):

@@ -4,6 +4,7 @@
 import re
 
 from Crypto.Hash import MD5
+from contextlib import contextmanager
 
 from django.http import JsonResponse
 from django.core.paginator import Paginator, EmptyPage, InvalidPage, PageNotAnInteger
@@ -76,6 +77,14 @@ def json_response(fun):
         return JsonResponse({'data': data}, status=status_code)
     wrapper.__name__ = fun.__name__
     return wrapper
+
+
+@contextmanager
+def ignored(*exceptions):
+    try:
+        yield
+    except exceptions:
+        pass
 
 
 def paging(object_list, page=0, page_size=10):

@@ -96,8 +96,6 @@
 - Article Update 可编辑所有文章
 2. MAJOR LEVEL1
 - Article Update 可编辑自身文章
-3. MINOR LEVEL1
-- Article Update 可点赞文章
 """
 
 """
@@ -107,4 +105,15 @@
 - Article Delete 可删除所有文章
 2. MAJOR LEVEL1
 - Article Delete 可删除自身文章
+"""
+
+"""
+@apiDefine ARTICLE_LIKE
+文章点赞权限
+1. MAJOR LEVEL10
+- Article Get    可获取文章点赞踩用户列表
+2. MAJOR LEVEL1
+- Article Get    可获取文章点赞用户列表
+3. MINOR LEVEL1
+- Article Update 可点赞踩文章
 """

@@ -62,19 +62,30 @@
 """
 
 """
-@apiDefine ARTICLE_UPDATE
+@apiDefine COMMENT_UPDATE
 评论编辑权限
 1. MAJOR LEVEL10
 - Comment Update 可编辑所有评论
-1. MAJOR LEVEL1
+2. MAJOR LEVEL1
 - Comment Update 可编辑自身评论
 """
 
 """
-@apiDefine ARTICLE_DELETE
+@apiDefine COMMENT_DELETE
 评论删除权限
 1. MAJOR LEVEL10
 - Comment Delete 可删除所有评论
-1. MAJOR LEVEL1
+2. MAJOR LEVEL1
 - Comment Delete 可删除自身评论
+"""
+
+"""
+@apiDefine COMMENT_LIKE
+评论点赞权限
+1. MAJOR LEVEL10
+- Comment Get    可获取评论点赞踩用户列表
+2. MAJOR LEVEL1
+- Comment Get    可获取评论点赞用户列表
+3. MINOR LEVEL1
+- Comment Update 可点赞踩评论
 """

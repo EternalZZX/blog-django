@@ -79,10 +79,10 @@
 1. MAJOR LEVEL10
 - Photo Get    可查看非公有照片
 - Photo List   可查看非公有照片
-1. MINOR LEVEL2
+2. MINOR LEVEL2
 - Photo Create 可创建照片为私有
 - Photo Update 可修改照片为私有
-2. MINOR LEVEL1
+3. MINOR LEVEL1
 - Photo Create 可创建照片为受保护
 - Photo Update 可修改照片为受保护
 """
@@ -106,7 +106,7 @@
 照片编辑权限
 1. MAJOR LEVEL10
 - Photo Update 可编辑所有照片
-1. MAJOR LEVEL1
+2. MAJOR LEVEL1
 - Photo Update 可编辑自身照片
 """
 
@@ -115,6 +115,17 @@
 照片删除权限
 1. MAJOR LEVEL10
 - Photo Delete 可删除所有照片
-1. MAJOR LEVEL1
+2. MAJOR LEVEL1
 - Photo Delete 可删除自身照片
+"""
+
+"""
+@apiDefine PHOTO_LIKE
+照片点赞权限
+1. MAJOR LEVEL10
+- Photo Get    可获取照片点赞踩用户列表
+2. MAJOR LEVEL1
+- Photo Get    可获取照片点赞用户列表
+3. MINOR LEVEL1
+- Photo Update 可点赞踩照片
 """

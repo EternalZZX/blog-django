@@ -65,3 +65,14 @@
 - Album Create 可创建相册为系统相册
 - Album Update 可编辑相册为系统相册
 """
+
+"""
+@apiDefine ALBUM_LIKE
+相册点赞权限
+1. MAJOR LEVEL10
+- Album Get    可获取相册点赞踩用户列表
+2. MAJOR LEVEL1
+- Album Get    可获取相册点赞用户列表
+3. MINOR LEVEL1
+- Album Update 可点赞踩相册
+"""

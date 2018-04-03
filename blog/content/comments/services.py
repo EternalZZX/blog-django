@@ -119,8 +119,8 @@ class CommentService(Service):
                                          status=status,
                                          last_editor_id=self.uid)
         if resource_type == Comment.ARTICLE:
-            ArticleMetadataService().update_count(article=resource,
-                                                  comment_count=ArticleMetadataService.OPERATE_ADD)
+            ArticleMetadataService().update_metadata_count(article=resource,
+                                                           comment_count=ArticleMetadataService.OPERATE_ADD)
         return 201, CommentService._comment_to_dict(comment=comment)
 
     def update(self, comment_uuid, content=None, status=None,
