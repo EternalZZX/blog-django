@@ -15,9 +15,9 @@ from blog.content.sections.services import SectionService
 from blog.content.articles.models import Article
 from blog.content.articles.services import ArticleService, ArticleMetadataService
 from blog.content.albums.models import Album
-from blog.content.albums.services import AlbumService
+from blog.content.albums.services import AlbumService, AlbumMetadataService
 from blog.content.photos.models import Photo
-from blog.content.photos.services import PhotoService
+from blog.content.photos.services import PhotoService, PhotoMetadataService
 from blog.common.base import Service, MetadataService
 from blog.common.error import ServiceError
 from blog.common.message import ErrorMsg, ContentErrorMsg
@@ -122,8 +122,7 @@ class CommentService(Service):
             comment_dict_list.append(comment_dict)
         return 200, {'comments': comment_dict_list, 'total': total}
 
-    def create(self, resource_type, resource_uuid, reply_uuid=None,
-               content=None, status=Comment.AUDIT):
+    def create(self, resource_type, resource_uuid, reply_uuid=None, content=None, status=Comment.AUDIT):
         self.has_permission(PermissionName.COMMENT_CREATE)
         resource_type = CommentService.choices_format(resource_type, Comment.TYPE_CHOICES, None)
         resource, section = self._get_resource(resource_type, resource_uuid)
@@ -142,12 +141,7 @@ class CommentService(Service):
                                          author_id=self.uid,
                                          status=status,
                                          last_editor_id=self.uid)
-        if resource_type == Comment.ARTICLE:
-            ArticleMetadataService().update_metadata_count(resource=resource,
-                                                           comment_count=ArticleMetadataService.OPERATE_ADD)
-        if reply_comment:
-            CommentMetadataService().update_metadata_count(resource=reply_comment,
-                                                           comment_count=ArticleMetadataService.OPERATE_ADD)
+        self._update_comment_count(resource_type, status=status, resource=resource, reply_comment=reply_comment)
         return 201, CommentService._comment_to_dict(comment=comment)
 
     def update(self, comment_uuid, content=None, status=None, like_operate=None):
@@ -174,7 +168,8 @@ class CommentService(Service):
                 comment.edit_at = timezone.now()
         elif not self._has_status_permission(comment=comment, set_role=set_role):
             raise ServiceError(code=403, message=ErrorMsg.PERMISSION_DENIED)
-        if status and int(status) != comment.status:
+        status_old = comment.status
+        if status and int(status) != status_old:
             comment.status = self._get_update_status(status, comment, set_role, is_content_change)
         elif is_content_change:
             _, audit_level = self.get_permission_level(PermissionName.COMMENT_AUDIT, False)
@@ -191,6 +186,8 @@ class CommentService(Service):
                  comment.status == Comment.FAILED):
                 comment.status = status if Setting().COMMENT_AUDIT else comment.status
         comment.save()
+        self._update_comment_count(comment.resource_type, status=comment.status, status_old=status_old,
+                                   resource_uuid=comment.resource_uuid, reply_comment=comment.reply_comment)
         metadata = CommentMetadataService().get_metadata_count(resource=comment)
         return 200, CommentService._comment_to_dict(comment=comment, metadata=metadata)
 
@@ -203,6 +200,10 @@ class CommentService(Service):
         try:
             comment = Comment.objects.get(uuid=delete_id)
             result['name'], result['status'] = comment.content[:30] + '...', 'SUCCESS'
+            resource_type = comment.resource_type
+            resource_uuid = comment.resource_uuid
+            reply_comment = comment.reply_comment
+            status_old = comment.status
             if force:
                 if self._has_delete_permission(comment=comment):
                     comment.delete()
@@ -214,6 +215,8 @@ class CommentService(Service):
                     comment.save()
                 else:
                     raise ServiceError()
+            self._update_comment_count(resource_type, status_old=status_old,
+                                       resource_uuid=resource_uuid, reply_comment=reply_comment)
         except Comment.DoesNotExist:
             result['status'] = 'NOT_FOUND'
         except ServiceError:
@@ -418,6 +421,27 @@ class CommentService(Service):
         if not read_permission:
             raise ServiceError(code=403, message=ErrorMsg.PERMISSION_DENIED)
         return CommentMetadataService().update_like_list(resource=comment, user_id=self.uid, operate=operate)
+
+    def _update_comment_count(self, resource_type, status=None, status_old=None,
+                              resource_uuid=None, resource=None, reply_comment=None):
+        operate = None
+        if status != Comment.ACTIVE and status_old is None:
+            return
+        elif status == Comment.ACTIVE and status_old != Comment.ACTIVE:
+            operate = MetadataService.OPERATE_ADD
+        elif status != Comment.ACTIVE and status_old == Comment.ACTIVE:
+            operate = MetadataService.OPERATE_MINUS
+        if operate is not None:
+            if not resource:
+                resource, _ = self._get_resource(resource_type, resource_uuid)
+            if resource_type == Comment.ARTICLE:
+                ArticleMetadataService().update_metadata_count(resource, comment_count=operate)
+            elif resource_type == Comment.ALBUM:
+                AlbumMetadataService().update_metadata_count(resource, comment_count=operate)
+            elif resource_type == Comment.PHOTO:
+                PhotoMetadataService().update_metadata_count(resource, comment_count=operate)
+            if reply_comment:
+                CommentMetadataService().update_metadata_count(reply_comment, comment_count=operate)
 
     @staticmethod
     def _comment_to_dict(comment, metadata=None, **kwargs):
