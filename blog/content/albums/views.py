@@ -36,6 +36,7 @@ def album_get(request, album_uuid):
     @apiDescription 获取相册信息详情
     @apiPermission ALBUM_SELECT
     @apiPermission ALBUM_PRIVACY
+    @apiPermission ALBUM_LIKE
     @apiUse Header
     @apiParam {number=1, 2, 3} [like_list_type] 查看点赞列表类型, Like=1, Dislike=2, All=3
     @apiParam {number} [like_list_start=0] 查看点赞用户列表起始下标
@@ -226,6 +227,7 @@ def album_update(request, album_uuid):
     @apiDescription 编辑相册
     @apiPermission ALBUM_UPDATE
     @apiPermission ALBUM_PRIVACY
+    @apiPermission ALBUM_LIKE
     @apiUse Header
     @apiParam {string} name 相册名
     @apiParam {string} [description] 相册描述

@@ -40,6 +40,7 @@ def article_get(request, article_uuid):
     @apiPermission ARTICLE_READ
     @apiPermission ARTICLE_CANCEL
     @apiPermission ARTICLE_AUDIT
+    @apiPermission ARTICLE_LIKE
     @apiUse Header
     @apiParam {number=1, 2, 3} [like_list_type] 查看点赞列表类型, Like=1, Dislike=2, All=3
     @apiParam {number} [like_list_start=0] 查看点赞用户列表起始下标
@@ -300,6 +301,7 @@ def article_update(request, article_uuid):
     @apiPermission ARTICLE_READ
     @apiPermission ARTICLE_CANCEL
     @apiPermission ARTICLE_AUDIT
+    @apiPermission ARTICLE_LIKE
     @apiUse Header
     @apiParam {string} title 文章标题
     @apiParam {string} [keywords] 文章关键词，e.g.'keyword1;keyword2'

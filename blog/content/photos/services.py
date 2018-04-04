@@ -17,7 +17,7 @@ from blog.settings import MEDIA_ROOT, MEDIA_URL
 from blog.account.users.services import UserService
 from blog.content.albums.models import Album
 from blog.content.photos.models import Photo
-from blog.common.base import Service
+from blog.common.base import Service, MetadataService
 from blog.common.error import ServiceError
 from blog.common.message import ErrorMsg, ContentErrorMsg
 from blog.common.utils import paging, model_to_dict
@@ -25,10 +25,12 @@ from blog.common.setting import Setting, PermissionName
 
 
 class PhotoService(Service):
-    PHOTO_PUBLIC_FIELD = ['id', 'uuid', 'description', 'author', 'album',
-                          'status', 'privacy', 'read_level', 'like_count',
-                          'dislike_count', 'create_at', 'last_editor',
-                          'edit_at']
+    PHOTO_ORDER_FIELD = ['id', 'description', 'author', 'album',
+                         'status', 'privacy', 'read_level', 'create_at',
+                         'last_editor', 'edit_at', 'read_count',
+                         'comment_count', 'like_count', 'dislike_count']
+    METADATA_ORDER_FIELD = ['read_count', 'comment_count', 'like_count',
+                            'dislike_count']
 
     def show(self, url):
         self.has_permission(PermissionName.PHOTO_SELECT)
@@ -43,7 +45,7 @@ class PhotoService(Service):
             raise ServiceError(code=404, message=ContentErrorMsg.PHOTO_NOT_FOUND)
         return 200, image_data
 
-    def get(self, photo_uuid):
+    def get(self, photo_uuid, like_list_type=None, like_list_start=0, like_list_end=10):
         self.has_permission(PermissionName.PHOTO_SELECT)
         try:
             photo = Photo.objects.get(uuid=photo_uuid)
@@ -51,7 +53,23 @@ class PhotoService(Service):
                 raise Photo.DoesNotExist
         except Photo.DoesNotExist:
             raise ServiceError(code=404, message=ContentErrorMsg.PHOTO_NOT_FOUND)
-        return 200, PhotoService._photo_to_dict(photo=photo)
+        if like_list_type is None:
+            metadata = PhotoMetadataService().update_metadata_count(resource=photo,
+                                                                    read_count=PhotoMetadataService.OPERATE_ADD)
+            is_like_user = PhotoMetadataService().is_like_user(resource=photo, user_id=self.uid)
+            photo_dict = PhotoService._photo_to_dict(photo=photo,
+                                                     metadata=metadata,
+                                                     is_like_user=is_like_user)
+        else:
+            like_level, _ = self.get_permission_level(PermissionName.PHOTO_LIKE)
+            if like_level.is_gt_lv10() or like_level.is_gt_lv1() and \
+                    int(like_list_type) == PhotoMetadataService.LIKE_LIST:
+                metadata, like_user_dict = PhotoMetadataService().get_metadata_dict(
+                    resource=photo, start=like_list_start, end=like_list_end, list_type=like_list_type)
+                photo_dict = PhotoService._photo_to_dict(photo=photo, metadata=metadata, **like_user_dict)
+            else:
+                raise ServiceError(code=403, message=ErrorMsg.PERMISSION_DENIED)
+        return 200, photo_dict
 
     def list(self, page=0, page_size=10, album_uuid=None, album_system=None,
              author_uuid=None, status=None, order_field=None, order='desc',
@@ -70,8 +88,10 @@ class PhotoService(Service):
             else:
                 photos = photos.filter(reduce(self._status_or, list(status)))
         if order_field:
-            if (order_level.is_gt_lv1() and order_field in PhotoService.PHOTO_PUBLIC_FIELD) \
+            if (order_level.is_gt_lv1() and order_field in PhotoService.PHOTO_ORDER_FIELD) \
                     or order_level.is_gt_lv10():
+                if order_field in PhotoService.METADATA_ORDER_FIELD:
+                    order_field = 'metadata__' + order_field
                 if order == 'desc':
                     order_field = '-' + order_field
                 photos = photos.order_by(order_field)
@@ -102,8 +122,12 @@ class PhotoService(Service):
             if not self.has_get_permission(photo=photo):
                 photos = photos.exclude(id=photo.id)
         photos, total = paging(photos, page=page, page_size=page_size)
-        return 200, {'photos': [PhotoService._photo_to_dict(photo) for photo in photos],
-                     'total': total}
+        photo_dict_list = []
+        for photo in photos:
+            metadata = PhotoMetadataService().get_metadata_count(resource=photo)
+            photo_dict = PhotoService._photo_to_dict(photo=photo, metadata=metadata)
+            photo_dict_list.append(photo_dict)
+        return 200, {'photos': photo_dict_list, 'total': total}
 
     def create(self, image, description=None, album_uuid=None, status=Photo.AUDIT,
                privacy=Photo.PUBLIC, read_level=100, origin=False, untreated=False):
@@ -149,17 +173,15 @@ class PhotoService(Service):
         return 201, PhotoService._photo_to_dict(photo=photo)
 
     def update(self, photo_uuid, description=None, album_uuid=None,
-               status=None, privacy=None, read_level=None,
-               like_count=None, dislike_count=None):
+               status=None, privacy=None, read_level=None, like_operate=None):
         update_level, _ = self.get_permission_level(PermissionName.PHOTO_UPDATE)
         try:
             photo = Photo.objects.get(uuid=photo_uuid)
         except Photo.DoesNotExist:
             raise ServiceError(code=404, message=ContentErrorMsg.PHOTO_NOT_FOUND)
-        if like_count or dislike_count:
-            self.has_get_permission(photo=photo)
-            # Todo photo like list
-            pass
+        if like_operate is not None:
+            metadata = self._update_like_list(photo=photo, operate=like_operate)
+            return 200, PhotoService._photo_to_dict(photo=photo, metadata=metadata)
         is_self = photo.author_id == self.uid
         is_content_change, is_edit = False, False
         if is_self and update_level.is_gt_lv1() or update_level.is_gt_lv10():
@@ -333,6 +355,15 @@ class PhotoService(Service):
             return True
         return False
 
+    def _update_like_list(self, photo, operate):
+        _, like_level = self.get_permission_level(PermissionName.PHOTO_LIKE)
+        if like_level.is_lt_lv1():
+            raise ServiceError(code=403, message=ErrorMsg.PERMISSION_DENIED)
+        _, read_permission = self.has_get_permission(photo=photo)
+        if not read_permission:
+            raise ServiceError(code=403, message=ErrorMsg.PERMISSION_DENIED)
+        return PhotoMetadataService().update_like_list(resource=photo, user_id=self.uid, operate=operate)
+
     def _get_privacy(self, privacy=Photo.PUBLIC):
         _, privacy_level = self.get_permission_level(PermissionName.PHOTO_PRIVACY, False)
         privacy = PhotoService.choices_format(privacy, Photo.PRIVACY_CHOICES, Photo.PUBLIC)
@@ -374,10 +405,44 @@ class PhotoService(Service):
                                     content_type, stream.tell(), {})
 
     @staticmethod
-    def _photo_to_dict(photo, **kwargs):
+    def _photo_to_dict(photo, metadata=None, **kwargs):
         photo_dict = model_to_dict(photo)
         UserService.user_to_dict(photo.author, photo_dict, 'author')
         UserService.user_to_dict(photo.last_editor, photo_dict, 'last_editor')
+        photo_dict['metadata'] = {}
+        photo_dict['metadata']['read_count'] = metadata.read_count if metadata else 0
+        photo_dict['metadata']['comment_count'] = metadata.comment_count if metadata else 0
+        photo_dict['metadata']['like_count'] = metadata.like_count if metadata else 0
+        photo_dict['metadata']['dislike_count'] = metadata.dislike_count if metadata else 0
         for key in kwargs:
             photo_dict[key] = kwargs[key]
         return photo_dict
+
+
+class PhotoMetadataService(MetadataService):
+    METADATA_KEY = 'PHOTO_METADATA'
+    LIKE_LIST_KEY = 'PHOTO_LIKE_LIST'
+    DISLIKE_LIST_KEY = 'PHOTO_DISLIKE_LIST'
+
+    def get_metadata_dict(self, resource, start=0, end=-1, list_type=MetadataService.LIKE_LIST):
+        metadata, like_user_ids, dislike_user_ids = self.get_metadata(resource=resource,
+                                                                      start=start,
+                                                                      end=end,
+                                                                      list_type=list_type)
+        user_dict = {}
+        if like_user_ids is not None:
+            like_users = [UserService.get_user_dict(user_id=user_id) for user_id in like_user_ids]
+            user_dict['like_users'] = like_users
+        if dislike_user_ids is not None:
+            dislike_users = [UserService.get_user_dict(user_id=user_id) for user_id in dislike_user_ids]
+            user_dict['dislike_users'] = dislike_users
+        return metadata, user_dict
+
+    def _set_sql_metadata(self, resource_uuid, metadata):
+        like_list_key, dislike_list_key = self._get_like_list_key(resource_uuid)
+        try:
+            photo = Photo.objects.get(uuid=resource_uuid)
+            self._set_resource_sql_metadata(photo, metadata, like_list_key, dislike_list_key)
+        except Photo.DoesNotExist:
+            self.redis_client.hash_delete(self.METADATA_KEY, resource_uuid)
+            self.redis_client.delete(like_list_key, dislike_list_key)

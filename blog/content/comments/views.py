@@ -38,6 +38,7 @@ def comment_get(request, comment_uuid):
     @apiPermission COMMENT_PERMISSION
     @apiPermission COMMENT_CANCEL
     @apiPermission COMMENT_AUDIT
+    @apiPermission COMMENT_LIKE
     @apiUse Header
     @apiParam {number=1, 2, 3} [like_list_type] 查看点赞列表类型, Like=1, Dislike=2, All=3
     @apiParam {number} [like_list_start=0] 查看点赞用户列表起始下标
@@ -319,6 +320,7 @@ def comment_update(request, comment_uuid):
     @apiPermission COMMENT_UPDATE
     @apiPermission COMMENT_CANCEL
     @apiPermission COMMENT_AUDIT
+    @apiPermission COMMENT_LIKE
     @apiUse Header
     @apiParam {string} [content] 评论内容
     @apiParam {number=0, 1, 2, 3, 4} [status=1] 评论状态, Cancel=0, Active=1, Audit=2,

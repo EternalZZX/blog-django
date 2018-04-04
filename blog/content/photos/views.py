@@ -73,7 +73,11 @@ def photo_get(request, photo_uuid):
     @apiPermission PHOTO_READ
     @apiPermission PHOTO_CANCEL
     @apiPermission PHOTO_AUDIT
+    @apiPermission PHOTO_LIKE
     @apiUse Header
+    @apiParam {number=1, 2, 3} [like_list_type] 查看点赞列表类型, Like=1, Dislike=2, All=3
+    @apiParam {number} [like_list_start=0] 查看点赞用户列表起始下标
+    @apiParam {number} [like_list_end=10] 查看点赞用户列表结束下标, -1时返回所有数据
     @apiSuccess {string} data 照片信息详情
     @apiSuccessExample {json} Success-Response:
     HTTP/1.1 200 OK
@@ -110,8 +114,14 @@ def photo_get(request, photo_uuid):
         "data": "Photo not found"
     }
     """
+    like_list_type = request.GET.get('like_list_type')
+    like_list_start = request.GET.get('like_list_start')
+    like_list_end = request.GET.get('like_list_end')
     try:
-        code, data = PhotoService(request).get(photo_uuid=photo_uuid)
+        code, data = PhotoService(request).get(photo_uuid=photo_uuid,
+                                               like_list_type=like_list_type,
+                                               like_list_start=like_list_start,
+                                               like_list_end=like_list_end)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
@@ -305,6 +315,7 @@ def photo_update(request, photo_uuid):
     @apiPermission PHOTO_READ
     @apiPermission PHOTO_CANCEL
     @apiPermission PHOTO_AUDIT
+    @apiPermission PHOTO_LIKE
     @apiUse Header
     @apiParam {string} description 照片描述
     @apiParam {string} [album_uuid] 照片所属相册UUID
@@ -312,8 +323,7 @@ def photo_update(request, photo_uuid):
                                                    Failed=3, Recycled=4
     @apiParam {number=0, 1, 2} [privacy=1] 照片私有状态, Private=0, Public=1, Protected=2
     @apiParam {number} [read_level=100] 照片需求阅读等级
-    @apiParam {number} [like_count=1] 文章点赞
-    @apiParam {number} [dislike_count=1] 文章取消点赞
+    @apiParam {number=0, 1} [like_operate] 照片点赞 Like=1, Dislike=0
     @apiSuccess {string} data 编辑照片信息详情
     @apiSuccessExample {json} Success-Response:
     HTTP/1.1 200 OK
@@ -365,8 +375,7 @@ def photo_update(request, photo_uuid):
     status = data.get('status')
     privacy = data.get('privacy')
     read_level = data.get('read_level')
-    like_count = data.get('like_count')
-    dislike_count = data.get('dislike_count')
+    like_operate = data.get('like_operate')
     try:
         code, data = PhotoService(request).update(photo_uuid=photo_uuid,
                                                   description=description,
@@ -374,8 +383,7 @@ def photo_update(request, photo_uuid):
                                                   status=status,
                                                   privacy=privacy,
                                                   read_level=read_level,
-                                                  like_count=like_count,
-                                                  dislike_count=dislike_count)
+                                                  like_operate=like_operate)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)

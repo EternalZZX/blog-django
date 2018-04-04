@@ -9,6 +9,7 @@ import time
 import json
 
 from Crypto.Hash import MD5
+from abc import ABCMeta, abstractmethod
 
 from django.db.models import Q
 
@@ -17,6 +18,7 @@ from blog.account.roles.models import Role, RolePermission
 from blog.common.error import AuthError, ServiceError
 from blog.common.message import ErrorMsg, AccountErrorMsg
 from blog.common.setting import Setting, PermissionName, PermissionLevel, AuthType
+from blog.common.utils import ignored
 from blog.settings import REDIS_HOSTS, REDIS_PASSWORD, MEMCACHED_HOSTS
 
 
@@ -421,6 +423,8 @@ class MetadataService(object):
     LIKE_USER = 1
     DISLIKE_USER = 2
 
+    __metaclass__ = ABCMeta
+
     def __init__(self):
         self.redis_client = RedisClient()
 
@@ -480,6 +484,18 @@ class MetadataService(object):
                 self.redis_client.sorted_set_delete(dislike_list_key, user_id)
                 operate_dict['dislike_count'] = self.OPERATE_MINUS
         return self.update_metadata_count(resource=resource, **operate_dict)
+
+    def sync_metadata(self):
+        metadata_dict = self.redis_client.hash_all(name=self.METADATA_KEY)
+        for resource_uuid, value in metadata_dict.items():
+            value_list = value.split('&')
+            if len(value_list) != 5:
+                self.redis_client.hash_delete(self.METADATA_KEY, resource_uuid)
+                like_list_key, dislike_list_key = self._get_like_list_key(resource_uuid)
+                self.redis_client.delete(like_list_key, dislike_list_key)
+                continue
+            metadata = self.Metadata(*value_list)
+            self._set_sql_metadata(resource_uuid=resource_uuid, metadata=metadata)
 
     def is_like_user(self, resource, user_id):
         like_users, _ = self._get_like_list(resource=resource, list_type=self.LIKE_LIST)
@@ -554,6 +570,30 @@ class MetadataService(object):
                                   like_users=like_users,
                                   dislike_users=dislike_users)
         return like_users, dislike_users
+
+    @abstractmethod
+    def _set_sql_metadata(self, resource_uuid, metadata):
+        pass
+
+    def _set_resource_sql_metadata(self, resource, metadata, like_list_key, dislike_list_key):
+        resource.metadata.read_count = metadata.read_count
+        resource.metadata.comment_count = metadata.comment_count
+        resource.metadata.like_count = metadata.like_count
+        resource.metadata.dislike_count = metadata.dislike_count
+        if self.redis_client.exists(name=like_list_key):
+            like_users, dislike_users = self._get_like_list(resource=resource, list_type=self.ALL_LIST)
+            resource.metadata.like_users.clear()
+            for user_uid in like_users:
+                with ignored(User.DoesNotExist):
+                    resource.metadata.like_users.add(user_uid)
+            resource.metadata.dislike_users.clear()
+            for user_uid in dislike_users:
+                with ignored(User.DoesNotExist):
+                    resource.metadata.dislike_users.add(user_uid)
+        resource.metadata.save()
+        if time.time() - metadata.time_stamp > Setting().HOT_EXPIRATION_TIME:
+            self.redis_client.hash_delete(self.METADATA_KEY, resource.uuid)
+            self.redis_client.delete(like_list_key, dislike_list_key)
 
     def _get_like_list_key(self, resource_uuid):
         like_list_key = self.LIKE_LIST_KEY + '&' + resource_uuid

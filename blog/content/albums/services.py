@@ -13,7 +13,7 @@ from blog.content.photos.models import Photo
 from blog.common.base import Service, MetadataService
 from blog.common.error import ServiceError
 from blog.common.message import ErrorMsg, AccountErrorMsg, ContentErrorMsg
-from blog.common.utils import ignored, paging, model_to_dict
+from blog.common.utils import paging, model_to_dict
 from blog.common.setting import PermissionName, Setting
 
 
@@ -94,8 +94,8 @@ class AlbumService(Service):
         album_dict_list = []
         for album in albums:
             metadata = AlbumMetadataService().get_metadata_count(resource=album)
-            article_dict = AlbumService._album_to_dict(album=album, metadata=metadata)
-            album_dict_list.append(article_dict)
+            album_dict = AlbumService._album_to_dict(album=album, metadata=metadata)
+            album_dict_list.append(album_dict)
         return 200, {'albums': album_dict_list, 'total': total}
 
     def create(self, name, description=None, cover_uuid=None, author_uuid=None,
@@ -184,7 +184,7 @@ class AlbumService(Service):
         return get_level.is_gt_lv10()
 
     def _update_like_list(self, album, operate):
-        _, like_level = self.get_permission_level(PermissionName.ARTICLE_LIKE)
+        _, like_level = self.get_permission_level(PermissionName.ALBUM_LIKE)
         if like_level.is_lt_lv1():
             raise ServiceError(code=403, message=ErrorMsg.PERMISSION_DENIED)
         _, read_permission = self.has_get_permission(album=album)
@@ -247,40 +247,11 @@ class AlbumMetadataService(MetadataService):
             user_dict['dislike_users'] = dislike_users
         return metadata, user_dict
 
-    def sync_metadata(self):
-        metadata_dict = self.redis_client.hash_all(name=self.METADATA_KEY)
-        for resource_uuid, value in metadata_dict.items():
-            value_list = value.split('&')
-            if len(value_list) != 5:
-                self.redis_client.hash_delete(self.METADATA_KEY, resource_uuid)
-                like_list_key, dislike_list_key = self._get_like_list_key(resource_uuid)
-                self.redis_client.delete(like_list_key, dislike_list_key)
-                continue
-            metadata = self.Metadata(*value_list)
-            self._set_sql_metadata(resource_uuid=resource_uuid, metadata=metadata)
-
     def _set_sql_metadata(self, resource_uuid, metadata):
         like_list_key, dislike_list_key = self._get_like_list_key(resource_uuid)
         try:
             album = Album.objects.get(uuid=resource_uuid)
-            album.metadata.read_count = metadata.read_count
-            album.metadata.comment_count = metadata.comment_count
-            album.metadata.like_count = metadata.like_count
-            album.metadata.dislike_count = metadata.dislike_count
-            if self.redis_client.exists(name=like_list_key):
-                like_users, dislike_users = self._get_like_list(resource=album, list_type=self.ALL_LIST)
-                album.metadata.like_users.clear()
-                for user_uid in like_users:
-                    with ignored(User.DoesNotExist):
-                        album.metadata.like_users.add(user_uid)
-                album.metadata.dislike_users.clear()
-                for user_uid in dislike_users:
-                    with ignored(User.DoesNotExist):
-                        album.metadata.dislike_users.add(user_uid)
-            album.metadata.save()
-            if time.time() - metadata.time_stamp > Setting().HOT_EXPIRATION_TIME:
-                self.redis_client.hash_delete(self.METADATA_KEY, resource_uuid)
-                self.redis_client.delete(like_list_key, dislike_list_key)
+            self._set_resource_sql_metadata(album, metadata, like_list_key, dislike_list_key)
         except Album.DoesNotExist:
             self.redis_client.hash_delete(self.METADATA_KEY, resource_uuid)
             self.redis_client.delete(like_list_key, dislike_list_key)

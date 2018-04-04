@@ -49,14 +49,32 @@ class Photo(models.Model, BaseModel):
     status = models.IntegerField(choices=STATUS_CHOICES, default=ACTIVE)
     privacy = models.IntegerField(choices=PRIVACY_CHOICES, default=PUBLIC)
     read_level = models.IntegerField(default=100)
-    like_count = models.IntegerField(default=0)
-    dislike_count = models.IntegerField(default=0)
     create_at = models.DateTimeField(auto_now_add=True)
     last_editor = models.ForeignKey(to=User, related_name='photos_edit')
     edit_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
         db_table = 'photo'
+
+
+class PhotoMetaData(models.Model):
+    photo = models.OneToOneField(Photo, primary_key=True,
+                                 related_name='metadata', on_delete=models.CASCADE)
+    read_count = models.IntegerField(default=0)
+    comment_count = models.IntegerField(default=0)
+    like_count = models.IntegerField(default=0)
+    dislike_count = models.IntegerField(default=0)
+    like_users = models.ManyToManyField(to=User, related_name='photos_like')
+    dislike_users = models.ManyToManyField(to=User, related_name='photos_dislike')
+
+    class Meta:
+        db_table = 'photo_metadata'
+
+
+@receiver(models.signals.post_save, sender=Photo, dispatch_uid='models.photo_obj_create')
+def photo_obj_create(sender, instance, created, **kwargs):
+    if created:
+        PhotoMetaData.objects.create(photo=instance)
 
 
 @receiver(models.signals.pre_delete, sender=Photo)
