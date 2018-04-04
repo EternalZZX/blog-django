@@ -18,11 +18,11 @@ def auth(request):
     @apiVersion 0.1.0
     @apiName auth
     @apiGroup account
-    @apiDescription 获取/更新用户身份验证Token
+    @apiDescription 获取用户身份验证Token
     @apiPermission Guest
     @apiUse Header
-    @apiParam {string} [username] 用户名
-    @apiParam {string} [password] 密码
+    @apiParam {string} username 用户名
+    @apiParam {string} password 密码
     @apiSuccess {string} data 用户身份验证Token
     @apiSuccessExample {json} Success-Response:
     HTTP/1.1 200 OK
@@ -38,21 +38,14 @@ def auth(request):
     """
     username = request.POST.get('username')
     password = request.POST.get('password')
-    token = request.META.get('HTTP_AUTH_TOKEN')
-    code, data = 400, ErrorMsg.REQUEST_ERROR
     if username and password:
         try:
             user = User.objects.get(username=username)
-            if user.status == User.CANCEL \
-                    or encode(password, user.uuid) != user.password:
+            if user.status == User.CANCEL or encode(password, user.uuid) != user.password:
                 raise AuthError()
             code, data = 200, Authorize().gen_token(uuid=user.uuid)
         except (User.DoesNotExist, AuthError):
             code, data = 403, AccountErrorMsg.PASSWORD_ERROR
-    elif token:
-        try:
-            code, data = 200, Authorize().update_token(token=token)
-        except AuthError as e:
-            code, data = getattr(e, 'code', 400), \
-                         getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
+    else:
+        code, data = 400, ErrorMsg.REQUEST_ERROR
     return Response(code=code, data=data)

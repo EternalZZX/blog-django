@@ -8,6 +8,7 @@ from functools import reduce
 
 from django.db.models import Q
 from django.utils import timezone
+from django.core.files.base import ContentFile
 
 from blog.account.users.services import UserService
 from blog.content.sections.models import Section
@@ -18,7 +19,7 @@ from blog.content.photos.models import Photo
 from blog.common.base import Service, MetadataService
 from blog.common.error import ServiceError
 from blog.common.message import ErrorMsg, ContentErrorMsg
-from blog.common.utils import paging, model_to_dict, html_to_str
+from blog.common.utils import paging, model_to_dict, html_to_str, get_md5
 from blog.common.setting import Setting, PermissionName
 
 
@@ -122,16 +123,16 @@ class ArticleService(Service):
         article_dict_list = []
         for article in articles:
             metadata = ArticleMetadataService().get_metadata_count(resource=article)
-            article_dict = ArticleService._article_to_dict(article=article, metadata=metadata,
+            article_dict = ArticleService._article_to_dict(article=article,
+                                                           metadata=metadata,
+                                                           content=False,
                                                            read_permission=article_read_list[article.id])
-            del article_dict['content']
-            del article_dict['content_url']
             article_dict_list.append(article_dict)
         return 200, {'articles': article_dict_list, 'total': total}
 
     def create(self, title, keywords=None, cover_uuid=None, overview=None,
                content=None, section_id=None, status=Article.AUDIT,
-               privacy=Article.PUBLIC, read_level=100):
+               privacy=Article.PUBLIC, read_level=100, file_storage=False):
         self.has_permission(PermissionName.ARTICLE_CREATE)
         article_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, (title + self.uuid + str(time.time())).encode('utf-8')))
         keyword_str = ''
@@ -147,12 +148,17 @@ class ArticleService(Service):
         status = self._get_create_status(status=status, section=section)
         privacy = self._get_privacy(privacy=privacy)
         read_level = self._get_read_level(read_level=read_level)
+        content_file = None
+        if file_storage:
+            content_file = ContentFile(content, article_uuid + '.data')
+            content = None
         article = Article.objects.create(uuid=article_uuid,
                                          title=title,
                                          keywords=keyword_str,
                                          cover=cover,
                                          overview=overview,
                                          content=content,
+                                         content_file=content_file,
                                          author_id=self.uid,
                                          section=section,
                                          status=status,
@@ -192,10 +198,10 @@ class ArticleService(Service):
                     article.keywords, is_content_change = keyword_str, True
             if cover_uuid is not None:
                 article.cover = self._get_cover_url(user_id=self.uid, cover_uuid=cover_uuid)
-            if overview is not None and overview != article.overview:
+            if overview is not None and get_md5(overview) != get_md5(article.overview):
                 article.overview, is_content_change = overview, True
-            if content is not None and content != article.content:
-                article.content, is_content_change = content, True
+            if content is not None and self._update_content(article=article, content=content):
+                is_content_change = True
             if section_id is not None and int(section_id) != int(article.section_id):
                 section = self._get_section(section_id=section_id)
                 article.section, is_content_change = section, True
@@ -449,6 +455,22 @@ class ArticleService(Service):
             return True
         return False
 
+    @staticmethod
+    def _update_content(article, content):
+        if article.content_file:
+            content_old = article.content_file.read()
+            article.content_file.seek(0)
+            if get_md5(content_old) != get_md5(content):
+                with open(article.content_file.path, 'w') as content_file:
+                    content_file.write(content)
+                return True
+        else:
+            content_old = article.content
+            if get_md5(content_old) != get_md5(content):
+                article.content = content
+                return True
+        return False
+
     def _update_like_list(self, article, operate):
         _, like_level = self.get_permission_level(PermissionName.ARTICLE_LIKE)
         if like_level.is_lt_lv1():
@@ -496,8 +518,12 @@ class ArticleService(Service):
             return None
 
     @staticmethod
-    def _article_to_dict(article, metadata=None, **kwargs):
+    def _article_to_dict(article, metadata=None, content=True, **kwargs):
         article_dict = model_to_dict(article)
+        if not content:
+            del article_dict['content']
+        elif article.content_file:
+            article_dict['content'] = article.content_file.read()
         UserService.user_to_dict(article.author, article_dict, 'author')
         UserService.user_to_dict(article.last_editor, article_dict, 'last_editor')
         article_dict['metadata'] = {}

@@ -218,6 +218,7 @@ def article_create(request):
                                                    Failed=4, Recycled=5
     @apiParam {number=0, 1, 2} [privacy=1] 文章私有状态, Private=0, Public=1, Protected=2
     @apiParam {number} [read_level=100] 文章需求阅读等级
+    @apiParam {bool=true, false} [file_storage=false] 使用文件存储方式
     @apiSuccess {string} data 创建文章信息详情
     @apiSuccessExample {json} Success-Response:
     HTTP/1.1 200 OK
@@ -272,6 +273,7 @@ def article_create(request):
     status = request.POST.get('status')
     privacy = request.POST.get('privacy')
     read_level = request.POST.get('read_level')
+    file_storage = request.POST.get('file_storage') == 'true'
     try:
         keywords = str_to_list(keywords)
         code, data = ArticleService(request).create(title=title,
@@ -282,7 +284,8 @@ def article_create(request):
                                                     section_id=section_id,
                                                     status=status,
                                                     privacy=privacy,
-                                                    read_level=read_level)
+                                                    read_level=read_level,
+                                                    file_storage=file_storage)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)

@@ -8,7 +8,6 @@ import random
 import time
 import json
 
-from Crypto.Hash import MD5
 from abc import ABCMeta, abstractmethod
 
 from django.db.models import Q
@@ -18,7 +17,7 @@ from blog.account.roles.models import Role, RolePermission
 from blog.common.error import AuthError, ServiceError
 from blog.common.message import ErrorMsg, AccountErrorMsg
 from blog.common.setting import Setting, PermissionName, PermissionLevel, AuthType
-from blog.common.utils import ignored
+from blog.common.utils import ignored, get_md5
 from blog.settings import REDIS_HOSTS, REDIS_PASSWORD, MEMCACHED_HOSTS
 
 
@@ -114,17 +113,15 @@ class Authorize(object):
         if not Setting().SESSION_LIMIT and RedisClient().get(name=uuid):
             token = self.update_token(uuid=uuid)
         else:
-            rand = MD5.new()
-            rand.update(str(random.random()))
-            md5 = rand.hexdigest()
-            token = base64.b64encode('ETE' + md5 + base64.b64encode(uuid)).rstrip('=')
+            md5 = get_md5(str(random.random()))
+            token = base64.b64encode('ETE%s%s' % (md5, base64.b64encode(uuid))).rstrip('=')
             self._save_token(uuid=uuid, md5=md5)
         return token
 
     def update_token(self, token=None, uuid=None, role_id=None):
         if uuid and RedisClient().get(name=uuid):
             user_id, role_id_stamp, md5_stamp, time_stamp = self._parse_memcached_value(uuid=uuid)
-            token = base64.b64encode('ETE' + md5_stamp + base64.b64encode(uuid)).rstrip('=')
+            token = base64.b64encode('ETE%s%s' % (md5_stamp, base64.b64encode(uuid))).rstrip('=')
         elif token:
             uuid, user_id, role_id_stamp, md5_stamp, time_stamp = self._auth_token_md5(token=token)
         else:
@@ -178,7 +175,7 @@ class Authorize(object):
                 raise AuthError()
         if not user_id or not role_id:
             raise AuthError()
-        value = md5 + '&' + time_stamp + '&' + str(user_id) + '&' + str(role_id)
+        value = '%s&%s&%s&%s' % (md5, time_stamp, user_id, role_id)
         RedisClient().set(name=uuid, value=value, ex=Setting().TOKEN_EXPIRATION_TIME)
 
     @staticmethod
@@ -533,11 +530,9 @@ class MetadataService(object):
         return like_users, dislike_users
 
     def _set_redis_metadata_count(self, resource, metadata):
-        value = str(metadata.read_count) + '&' + \
-                str(metadata.comment_count) + '&' + \
-                str(metadata.like_count) + '&' + \
-                str(metadata.dislike_count) + '&' + \
-                str(metadata.time_stamp)
+        value = '%s&%s&%s&%s&%s' % (metadata.read_count, metadata.comment_count,
+                                    metadata.like_count, metadata.dislike_count,
+                                    metadata.time_stamp)
         self.redis_client.hash_set(name=self.METADATA_KEY, key=resource.uuid, value=value)
 
     def _set_redis_like_list(self, resource, like_users, dislike_users):
@@ -596,6 +591,6 @@ class MetadataService(object):
             self.redis_client.delete(like_list_key, dislike_list_key)
 
     def _get_like_list_key(self, resource_uuid):
-        like_list_key = self.LIKE_LIST_KEY + '&' + resource_uuid
-        dislike_list_key = self.DISLIKE_LIST_KEY + '&' + resource_uuid
+        like_list_key = '%s&%s' % (self.LIKE_LIST_KEY, resource_uuid)
+        dislike_list_key = '%s&%s' % (self.DISLIKE_LIST_KEY, resource_uuid)
         return like_list_key, dislike_list_key

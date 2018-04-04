@@ -4,7 +4,7 @@ from django.utils import timezone
 from django.db import models
 from django.dispatch import receiver
 
-from blog.common.tools import BaseModel
+from blog.common.tools import BaseModel, article_path
 from blog.account.users.models import User
 from blog.content.sections.models import Section
 
@@ -44,7 +44,7 @@ class Article(models.Model, BaseModel):
     cover = models.CharField(max_length=300, null=True)
     overview = models.CharField(max_length=1000)
     content = models.TextField(null=True)
-    content_url = models.CharField(null=True, max_length=1000)
+    content_file = models.FileField(upload_to=article_path, null=True)
     author = models.ForeignKey(to=User, related_name='articles_create')
     section = models.ForeignKey(Section, null=True, on_delete=models.SET_NULL)
     status = models.IntegerField(choices=STATUS_CHOICES, default=ACTIVE)
@@ -76,3 +76,8 @@ class ArticleMetaData(models.Model):
 def article_obj_create(sender, instance, created, **kwargs):
     if created:
         ArticleMetaData.objects.create(article=instance)
+
+
+@receiver(models.signals.pre_delete, sender=Article, dispatch_uid='models.article_obj_delete')
+def article_obj_delete(sender, instance, **kwargs):
+    instance.content_file.delete(save=False)

@@ -21,7 +21,7 @@ from blog.content.photos.services import PhotoService, PhotoMetadataService
 from blog.common.base import Service, MetadataService
 from blog.common.error import ServiceError
 from blog.common.message import ErrorMsg, ContentErrorMsg
-from blog.common.utils import paging, model_to_dict
+from blog.common.utils import paging, model_to_dict, get_md5
 from blog.common.setting import Setting, PermissionName
 
 
@@ -162,7 +162,7 @@ class CommentService(Service):
                 permission=comment.resource_section.permission.comment_edit,
                 set_role=set_role)
         if is_self and update_level.is_gt_lv1() or update_level.is_gt_lv10() or edit_permission:
-            if content is not None and content != comment.content:
+            if content is not None and get_md5(content) != get_md5(comment.content):
                 comment.content, is_content_change = content, True
                 comment.last_editor_id = self.uid
                 comment.edit_at = timezone.now()
@@ -424,24 +424,22 @@ class CommentService(Service):
 
     def _update_comment_count(self, resource_type, status=None, status_old=None,
                               resource_uuid=None, resource=None, reply_comment=None):
-        operate = None
-        if status != Comment.ACTIVE and status_old is None:
-            return
-        elif status == Comment.ACTIVE and status_old != Comment.ACTIVE:
+        if status == Comment.ACTIVE and status_old != Comment.ACTIVE:
             operate = MetadataService.OPERATE_ADD
         elif status != Comment.ACTIVE and status_old == Comment.ACTIVE:
             operate = MetadataService.OPERATE_MINUS
-        if operate is not None:
-            if not resource:
-                resource, _ = self._get_resource(resource_type, resource_uuid)
-            if resource_type == Comment.ARTICLE:
-                ArticleMetadataService().update_metadata_count(resource, comment_count=operate)
-            elif resource_type == Comment.ALBUM:
-                AlbumMetadataService().update_metadata_count(resource, comment_count=operate)
-            elif resource_type == Comment.PHOTO:
-                PhotoMetadataService().update_metadata_count(resource, comment_count=operate)
-            if reply_comment:
-                CommentMetadataService().update_metadata_count(reply_comment, comment_count=operate)
+        else:
+            return
+        if not resource:
+            resource, _ = self._get_resource(resource_type, resource_uuid)
+        if resource_type == Comment.ARTICLE:
+            ArticleMetadataService().update_metadata_count(resource, comment_count=operate)
+        elif resource_type == Comment.ALBUM:
+            AlbumMetadataService().update_metadata_count(resource, comment_count=operate)
+        elif resource_type == Comment.PHOTO:
+            PhotoMetadataService().update_metadata_count(resource, comment_count=operate)
+        if reply_comment:
+            CommentMetadataService().update_metadata_count(reply_comment, comment_count=operate)
 
     @staticmethod
     def _comment_to_dict(comment, metadata=None, **kwargs):

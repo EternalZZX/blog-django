@@ -389,8 +389,8 @@ class PhotoService(Service):
         pil_format = pil_image.format.lower()
         if pil_format not in ('jpeg', 'png', 'gif'):
             pil_format = 'jpeg'
-        content_type = 'image/' + pil_format
-        image_name = photo_uuid + '.' + pil_format
+        content_type = 'image/%s' % pil_format
+        image_name = '%s.%s' % (photo_uuid, pil_format)
         setting = Setting()
         if size == 'large':
             pil_image.thumbnail((setting.PHOTO_LARGE_SIZE, setting.PHOTO_LARGE_SIZE), Image.ANTIALIAS)

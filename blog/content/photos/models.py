@@ -77,7 +77,7 @@ def photo_obj_create(sender, instance, created, **kwargs):
         PhotoMetaData.objects.create(photo=instance)
 
 
-@receiver(models.signals.pre_delete, sender=Photo)
+@receiver(models.signals.pre_delete, sender=Photo, dispatch_uid='models.photo_obj_delete')
 def photo_obj_delete(sender, instance, **kwargs):
     instance.image_large.delete(save=False)
     instance.image_middle.delete(save=False)

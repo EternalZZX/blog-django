@@ -8,7 +8,7 @@ from contextlib import contextmanager
 
 from django.http import JsonResponse
 from django.core.paginator import Paginator, EmptyPage, InvalidPage, PageNotAnInteger
-from django.db.models.fields.files import ImageField
+from django.db.models.fields.files import ImageField, FileField
 from django.db.models.fields.related import ManyToManyField
 
 
@@ -118,7 +118,7 @@ def model_to_dict(instance, **kwargs):
             except ValueError:
                 url = None
             data[field.name] = url
-        else:
+        elif not isinstance(field, FileField):
             data[field.name] = field.value_from_object(instance)
     for key, value in kwargs.items():
         if key:
@@ -141,4 +141,10 @@ def encode(data, salt):
     md5 = MD5.new()
     md5.update(salt)
     md5.update(data + md5.hexdigest())
+    return md5.hexdigest()
+
+
+def get_md5(data):
+    md5 = MD5.new()
+    md5.update(data)
     return md5.hexdigest()

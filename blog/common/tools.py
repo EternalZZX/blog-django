@@ -25,6 +25,10 @@ class BaseModel(object):
                     pass
 
 
+def article_path(instance, filename):
+    return path_format(instance, filename, 'articles')
+
+
 def photo_large_path(instance, filename):
     return path_format(instance, filename, 'photos', size='large')
 
@@ -43,7 +47,7 @@ def photo_untreated_path(instance, filename):
 
 def path_format(instance, filename, prefix, size=None):
     try:
-        postfix = '.' + filename.split('.')[-1].lower()
+        postfix = '.%s' % filename.split('.')[-1].lower()
     except (IndexError, AttributeError):
         postfix = ''
     if prefix == 'photos':
