@@ -10,7 +10,7 @@ from blog.account.roles.models import Role
 from blog.content.albums.models import Album
 from blog.content.photos.models import Photo
 from blog.content.sections.models import Section, SectionPermission
-from blog.common.base import Service
+from blog.common.base import Service, RedisClient
 from blog.common.error import ServiceError
 from blog.common.message import ErrorMsg, AccountErrorMsg, ContentErrorMsg
 from blog.common.utils import paging, model_to_dict
@@ -192,10 +192,15 @@ class SectionService(Service):
                 section.owner_id = User.objects.get(uuid=owner_uuid).id
             except User.DoesNotExist:
                 raise ServiceError(message=AccountErrorMsg.USER_NOT_FOUND)
+        is_manager_update = False
         if moderator_uuids is not None and self.has_set_permission(permission.set_moderator, set_role, op):
             section.update_m2m_field(section.moderators, User, moderator_uuids, id_field='uuid')
+            is_manager_update = True
         if assistant_uuids is not None and self.has_set_permission(permission.set_assistant, set_role, op):
             section.update_m2m_field(section.assistants, User, assistant_uuids, id_field='uuid')
+            is_manager_update = True
+        if is_manager_update:
+            SectionMetadataService().update_manager(section=section)
         if status is not None:
             if status != Section.CANCEL and self.has_set_permission(permission.set_status, set_role, op):
                 section.status = SectionService.choices_format(status, Section.STATUS_CHOICES, Section.NORMAL)
@@ -236,6 +241,7 @@ class SectionService(Service):
             permission = section.permission
             if force:
                 if self.has_set_permission(permission.delete_permission, set_role, delete_level.is_gt_lv10()):
+                    SectionMetadataService().clear_manager(section=section)
                     section.delete()
                 else:
                     raise ServiceError()
@@ -294,17 +300,10 @@ class SectionService(Service):
 
     @staticmethod
     def is_manager(user_uuid, section):
-        # Todo save section manager to redis
-        is_owner = section.owner.uuid == user_uuid
-        is_moderator, is_assistant = True, True
-        try:
-            section.moderators.get(uuid=user_uuid)
-        except User.DoesNotExist:
-            is_moderator = False
-        try:
-            section.assistants.get(uuid=user_uuid)
-        except User.DoesNotExist:
-            is_assistant = False
+        manager = SectionMetadataService().get_manager(section=section)
+        is_owner = True if user_uuid == manager.owner_uuid else False
+        is_moderator = True if user_uuid in manager.moderator_uuids else False
+        is_assistant = True if user_uuid in manager.assistant_uuids else False
         return SectionService.SectionRole(is_owner, is_moderator, is_assistant)
 
     @staticmethod
@@ -365,3 +364,54 @@ class SectionService(Service):
         for key in kwargs:
             section_dict[key] = kwargs[key]
         return section_dict
+
+
+class SectionMetadataService(object):
+    OWNER_KEY = 'SECTION_OWNER'
+    MODERATOR_KEY = 'SECTION_MODERATOR'
+    ASSISTANT_KEY = 'SECTION_ASSISTANT'
+
+    class Manager:
+        def __init__(self, *args):
+            self.owner_uuid = args[0]
+            self.moderator_uuids = args[1]
+            self.assistant_uuids = args[2]
+
+    def __init__(self):
+        self.redis_client = RedisClient()
+
+    def get_manager(self, section):
+        owner_key, moderator_key, assistant_key = self._get_manager_key(section.id)
+        owner_uuid = self.redis_client.get(name=owner_key)
+        moderator_uuids = self.redis_client.set_all(name=moderator_key)
+        assistant_uuids = self.redis_client.set_all(name=assistant_key)
+        if not owner_uuid or not moderator_uuids or not assistant_uuids:
+            return self.update_manager(section=section)
+        return self.Manager(owner_uuid, moderator_uuids, assistant_uuids)
+
+    def update_manager(self, section):
+        owner_uuid = section.owner.uuid
+        moderators = section.moderators.all()
+        moderator_uuids = list(user.uuid for user in moderators)
+        assistants = section.assistants.all()
+        assistant_uuids = list(user.uuid for user in assistants)
+        manager = self.Manager(owner_uuid, moderator_uuids, assistant_uuids)
+        self._set_redis_manager(section=section, manager=manager)
+        return manager
+
+    def clear_manager(self, section):
+        owner_key, moderator_key, assistant_key = self._get_manager_key(section.id)
+        self.redis_client.delete(owner_key, moderator_key, assistant_key)
+
+    def _set_redis_manager(self, section, manager):
+        owner_key, moderator_key, assistant_key = self._get_manager_key(section.id)
+        self.redis_client.delete(moderator_key, assistant_key)
+        self.redis_client.set(name=owner_key, value=manager.owner_uuid)
+        self.redis_client.set_add(moderator_key, *manager.moderator_uuids)
+        self.redis_client.set_add(assistant_key, *manager.assistant_uuids)
+
+    def _get_manager_key(self, section_id):
+        owner_key = '%s&%s' % (self.OWNER_KEY, section_id)
+        moderator_key = '%s&%s' % (self.MODERATOR_KEY, section_id)
+        assistant_key = '%s&%s' % (self.ASSISTANT_KEY, section_id)
+        return owner_key, moderator_key, assistant_key
