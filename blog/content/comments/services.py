@@ -43,8 +43,9 @@ class CommentService(Service):
         except Comment.DoesNotExist:
             raise ServiceError(code=404, message=ContentErrorMsg.COMMENT_NOT_FOUND)
         if like_list_type is None:
-            metadata = CommentMetadataService().update_metadata_count(resource=comment,
-                                                                      read_count=CommentMetadataService.OPERATE_ADD)
+            operate_dict = {'read_count': CommentMetadataService.OPERATE_ADD} \
+                if comment.status == Comment.ACTIVE else {}
+            metadata = CommentMetadataService().update_metadata_count(resource=comment, **operate_dict)
             is_like_user = CommentMetadataService().is_like_user(resource=comment, user_id=self.uid)
             comment_dict = CommentService._comment_to_dict(comment=comment,
                                                            metadata=metadata,

@@ -45,8 +45,9 @@ class ArticleService(Service):
         except Article.DoesNotExist:
             raise ServiceError(code=404, message=ContentErrorMsg.ARTICLE_NOT_FOUND)
         if like_list_type is None:
-            metadata = ArticleMetadataService().update_metadata_count(resource=article,
-                                                                      read_count=ArticleMetadataService.OPERATE_ADD)
+            operate_dict = {'read_count': ArticleMetadataService.OPERATE_ADD} \
+                if article.status == Article.ACTIVE else {}
+            metadata = ArticleMetadataService().update_metadata_count(resource=article, **operate_dict)
             is_like_user = ArticleMetadataService().is_like_user(resource=article, user_id=self.uid)
             article_dict = ArticleService._article_to_dict(article=article,
                                                            metadata=metadata,

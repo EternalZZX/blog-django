@@ -54,8 +54,9 @@ class PhotoService(Service):
         except Photo.DoesNotExist:
             raise ServiceError(code=404, message=ContentErrorMsg.PHOTO_NOT_FOUND)
         if like_list_type is None:
-            metadata = PhotoMetadataService().update_metadata_count(resource=photo,
-                                                                    read_count=PhotoMetadataService.OPERATE_ADD)
+            operate_dict = {'read_count': PhotoMetadataService.OPERATE_ADD} \
+                if photo.status == Photo.ACTIVE else {}
+            metadata = PhotoMetadataService().update_metadata_count(resource=photo, **operate_dict)
             is_like_user = PhotoMetadataService().is_like_user(resource=photo, user_id=self.uid)
             photo_dict = PhotoService._photo_to_dict(photo=photo,
                                                      metadata=metadata,
