@@ -163,6 +163,12 @@ class PermissionName(StaticObject):
     COMMENT_CANCEL = 'comment_cancel'
     COMMENT_LIKE = 'comment_like'
 
+    MARK_CREATE = 'mark_create'
+    MARK_DELETE = 'mark_delete'
+    MARK_UPDATE = 'mark_update'
+    MARK_SELECT = 'mark_select'
+    MARK_PRIVACY = 'mark_privacy'
+
 
 class PermissionLevel(StaticObject):
     LEVEL_10 = 1000

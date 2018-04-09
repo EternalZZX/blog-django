@@ -375,6 +375,7 @@ class CommentService(Service):
     def _get_resource(self, resource_type, resource_uuid):
         try:
             section = None
+            resource_type = int(resource_type)
             if resource_type == Comment.ARTICLE:
                 resource = Article.objects.get(uuid=resource_uuid)
                 _, read_permission = ArticleService(request=self.request,
@@ -392,8 +393,7 @@ class CommentService(Service):
                 raise ServiceError(message=ErrorMsg.REQUEST_PARAMS_ERROR)
             if not read_permission:
                 raise ServiceError(code=404, message=ContentErrorMsg.RESOURCE_NOT_FOUND)
-        except (Article.DoesNotExist, Comment.DoesNotExist,
-                Album.DoesNotExist, Photo.DoesNotExist):
+        except (Article.DoesNotExist, Album.DoesNotExist, Photo.DoesNotExist):
             raise ServiceError(code=404, message=ContentErrorMsg.RESOURCE_NOT_FOUND)
         return resource, section
 

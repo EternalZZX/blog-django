@@ -4,20 +4,28 @@ from blog.account.users.models import User
 
 
 class Mark(models.Model):
+    PRIVATE = 0
+    PUBLIC = 1
+    PRIVACY_CHOICES = (
+        (PRIVATE, 'private'),
+        (PUBLIC, 'public')
+    )
+
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=200)
-    description = models.TextField()
-    user = models.ForeignKey(User)
-    color = models.CharField(max_length=10, null=False)
-    attached = models.IntegerField(default=0)
+    description = models.TextField(null=True)
+    author = models.ForeignKey(to=User, related_name='marks_create')
+    color = models.CharField(max_length=10, null=True)
+    attach_count = models.IntegerField(default=0)
+    privacy = models.IntegerField(choices=PRIVACY_CHOICES, default=PUBLIC)
     create_at = models.DateTimeField(auto_now_add=True)
 
-    def attach_mark(self, att_num=1):
-        self.attached += att_num
+    def attach_mark(self, count=1):
+        self.attach_count = self.attach_count + count
         self.save()
 
-    def detach_mark(self, det_num=1):
-        self.attached -= det_num
+    def detach_mark(self, count=1):
+        self.attach_count = self.attach_count - count
         self.save()
 
     class Meta:
@@ -25,10 +33,19 @@ class Mark(models.Model):
 
 
 class MarkResource(models.Model):
+    ARTICLE = 0
+    ALBUM = 1
+    PHOTO = 2
+    TYPE_CHOICES = (
+        (ARTICLE, 'article'),
+        (ALBUM, 'album'),
+        (PHOTO, 'photo')
+    )
+
     id = models.AutoField(primary_key=True)
-    mark = models.ForeignKey(Mark)
-    res_id = models.CharField(max_length=50, null=False)
-    res_type = models.CharField(max_length=30, null=False)
+    mark = models.ForeignKey(to=Mark, related_name='resources')
+    resource_type = models.IntegerField(choices=TYPE_CHOICES, default=ARTICLE)
+    resource_uuid = models.CharField(max_length=36)
 
     class Meta:
         db_table = 'mark_resource'

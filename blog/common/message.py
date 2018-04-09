@@ -53,6 +53,7 @@ class ContentErrorMsg:
     RESOURCE_NOT_FOUND = 'Resource not found'
     COMMENT_NOT_FOUND = 'Comment not found'
     COMMENT_REPLY_ERROR = 'Comment reply error'
+    MARK_NOT_FOUND = 'Mark not found'
 
     def __init__(self):
         pass
