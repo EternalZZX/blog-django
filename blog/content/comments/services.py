@@ -21,7 +21,7 @@ from blog.content.photos.services import PhotoService, PhotoMetadataService
 from blog.common.base import Service, MetadataService
 from blog.common.error import ServiceError
 from blog.common.message import ErrorMsg, ContentErrorMsg
-from blog.common.utils import paging, model_to_dict, get_md5
+from blog.common.utils import paging, str_to_list, model_to_dict, get_md5
 from blog.common.setting import Setting, PermissionName
 
 
@@ -97,7 +97,9 @@ class CommentService(Service):
                 raise ServiceError(code=400, message=ErrorMsg.ORDER_PARAMS_ERROR)
         if query:
             if query_field and query_level.is_gt_lv1():
-                if query_field == 'content':
+                if query_field == 'uuid':
+                    query_field = 'uuid'
+                elif query_field == 'content':
                     query_field = 'content__icontains'
                 elif query_field == 'author':
                     query_field = 'author__nick__icontains'
@@ -105,10 +107,14 @@ class CommentService(Service):
                     query_field = 'status'
                 elif query_level.is_lt_lv10():
                     raise ServiceError(code=403, message=ErrorMsg.QUERY_PERMISSION_DENIED)
-                query_dict = {query_field: query}
-                comments = comments.filter(**query_dict)
+                query_option = reduce(self._query_or, [{query_field: item} for item in str_to_list(query)])
+                if isinstance(query_option, dict):
+                    comments = comments.filter(**query_option)
+                else:
+                    comments = comments.filter(query_option)
             elif query_level.is_gt_lv2():
-                comments = comments.filter(Q(content__icontains=query) |
+                comments = comments.filter(Q(uuid=query) |
+                                           Q(content__icontains=query) |
                                            Q(author__nick__icontains=query))
             else:
                 raise ServiceError(code=403, message=ErrorMsg.QUERY_PERMISSION_DENIED)

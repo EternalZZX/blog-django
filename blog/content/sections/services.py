@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from functools import reduce
+
 from django.db.models import Q
 
 from blog.account.groups.models import Group
@@ -13,7 +15,7 @@ from blog.content.sections.models import Section, SectionPermission
 from blog.common.base import Service, RedisClient
 from blog.common.error import ServiceError
 from blog.common.message import ErrorMsg, AccountErrorMsg, ContentErrorMsg
-from blog.common.utils import paging, model_to_dict
+from blog.common.utils import paging, str_to_list, model_to_dict
 from blog.common.setting import PermissionName, Setting
 
 
@@ -77,7 +79,9 @@ class SectionService(Service):
                                    message=ErrorMsg.ORDER_PARAMS_ERROR)
         if query:
             if query_field and query_level.is_gt_lv1():
-                if query_field == 'name':
+                if query_field == 'id':
+                    query_field = 'id'
+                elif query_field == 'name':
                     query_field = 'name__icontains'
                 elif query_field == 'nick':
                     query_field = 'nick__icontains'
@@ -86,10 +90,14 @@ class SectionService(Service):
                 elif query_level.is_lt_lv10():
                     raise ServiceError(code=403,
                                        message=ErrorMsg.QUERY_PERMISSION_DENIED)
-                query_dict = {query_field: query}
-                sections = sections.filter(**query_dict)
+                query_option = reduce(self._query_or, [{query_field: item} for item in str_to_list(query)])
+                if isinstance(query_option, dict):
+                    sections = sections.filter(**query_option)
+                else:
+                    sections = sections.filter(query_option)
             elif query_level.is_gt_lv2():
-                sections = sections.filter(Q(name__icontains=query) |
+                sections = sections.filter(Q(id=query) |
+                                           Q(name__icontains=query) |
                                            Q(nick__icontains=query) |
                                            Q(description__icontains=query))
             else:

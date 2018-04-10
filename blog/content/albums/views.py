@@ -99,7 +99,7 @@ def album_list(request):
     @apiParam {string} [order_field] 相册信息列表排序字段
     @apiParam {string=desc, asc} [order="desc"] 相册信息列表排序方向
     @apiParam {string} [query] 搜索内容，若无搜索字段则全局搜索name, description, author
-    @apiParam {string=name, description, author, DjangoFilterParams} [query_field] 搜索字段, 支持Django filter参数
+    @apiParam {string=uuid, name, description, author, DjangoFilterParams} [query_field] 搜索字段, 支持Django filter参数
     @apiSuccess {String} total 相册信息列表总数
     @apiSuccess {String} albums 相册信息列表
     @apiSuccessExample {json} Success-Response:
@@ -296,7 +296,7 @@ def album_delete(request, album_uuid):
     @apiDescription 删除相册
     @apiPermission ALBUM_DELETE
     @apiUse Header
-    @apiParam {string} [id_list] 删除相册uuid列表，e.g.'11d9fc3a-051f-5271-b1e1-65c192b63105;',
+    @apiParam {string} [id_list] 删除相册uuid列表，e.g.'11d9fc3a-051f-5271-b1e1-65c192b63105,',
                                  当使用URL参数uuid时该参数忽略
     @apiSuccess {string} data 相册删除信息详情
     @apiSuccessExample {json} Success-Response:
@@ -325,7 +325,7 @@ def album_delete(request, album_uuid):
             id_list = data.get('id_list')
             if not isinstance(id_list, (unicode, str)):
                 raise ParamsError()
-            id_list = [{'delete_id': delete_id} for delete_id in id_list.split(';') if delete_id]
+            id_list = [{'delete_id': delete_id} for delete_id in id_list.split(',') if delete_id]
         code, data = 400, map(lambda params: AlbumService(request).delete(**params), id_list)
         for result in data:
             if result['status'] == 'SUCCESS':

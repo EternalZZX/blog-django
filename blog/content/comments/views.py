@@ -136,7 +136,7 @@ def comment_list(request):
     @apiParam {string} [order_field] 评论信息列表排序字段
     @apiParam {string=desc, asc} [order="desc"] 评论信息列表排序方向
     @apiParam {string} [query] 搜索内容，若无搜索字段则全局搜索content, author
-    @apiParam {string=content, author, status, DjangoFilterParams} [query_field] 搜索字段, 支持Django filter参数
+    @apiParam {string=uuid, content, author, status, DjangoFilterParams} [query_field] 搜索字段, 支持Django filter参数
     @apiSuccess {String} total 评论信息列表总数
     @apiSuccess {String} comments 评论信息列表
     @apiSuccessExample {json} Success-Response:
@@ -405,7 +405,7 @@ def comment_delete(request, comment_uuid):
     @apiPermission COMMENT_DELETE
     @apiPermission COMMENT_CANCEL
     @apiUse Header
-    @apiParam {string} [id_list] 删除评论uuid列表，e.g.'11d9fc3a-051f-5271-b1e1-65c192b63105;',
+    @apiParam {string} [id_list] 删除评论uuid列表，e.g.'11d9fc3a-051f-5271-b1e1-65c192b63105,',
                                  当使用URL参数uuid时该参数忽略
     @apiParam {bool=true, false} [force=false] 强制删除
     @apiSuccess {string} data 评论删除信息详情
@@ -436,7 +436,7 @@ def comment_delete(request, comment_uuid):
             id_list = data.get('id_list')
             if not isinstance(id_list, (unicode, str)):
                 raise ParamsError()
-            id_list = [{'delete_id': delete_id, 'force': force} for delete_id in id_list.split(';') if delete_id]
+            id_list = [{'delete_id': delete_id, 'force': force} for delete_id in id_list.split(',') if delete_id]
         code, data = 400, map(lambda params: CommentService(request).delete(**params), id_list)
         for result in data:
             if result['status'] == 'SUCCESS':

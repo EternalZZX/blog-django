@@ -111,7 +111,7 @@ def section_list(request):
     @apiParam {string} [order_field] 版块信息列表排序字段
     @apiParam {string=desc, asc} [order="desc"] 版块信息列表排序方向
     @apiParam {string} [query] 搜索内容，若无搜索字段则全局搜索name, nick, description
-    @apiParam {string=name, nick, description, DjangoFilterParams} [query_field] 搜索字段, 支持Django filter参数
+    @apiParam {string=id, name, nick, description, DjangoFilterParams} [query_field] 搜索字段, 支持Django filter参数
     @apiSuccess {String} total 版块信息列表总数
     @apiSuccess {String} sections 版块信息列表
     @apiSuccessExample {json} Success-Response:
@@ -200,9 +200,9 @@ def section_create(request):
     @apiParam {number=0, 1, 2} [status=2] 版块状态, Cancel=0, Normal=1, Hide=2
     @apiParam {number} [read_level=0] 版块需求等级
     @apiParam {only_roles=true, false} [default=false] 是否指定角色拥有阅读权限
-    @apiParam {string} [role_ids] 角色ID列表，e.g.'1;2'
+    @apiParam {string} [role_ids] 角色ID列表，e.g.'1,2'
     @apiParam {only_groups=true, false} [default=false] 是否指定组拥有阅读权限
-    @apiParam {string} [group_ids] 用户组ID列表，e.g.'2;9;32;43'
+    @apiParam {string} [group_ids] 用户组ID列表，e.g.'2,9,32,43'
     @apiParam {number=0, 1, 2, 3} [kwargs] 权限设置, Owner=0, Moderator=1, Manager=2, All=3,
                                            参数名'set_permission', 'delete_permission', 'set_owner',
                                            'set_name', 'set_nick', 'set_description', 'set_cover',
@@ -359,9 +359,9 @@ def section_update(request, section_id):
     @apiParam {number=0, 1, 2} [status=2] 版块状态, Cancel=0, Normal=1, Hide=2
     @apiParam {number} [read_level=0] 版块需求等级
     @apiParam {only_roles=true, false} [default=false] 是否指定角色拥有阅读权限
-    @apiParam {string} [role_ids] 角色ID列表，e.g.'1;2'
+    @apiParam {string} [role_ids] 角色ID列表，e.g.'1,2'
     @apiParam {only_groups=true, false} [default=false] 是否指定组拥有阅读权限
-    @apiParam {string} [group_ids] 用户组ID列表，e.g.'2;9;32;43'
+    @apiParam {string} [group_ids] 用户组ID列表，e.g.'2,9,32,43'
     @apiParam {number=0, 1, 2, 3} [kwargs] 权限设置, Owner=0, Moderator=1, Manager=2, All=3,
                                            参数名'set_permission', 'delete_permission', 'set_owner',
                                            'set_name', 'set_nick', 'set_description', 'set_cover',
@@ -517,7 +517,7 @@ def section_delete(request, section_id):
     @apiDescription 删除版块
     @apiPermission SECTION_DELETE
     @apiUse Header
-    @apiParam {string} [id_list] 删除版块id列表，e.g.'7;8;9', 当使用URL参数id时
+    @apiParam {string} [id_list] 删除版块id列表，e.g.'7,8,9', 当使用URL参数id时
                                  该参数忽略
     @apiParam {bool=true, false} [force=false] 强制删除
     @apiSuccess {string} data 版块删除信息详情
@@ -548,7 +548,7 @@ def section_delete(request, section_id):
             id_list = data.get('id_list')
             if not isinstance(id_list, (unicode, str)):
                 raise ParamsError()
-            id_list = [{'delete_id': delete_id, 'force': force} for delete_id in id_list.split(';') if delete_id]
+            id_list = [{'delete_id': delete_id, 'force': force} for delete_id in id_list.split(',') if delete_id]
         code, data = 400, map(lambda params: SectionService(request).delete(**params), id_list)
         for result in data:
             if result['status'] == 'SUCCESS':

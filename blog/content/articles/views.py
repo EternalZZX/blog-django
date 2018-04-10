@@ -70,7 +70,7 @@ def article_get(request, article_uuid):
             "content": "content...",
             "privacy": 1,
             "like_count": 0,
-            "keywords": "keyword1;keyword2;",
+            "keywords": "keyword1,keyword2,",
             "id": 1
         }
     }
@@ -118,7 +118,7 @@ def article_list(request):
     @apiParam {string} [order_field] 文章信息列表排序字段
     @apiParam {string=desc, asc} [order="desc"] 文章信息列表排序方向
     @apiParam {string} [query] 搜索内容，若无搜索字段则全局搜索title, keywords, content, author, section
-    @apiParam {string=title, keywords, content,
+    @apiParam {string=uuid, title, keywords, content,
                author, section, status, DjangoFilterParams} [query_field] 搜索字段, 支持Django filter参数
     @apiSuccess {String} total 文章信息列表总数
     @apiSuccess {String} articles 文章信息列表
@@ -147,7 +147,7 @@ def article_list(request):
                     "privacy": 1,
                     "like_count": 0,
                     "read_level": 200,
-                    "keywords": "keyword1;keyword2",
+                    "keywords": "keyword1,keyword2",
                     "last_editor": {
                         "remark": null,
                         "uuid": "4be0643f-1d98-573b-97cd-ca98a65347dd",
@@ -209,7 +209,7 @@ def article_create(request):
     @apiPermission ARTICLE_AUDIT
     @apiUse Header
     @apiParam {string} title 文章标题
-    @apiParam {string} [keywords] 文章关键词，e.g.'keyword1;keyword2'
+    @apiParam {string} [keywords] 文章关键词，e.g.'keyword1,keyword2'
     @apiParam {string} [cover_uuid] 文章封面UUID
     @apiParam {string} [overview={content[:200]}] 文章概述
     @apiParam {string} [content] 文章内容
@@ -245,7 +245,7 @@ def article_create(request):
             "privacy": 1,
             "like_count": 0,
             "read_level": 200,
-            "keywords": "keyword1;keyword2",
+            "keywords": "keyword1,keyword2",
             "last_editor": {
                 "remark": null,
                 "uuid": "4be0643f-1d98-573b-97cd-ca98a65347dd",
@@ -307,7 +307,7 @@ def article_update(request, article_uuid):
     @apiPermission ARTICLE_LIKE
     @apiUse Header
     @apiParam {string} title 文章标题
-    @apiParam {string} [keywords] 文章关键词，e.g.'keyword1;keyword2'
+    @apiParam {string} [keywords] 文章关键词，e.g.'keyword1,keyword2'
     @apiParam {string} [cover_uuid] 文章封面UUID
     @apiParam {string} [overview] 文章概述
     @apiParam {string} [content] 文章内容
@@ -343,7 +343,7 @@ def article_update(request, article_uuid):
             "privacy": 1,
             "like_count": 0,
             "read_level": 200,
-            "keywords": "keyword1;keyword2",
+            "keywords": "keyword1,keyword2",
             "last_editor": {
                 "remark": null,
                 "uuid": "4be0643f-1d98-573b-97cd-ca98a65347dd",
@@ -403,7 +403,7 @@ def article_delete(request, article_uuid):
     @apiPermission ARTICLE_DELETE
     @apiPermission ARTICLE_CANCEL
     @apiUse Header
-    @apiParam {string} [id_list] 删除文章uuid列表，e.g.'11d9fc3a-051f-5271-b1e1-65c192b63105;',
+    @apiParam {string} [id_list] 删除文章uuid列表，e.g.'11d9fc3a-051f-5271-b1e1-65c192b63105,',
                                  当使用URL参数uuid时该参数忽略
     @apiParam {bool=true, false} [force=false] 强制删除
     @apiSuccess {string} data 文章删除信息详情
@@ -434,7 +434,7 @@ def article_delete(request, article_uuid):
             id_list = data.get('id_list')
             if not isinstance(id_list, (unicode, str)):
                 raise ParamsError()
-            id_list = [{'delete_id': delete_id, 'force': force} for delete_id in id_list.split(';') if delete_id]
+            id_list = [{'delete_id': delete_id, 'force': force} for delete_id in id_list.split(',') if delete_id]
         code, data = 400, map(lambda params: ArticleService(request).delete(**params), id_list)
         for result in data:
             if result['status'] == 'SUCCESS':

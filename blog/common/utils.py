@@ -128,7 +128,7 @@ def model_to_dict(instance, **kwargs):
 
 def str_to_list(data):
     if isinstance(data, (unicode, str)):
-        return [item for item in data.split(';') if item]
+        return [item for item in data.split(',') if item]
     else:
         return []
 

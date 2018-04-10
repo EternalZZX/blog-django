@@ -19,7 +19,7 @@ from blog.content.photos.models import Photo
 from blog.common.base import Service, MetadataService
 from blog.common.error import ServiceError
 from blog.common.message import ErrorMsg, ContentErrorMsg
-from blog.common.utils import paging, model_to_dict, html_to_str, get_md5
+from blog.common.utils import paging, str_to_list, model_to_dict, html_to_str, get_md5
 from blog.common.setting import Setting, PermissionName
 
 
@@ -89,7 +89,9 @@ class ArticleService(Service):
                 raise ServiceError(code=400, message=ErrorMsg.ORDER_PARAMS_ERROR)
         if query:
             if query_field and query_level.is_gt_lv1():
-                if query_field == 'title':
+                if query_field == 'uuid':
+                    query_field = 'uuid'
+                elif query_field == 'title':
                     query_field = 'title__icontains'
                 elif query_field == 'keywords':
                     query_field = 'keywords__icontains'
@@ -103,10 +105,14 @@ class ArticleService(Service):
                     query_field = 'status'
                 elif query_level.is_lt_lv10():
                     raise ServiceError(code=403, message=ErrorMsg.QUERY_PERMISSION_DENIED)
-                query_dict = {query_field: query}
-                articles = articles.filter(**query_dict)
+                query_option = reduce(self._query_or, [{query_field: item} for item in str_to_list(query)])
+                if isinstance(query_option, dict):
+                    articles = articles.filter(**query_option)
+                else:
+                    articles = articles.filter(query_option)
             elif query_level.is_gt_lv2():
-                articles = articles.filter(Q(title__icontains=query) |
+                articles = articles.filter(Q(uuid=query) |
+                                           Q(title__icontains=query) |
                                            Q(keywords__icontains=query) |
                                            Q(content__icontains=query) |
                                            Q(author__nick__icontains=query) |
@@ -138,7 +144,7 @@ class ArticleService(Service):
         article_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, (title + self.uuid + str(time.time())).encode('utf-8')))
         keyword_str = ''
         for keyword in keywords:
-            keyword_str = keyword_str + keyword + ';'
+            keyword_str = keyword_str + keyword + ','
         keyword_str = keyword_str[:-1] if keyword_str else keyword_str
         cover = self._get_cover_url(user_id=self.uid, cover_uuid=cover_uuid)
         if not overview and content:
@@ -193,7 +199,7 @@ class ArticleService(Service):
             if keywords is not None:
                 keyword_str = ''
                 for keyword in keywords:
-                    keyword_str = keyword_str + keyword + ';'
+                    keyword_str = keyword_str + keyword + ','
                 keyword_str = keyword_str[:-1] if keyword_str else keyword_str
                 if keyword_str != article.keywords:
                     article.keywords, is_content_change = keyword_str, True

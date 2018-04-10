@@ -4,6 +4,8 @@
 import uuid
 import time
 
+from functools import reduce
+
 from django.db.models import Q
 
 from blog.account.users.models import User
@@ -13,7 +15,7 @@ from blog.content.photos.models import Photo
 from blog.common.base import Service, MetadataService
 from blog.common.error import ServiceError
 from blog.common.message import ErrorMsg, AccountErrorMsg, ContentErrorMsg
-from blog.common.utils import paging, model_to_dict
+from blog.common.utils import paging, str_to_list, model_to_dict
 from blog.common.setting import PermissionName, Setting
 
 
@@ -69,7 +71,9 @@ class AlbumService(Service):
                                    message=ErrorMsg.ORDER_PARAMS_ERROR)
         if query:
             if query_field and query_level.is_gt_lv1():
-                if query_field == 'name':
+                if query_field == 'uuid':
+                    query_field = 'uuid'
+                elif query_field == 'name':
                     query_field = 'name__icontains'
                 elif query_field == 'description':
                     query_field = 'description__icontains'
@@ -78,10 +82,14 @@ class AlbumService(Service):
                 elif query_level.is_lt_lv10():
                     raise ServiceError(code=403,
                                        message=ErrorMsg.QUERY_PERMISSION_DENIED)
-                query_dict = {query_field: query}
-                albums = albums.filter(**query_dict)
+                query_option = reduce(self._query_or, [{query_field: item} for item in str_to_list(query)])
+                if isinstance(query_option, dict):
+                    albums = albums.filter(**query_option)
+                else:
+                    albums = albums.filter(query_option)
             elif query_level.is_gt_lv2():
-                albums = albums.filter(Q(name__icontains=query) |
+                albums = albums.filter(Q(uuid=query) |
+                                       Q(name__icontains=query) |
                                        Q(description__icontains=query) |
                                        Q(author__nick__icontains=query))
             else:

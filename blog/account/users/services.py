@@ -3,6 +3,8 @@
 
 import uuid
 
+from functools import reduce
+
 from django.db.models import Q
 
 from blog.account.users.models import User, UserPrivacySetting
@@ -10,7 +12,7 @@ from blog.account.roles.models import Role
 from blog.account.groups.models import Group
 from blog.content.albums.models import Album
 from blog.content.photos.models import Photo
-from blog.common.utils import paging, model_to_dict, encode
+from blog.common.utils import paging, str_to_list, model_to_dict, encode
 from blog.common.base import Authorize, Service
 from blog.common.error import ServiceError
 from blog.common.message import ErrorMsg, AccountErrorMsg
@@ -83,7 +85,9 @@ class UserService(Service):
                                    message=ErrorMsg.ORDER_PERMISSION_DENIED)
         if query:
             if query_field and query_level.is_gt_lv1():
-                if query_field == 'nick':
+                if query_field == 'uuid':
+                    query_field = 'uuid'
+                elif query_field == 'nick':
                     query_field = 'nick__icontains'
                 elif query_field == 'role':
                     query_field = 'role__nick__icontains'
@@ -94,10 +98,14 @@ class UserService(Service):
                 elif query_level.is_lt_lv10():
                     raise ServiceError(code=403,
                                        message=ErrorMsg.QUERY_PERMISSION_DENIED)
-                query_dict = {query_field: query}
-                users = users.filter(**query_dict)
+                query_option = reduce(self._query_or, [{query_field: item} for item in str_to_list(query)])
+                if isinstance(query_option, dict):
+                    users = users.filter(**query_option)
+                else:
+                    users = users.filter(query_option)
             elif query_level.is_gt_lv2():
-                users = users.filter(Q(nick__icontains=query) |
+                users = users.filter(Q(uuid=query) |
+                                     Q(nick__icontains=query) |
                                      Q(role__nick__icontains=query) |
                                      Q(groups__name__icontains=query) |
                                      Q(remark__icontains=query))

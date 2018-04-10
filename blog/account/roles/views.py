@@ -89,7 +89,7 @@ def role_list(request):
     @apiParam {string} [order_field] 角色信息列表排序字段
     @apiParam {string=desc, asc} [order="desc"] 角色信息列表排序方向
     @apiParam {string} [query] 搜索内容，若无搜索字段则全局搜索name, nick
-    @apiParam {string=name, nick, DjangoFilterParams} [query_field] 搜索字段, 支持Django filter参数
+    @apiParam {string=id, name, nick, DjangoFilterParams} [query_field] 搜索字段, 支持Django filter参数
     @apiSuccess {String} total 角色信息列表总数
     @apiSuccess {String} roles 角色信息列表
     @apiSuccessExample {json} Success-Response:
@@ -292,7 +292,7 @@ def role_delete(request, role_id):
     @apiDescription 删除角色
     @apiPermission ROLE_DELETE
     @apiUse Header
-    @apiParam {string} [id_list] 删除角色id列表，e.g.'12;43;2', 当使用URL参数id时该参数忽略
+    @apiParam {string} [id_list] 删除角色id列表，e.g.'12,43,2', 当使用URL参数id时该参数忽略
     @apiSuccess {string} data 角色删除信息详情
     @apiSuccessExample {json} Success-Response:
     HTTP/1.1 200 OK
@@ -320,7 +320,7 @@ def role_delete(request, role_id):
             id_list = data.get('id_list')
             if not isinstance(id_list, (unicode, str)):
                 raise ParamsError()
-            id_list = [{'delete_id': delete_id} for delete_id in id_list.split(';') if delete_id]
+            id_list = [{'delete_id': delete_id} for delete_id in id_list.split(',') if delete_id]
         code, data = 400, map(lambda params: RoleService(request).delete(**params), id_list)
         for result in data:
             if result['status'] == 'SUCCESS':

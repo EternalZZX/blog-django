@@ -83,7 +83,7 @@ def user_list(request):
     @apiParam {string} [order_field] 用户信息列表排序字段
     @apiParam {string=desc, asc} [order="desc"] 用户信息列表排序方向
     @apiParam {string} [query] 搜索内容，若无搜索字段则全局搜索nick, role, group, remark
-    @apiParam {string=nick, role, group, remark, DjangoFilterParams} [query_field] 搜索字段, 支持Django filter参数
+    @apiParam {string=uuid, nick, role, group, remark, DjangoFilterParams} [query_field] 搜索字段, 支持Django filter参数
     @apiSuccess {String} total 用户信息列表总数
     @apiSuccess {String} users 用户信息列表
     @apiSuccessExample {json} Success-Response:
@@ -145,7 +145,7 @@ def user_create(request):
     @apiParam {string} password 密码
     @apiParam {string} [nick={username}] 昵称
     @apiParam {number} [role_id] 用户角色ID
-    @apiParam {string} [group_ids] 用户组ID列表，e.g.'2;9;32;43'
+    @apiParam {string} [group_ids] 用户组ID列表，e.g.'2,9,32,43'
     @apiParam {number=0, 1} [gender] 性别, Female=0, Male=1
     @apiParam {string} [email] 电子邮箱地址
     @apiParam {string} [phone] 电话号码
@@ -244,7 +244,7 @@ def user_update(request, uuid):
     @apiParam {string} [nick] 昵称
     @apiParam {string} [avatar_uuid] 用户头像UUID
     @apiParam {number} [role_id] 用户角色ID
-    @apiParam {string} [group_ids] 用户组ID列表，e.g.'2;9;32;43'
+    @apiParam {string} [group_ids] 用户组ID列表，e.g.'2,9,32,43'
     @apiParam {number=0, 1} [gender] 性别, Female=0, Male=1
     @apiParam {string} [email] 电子邮箱地址
     @apiParam {string} [phone] 电话号码
@@ -342,7 +342,7 @@ def user_delete(request, uuid):
     @apiPermission USER_DELETE
     @apiPermission USER_CANCEL
     @apiUse Header
-    @apiParam {string} [id_list] 删除用户uuid列表，e.g.'7357d28a-a611-5efd-ae6e-a550a5b95487;
+    @apiParam {string} [id_list] 删除用户uuid列表，e.g.'7357d28a-a611-5efd-ae6e-a550a5b95487,
                                  3cd43d89-ab0b-54ac-811c-1f4bb9b3fab6', 当使用URL参数uuid时
                                  该参数忽略
     @apiParam {bool=true, false} [force=false] 强制删除
@@ -374,7 +374,7 @@ def user_delete(request, uuid):
             id_list = data.get('id_list')
             if not isinstance(id_list, (unicode, str)):
                 raise ParamsError()
-            id_list = [{'delete_id': delete_id, 'force': force} for delete_id in id_list.split(';') if delete_id]
+            id_list = [{'delete_id': delete_id, 'force': force} for delete_id in id_list.split(',') if delete_id]
         code, data = 400, map(lambda params: UserService(request).delete(**params), id_list)
         for result in data:
             if result['status'] == 'SUCCESS':

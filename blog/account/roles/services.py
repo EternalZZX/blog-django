@@ -3,6 +3,8 @@
 
 import json
 
+from functools import reduce
+
 from django.db.models import Q
 
 from blog.account.users.models import User
@@ -11,7 +13,7 @@ from blog.common.base import Service, Authorize, Grant
 from blog.common.setting import PermissionName
 from blog.common.error import ServiceError
 from blog.common.message import ErrorMsg, AccountErrorMsg
-from blog.common.utils import model_to_dict, paging
+from blog.common.utils import str_to_list, model_to_dict, paging
 
 
 class RoleService(Service):
@@ -42,17 +44,23 @@ class RoleService(Service):
                                    message=ErrorMsg.ORDER_PERMISSION_DENIED)
         if query:
             if query_field and query_level.is_gt_lv1():
-                if query_field == 'name':
+                if query_field == 'id':
+                    query_field = 'id'
+                elif query_field == 'name':
                     query_field = 'name__icontains'
                 elif query_field == 'nick':
                     query_field = 'nick__icontains'
                 elif query_level.is_lt_lv10():
                     raise ServiceError(code=403,
                                        message=ErrorMsg.QUERY_PERMISSION_DENIED)
-                query_dict = {query_field: query}
-                roles = roles.filter(**query_dict)
+                query_option = reduce(self._query_or, [{query_field: item} for item in str_to_list(query)])
+                if isinstance(query_option, dict):
+                    roles = roles.filter(**query_option)
+                else:
+                    roles = roles.filter(query_option)
             elif query_level.is_gt_lv2():
-                roles = roles.filter(Q(name__icontains=query) |
+                roles = roles.filter(Q(id=query) |
+                                     Q(name__icontains=query) |
                                      Q(nick__icontains=query))
             else:
                 raise ServiceError(code=403,

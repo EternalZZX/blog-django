@@ -152,7 +152,7 @@ def photo_list(request):
     @apiParam {string} [order_field] 照片信息列表排序字段
     @apiParam {string=desc, asc} [order="desc"] 照片信息列表排序方向
     @apiParam {string} [query] 搜索内容，若无搜索字段则全局搜索description, author, album
-    @apiParam {string=description, author, album, status, DjangoFilterParams} [query_field] 搜索字段, 支持Django filter参数
+    @apiParam {string=uuid, description, author, album, status, DjangoFilterParams} [query_field] 搜索字段, 支持Django filter参数
     @apiSuccess {String} total 照片信息列表总数
     @apiSuccess {String} photos 照片信息列表
     @apiSuccessExample {json} Success-Response:
@@ -400,7 +400,7 @@ def photo_delete(request, photo_uuid):
     @apiPermission PHOTO_DELETE
     @apiPermission PHOTO_CANCEL
     @apiUse Header
-    @apiParam {string} [id_list] 删除照片uuid列表，e.g.'11d9fc3a-051f-5271-b1e1-65c192b63105;',
+    @apiParam {string} [id_list] 删除照片uuid列表，e.g.'11d9fc3a-051f-5271-b1e1-65c192b63105,',
                                  当使用URL参数uuid时该参数忽略
     @apiParam {bool=true, false} [force=false] 强制删除
     @apiSuccess {string} data 照片删除信息详情
@@ -431,7 +431,7 @@ def photo_delete(request, photo_uuid):
             id_list = data.get('id_list')
             if not isinstance(id_list, (unicode, str)):
                 raise ParamsError()
-            id_list = [{'delete_id': delete_id, 'force': force} for delete_id in id_list.split(';') if delete_id]
+            id_list = [{'delete_id': delete_id, 'force': force} for delete_id in id_list.split(',') if delete_id]
         code, data = 400, map(lambda params: PhotoService(request).delete(**params), id_list)
         for result in data:
             if result['status'] == 'SUCCESS':

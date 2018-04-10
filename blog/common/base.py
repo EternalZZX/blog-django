@@ -401,6 +401,10 @@ class Service(object):
     def _status_or(a, b):
         return (a if isinstance(a, Q) else Q(status=int(a))) | Q(status=int(b))
 
+    @staticmethod
+    def _query_or(a, b):
+        return (a if isinstance(a, Q) else Q(**a)) | Q(**b)
+
 
 class MetadataService(object):
     METADATA_KEY = 'RESOURCE_METADATA'
