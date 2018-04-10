@@ -1,3 +1,5 @@
+import uuid
+
 from django.db import models
 
 from blog.account.users.models import User
@@ -12,6 +14,10 @@ class Mark(models.Model):
     )
 
     id = models.AutoField(primary_key=True)
+    uuid = models.CharField(max_length=36,
+                            default=str(uuid.uuid4()),
+                            unique=True,
+                            editable=False)
     name = models.CharField(max_length=200)
     description = models.TextField(null=True)
     author = models.ForeignKey(to=User, related_name='marks_create')
