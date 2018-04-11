@@ -87,7 +87,7 @@ class PhotoService(Service):
             if int(status) in dict(Photo.STATUS_CHOICES):
                 photos = photos.filter(status=int(status))
             else:
-                photos = photos.filter(reduce(self._status_or, list(status)))
+                photos = photos.filter(reduce(self.status_or, list(status)))
         if order_field:
             if (order_level.is_gt_lv1() and order_field in PhotoService.PHOTO_ORDER_FIELD) \
                     or order_level.is_gt_lv10():
@@ -113,11 +113,7 @@ class PhotoService(Service):
                 elif query_level.is_lt_lv10():
                     raise ServiceError(code=403,
                                        message=ErrorMsg.QUERY_PERMISSION_DENIED)
-                query_option = reduce(self._query_or, [{query_field: item} for item in str_to_list(query)])
-                if isinstance(query_option, dict):
-                    photos = photos.filter(**query_option)
-                else:
-                    photos = photos.filter(query_option)
+                photos = self.query_by_list(photos, [{query_field: item} for item in str_to_list(query)])
             elif query_level.is_gt_lv2():
                 photos = photos.filter(Q(uuid=query) |
                                        Q(description__icontains=query) |

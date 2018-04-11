@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from functools import reduce
-
 from django.db.models import Q
 
 from blog.account.groups.models import Group
@@ -90,11 +88,7 @@ class SectionService(Service):
                 elif query_level.is_lt_lv10():
                     raise ServiceError(code=403,
                                        message=ErrorMsg.QUERY_PERMISSION_DENIED)
-                query_option = reduce(self._query_or, [{query_field: item} for item in str_to_list(query)])
-                if isinstance(query_option, dict):
-                    sections = sections.filter(**query_option)
-                else:
-                    sections = sections.filter(query_option)
+                sections = self.query_by_list(sections, [{query_field: item} for item in str_to_list(query)])
             elif query_level.is_gt_lv2():
                 sections = sections.filter(Q(id=query) |
                                            Q(name__icontains=query) |

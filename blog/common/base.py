@@ -8,6 +8,7 @@ import random
 import time
 import json
 
+from functools import reduce
 from abc import ABCMeta, abstractmethod
 
 from django.db.models import Q
@@ -398,8 +399,15 @@ class Service(object):
             return kwargs.values()[0]
 
     @staticmethod
-    def _status_or(a, b):
+    def status_or(a, b):
         return (a if isinstance(a, Q) else Q(status=int(a))) | Q(status=int(b))
+
+    @staticmethod
+    def query_by_list(objects, query_list):
+        query_option = reduce(Service._query_or, query_list)
+        if isinstance(query_option, dict):
+            return objects.filter(**query_option)
+        return objects.filter(query_option)
 
     @staticmethod
     def _query_or(a, b):

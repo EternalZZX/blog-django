@@ -76,7 +76,7 @@ class ArticleService(Service):
             if int(status) in dict(Article.STATUS_CHOICES):
                 articles = articles.filter(status=int(status))
             else:
-                articles = articles.filter(reduce(self._status_or, list(status)))
+                articles = articles.filter(reduce(self.status_or, list(status)))
         if order_field:
             if (order_level.is_gt_lv1() and order_field in ArticleService.ARTICLE_ORDER_FIELD) \
                     or order_level.is_gt_lv10():
@@ -105,11 +105,7 @@ class ArticleService(Service):
                     query_field = 'status'
                 elif query_level.is_lt_lv10():
                     raise ServiceError(code=403, message=ErrorMsg.QUERY_PERMISSION_DENIED)
-                query_option = reduce(self._query_or, [{query_field: item} for item in str_to_list(query)])
-                if isinstance(query_option, dict):
-                    articles = articles.filter(**query_option)
-                else:
-                    articles = articles.filter(query_option)
+                articles = self.query_by_list(articles, [{query_field: item} for item in str_to_list(query)])
             elif query_level.is_gt_lv2():
                 articles = articles.filter(Q(uuid=query) |
                                            Q(title__icontains=query) |

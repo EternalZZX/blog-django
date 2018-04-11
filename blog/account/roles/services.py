@@ -3,8 +3,6 @@
 
 import json
 
-from functools import reduce
-
 from django.db.models import Q
 
 from blog.account.users.models import User
@@ -53,11 +51,7 @@ class RoleService(Service):
                 elif query_level.is_lt_lv10():
                     raise ServiceError(code=403,
                                        message=ErrorMsg.QUERY_PERMISSION_DENIED)
-                query_option = reduce(self._query_or, [{query_field: item} for item in str_to_list(query)])
-                if isinstance(query_option, dict):
-                    roles = roles.filter(**query_option)
-                else:
-                    roles = roles.filter(query_option)
+                roles = self.query_by_list(roles, [{query_field: item} for item in str_to_list(query)])
             elif query_level.is_gt_lv2():
                 roles = roles.filter(Q(id=query) |
                                      Q(name__icontains=query) |

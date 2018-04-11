@@ -83,7 +83,85 @@ def mark_get(request, mark_uuid):
 
 
 def mark_list(request):
-    pass
+    """
+    @api {get} /content/marks/ mark list
+    @apiVersion 0.1.0
+    @apiName mark_list
+    @apiGroup content
+    @apiDescription 获取标签信息列表
+    @apiPermission MARK_SELECT
+    @apiPermission MARK_PRIVACY
+    @apiUse Header
+    @apiParam {number} [page=0] 标签信息列表页码, 页码为0时返回所有数据
+    @apiParam {number} [page_size=10] 标签信息列表页长
+    @apiParam {string} [author_uuid] 标签作者UUID
+    @apiParam {number=0, 1, 2} [resource_type] 标签绑定资源类型，Article=0, Album=1, Photo=2
+    @apiParam {string} [resource_uuid] 标签绑定资源UUID
+    @apiParam {string} [order_field] 标签信息列表排序字段
+    @apiParam {string=desc, asc} [order="desc"] 标签信息列表排序方向
+    @apiParam {string} [query] 搜索内容，若无搜索字段则全局搜索uuid, name, description, author, color
+    @apiParam {string=uuid, name, description, author, color, DjangoFilterParams}
+                       [query_field] 搜索字段, 支持Django filter参数
+    @apiSuccess {String} total 标签信息列表总数
+    @apiSuccess {String} marks 标签信息列表
+    @apiSuccessExample {json} Success-Response:
+    HTTP/1.1 200 OK
+    {
+        "data": {
+            "total": 1,
+            "marks": [
+                {
+                    "attach_count": 1,
+                    "description": "description",
+                    "author": {
+                        "remark": null,
+                        "uuid": "7357d28a-a611-5efd-ae6e-a550a5b95487",
+                        "create_at": "2017-12-20T11:19:17Z",
+                        "nick": "admin",
+                        "role": 1,
+                        "avatar": "/media/photos/9b19df9b-25f5-5a09-a4ce-b7e0149699dc.jpeg",
+                        "groups": []
+                    },
+                    "color": "#ffffff",
+                    "privacy": 1,
+                    "uuid": "d2336aba-5129-5b6b-9d94-fc3744bed04c",
+                    "create_at": "2018-04-11T07:01:15Z",
+                    "id": 3,
+                    "name": "test"
+                }
+            ]
+        }
+    }
+    @apiUse ErrorData
+    @apiErrorExample {json} Error-Response:
+    HTTP/1.1 403 Forbidden
+    {
+        "data": "Query permission denied"
+    }
+    """
+    page = request.GET.get('page')
+    page_size = request.GET.get('page_size')
+    author_uuid = request.GET.get('author_uuid')
+    resource_type = request.GET.get('resource_type')
+    resource_uuid = request.GET.get('resource_uuid')
+    order_field = request.GET.get('order_field')
+    order = request.GET.get('order')
+    query = request.GET.get('query')
+    query_field = request.GET.get('query_field')
+    try:
+        code, data = MarkService(request).list(page=page,
+                                               page_size=page_size,
+                                               author_uuid=author_uuid,
+                                               resource_type=resource_type,
+                                               resource_uuid=resource_uuid,
+                                               order_field=order_field,
+                                               order=order,
+                                               query=query,
+                                               query_field=query_field)
+    except Exception as e:
+        code, data = getattr(e, 'code', 400), \
+                     getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
+    return Response(code=code, data=data)
 
 
 def mark_create(request):

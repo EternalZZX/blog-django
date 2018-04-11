@@ -3,8 +3,6 @@
 
 import uuid
 
-from functools import reduce
-
 from django.db.models import Q
 
 from blog.account.users.models import User, UserPrivacySetting
@@ -98,11 +96,7 @@ class UserService(Service):
                 elif query_level.is_lt_lv10():
                     raise ServiceError(code=403,
                                        message=ErrorMsg.QUERY_PERMISSION_DENIED)
-                query_option = reduce(self._query_or, [{query_field: item} for item in str_to_list(query)])
-                if isinstance(query_option, dict):
-                    users = users.filter(**query_option)
-                else:
-                    users = users.filter(query_option)
+                users = self.query_by_list(users, [{query_field: item} for item in str_to_list(query)])
             elif query_level.is_gt_lv2():
                 users = users.filter(Q(uuid=query) |
                                      Q(nick__icontains=query) |

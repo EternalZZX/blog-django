@@ -84,7 +84,7 @@ class CommentService(Service):
             if int(status) in dict(Comment.STATUS_CHOICES):
                 comments = comments.filter(status=int(status))
             else:
-                comments = comments.filter(reduce(self._status_or, list(status)))
+                comments = comments.filter(reduce(self.status_or, list(status)))
         if order_field:
             if (order_level.is_gt_lv1() and order_field in CommentService.COMMENT_ORDER_FIELD) \
                     or order_level.is_gt_lv10():
@@ -107,11 +107,7 @@ class CommentService(Service):
                     query_field = 'status'
                 elif query_level.is_lt_lv10():
                     raise ServiceError(code=403, message=ErrorMsg.QUERY_PERMISSION_DENIED)
-                query_option = reduce(self._query_or, [{query_field: item} for item in str_to_list(query)])
-                if isinstance(query_option, dict):
-                    comments = comments.filter(**query_option)
-                else:
-                    comments = comments.filter(query_option)
+                comments = self.query_by_list(comments, [{query_field: item} for item in str_to_list(query)])
             elif query_level.is_gt_lv2():
                 comments = comments.filter(Q(uuid=query) |
                                            Q(content__icontains=query) |

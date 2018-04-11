@@ -4,8 +4,6 @@
 import uuid
 import time
 
-from functools import reduce
-
 from django.db.models import Q
 
 from blog.account.users.models import User
@@ -82,11 +80,7 @@ class AlbumService(Service):
                 elif query_level.is_lt_lv10():
                     raise ServiceError(code=403,
                                        message=ErrorMsg.QUERY_PERMISSION_DENIED)
-                query_option = reduce(self._query_or, [{query_field: item} for item in str_to_list(query)])
-                if isinstance(query_option, dict):
-                    albums = albums.filter(**query_option)
-                else:
-                    albums = albums.filter(query_option)
+                albums = self.query_by_list(albums, [{query_field: item} for item in str_to_list(query)])
             elif query_level.is_gt_lv2():
                 albums = albums.filter(Q(uuid=query) |
                                        Q(name__icontains=query) |

@@ -4,10 +4,7 @@
 import uuid
 import time
 
-from functools import reduce
-
 from django.db.models import Q
-from django.utils import timezone
 
 from blog.account.users.models import User
 from blog.account.users.services import UserService
@@ -21,11 +18,14 @@ from blog.content.marks.models import Mark, MarkResource
 from blog.common.base import Service
 from blog.common.error import ServiceError
 from blog.common.message import ErrorMsg, AccountErrorMsg, ContentErrorMsg
-from blog.common.utils import paging, model_to_dict
-from blog.common.setting import Setting, PermissionName
+from blog.common.utils import paging, str_to_list, model_to_dict
+from blog.common.setting import PermissionName
 
 
 class MarkService(Service):
+    MARK_ORDER_FIELD = ['id', 'name', 'description', 'author', 'color',
+                        'attach_count', 'privacy', 'create_at']
+
     def get(self, mark_uuid):
         self.has_permission(PermissionName.MARK_SELECT)
         try:
@@ -36,6 +36,57 @@ class MarkService(Service):
             raise ServiceError(code=404, message=ContentErrorMsg.MARK_NOT_FOUND)
         resources = MarkResource.objects.filter(mark=mark)
         return 200, MarkService._mark_to_dict(mark=mark, resources=resources)
+
+    def list(self, page=0, page_size=10, author_uuid=None, resource_type=None,
+             resource_uuid=None, order_field=None, order='desc',
+             query=None, query_field=None):
+        query_level, order_level = self.get_permission_level(PermissionName.MARK_SELECT)
+        marks = Mark.objects.all()
+        if author_uuid:
+            marks = marks.filter(author__uuid=author_uuid)
+        if resource_type is not None and resource_uuid:
+            resources = MarkResource.objects.filter(resource_type=resource_type,
+                                                    resource_uuid=resource_uuid)
+            marks = self.query_by_list(marks, [{'id': resource.mark_id} for resource in resources])
+        if order_field:
+            if (order_level.is_gt_lv1() and order_field in MarkService.MARK_ORDER_FIELD) \
+                    or order_level.is_gt_lv10():
+                if order == 'desc':
+                    order_field = '-' + order_field
+                    marks = marks.order_by(order_field)
+            else:
+                raise ServiceError(code=400, message=ErrorMsg.ORDER_PARAMS_ERROR)
+        if query:
+            if query_field and query_level.is_gt_lv1():
+                if query_field == 'uuid':
+                    query_field = 'uuid'
+                elif query_field == 'name':
+                    query_field = 'name__icontains'
+                elif query_field == 'description':
+                    query_field = 'description__icontains'
+                elif query_field == 'author':
+                    query_field = 'author__nick__icontains'
+                elif query_field == 'color':
+                    query_field = 'color'
+                elif query_level.is_lt_lv10():
+                    raise ServiceError(code=403,
+                                       message=ErrorMsg.QUERY_PERMISSION_DENIED)
+                marks = self.query_by_list(marks, [{query_field: item} for item in str_to_list(query)])
+            elif query_level.is_gt_lv2():
+                marks = marks.filter(Q(uuid=query) |
+                                     Q(name__icontains=query) |
+                                     Q(description__icontains=query) |
+                                     Q(author__nick__icontains=query) |
+                                     Q(color=query))
+            else:
+                raise ServiceError(code=403,
+                                   message=ErrorMsg.QUERY_PERMISSION_DENIED)
+        for mark in marks:
+            if not self._has_get_permission(mark=mark):
+                marks = marks.exclude(id=mark.id)
+        marks, total = paging(marks, page=page, page_size=page_size)
+        return 200, {'marks': [MarkService._mark_to_dict(mark=mark) for mark in marks],
+                     'total': total}
 
     def create(self, name, description=None, color=None, privacy=Mark.PUBLIC,
                author_uuid=None, resource_type=None, resource_uuid=None):
