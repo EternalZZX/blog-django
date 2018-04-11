@@ -6,7 +6,7 @@ from django.http import QueryDict
 from blog.content.marks.services import MarkService
 from blog.common.message import ErrorMsg
 from blog.common.error import ParamsError
-from blog.common.utils import Response, json_response, str_to_list
+from blog.common.utils import Response, json_response
 
 
 @json_response
@@ -314,4 +314,50 @@ def mark_update(request, mark_uuid):
 
 
 def mark_delete(request, mark_uuid):
-    pass
+    """
+    @api {delete} /content/marks/[uuid]/ mark delete
+    @apiVersion 0.1.0
+    @apiName mark_delete
+    @apiGroup content
+    @apiDescription 删除标签
+    @apiPermission MARK_DELETE
+    @apiUse Header
+    @apiParam {string} [id_list] 删除标签uuid列表，e.g.'11d9fc3a-051f-5271-b1e1-65c192b63105,',
+                                 当使用URL参数uuid时该参数忽略
+    @apiSuccess {string} data 标签删除信息详情
+    @apiSuccessExample {json} Success-Response:
+    HTTP/1.1 200 OK
+    {
+        "data": [
+            {
+                "status": "SUCCESS",
+                "name": "test",
+                "id": "174a7ba6-0a15-5402-b827-d3e670218d5b"
+            }
+        ]
+    }
+    @apiUse ErrorData
+    @apiErrorExample {json} Error-Response:
+    HTTP/1.1 403 Forbidden
+    {
+        "data": "Permission denied"
+    }
+    """
+    data = QueryDict(request.body)
+    try:
+        if mark_uuid:
+            id_list = [{'delete_id': mark_uuid}]
+        else:
+            id_list = data.get('id_list')
+            if not isinstance(id_list, (unicode, str)):
+                raise ParamsError()
+            id_list = [{'delete_id': delete_id} for delete_id in id_list.split(',') if delete_id]
+        code, data = 400, map(lambda params: MarkService(request).delete(**params), id_list)
+        for result in data:
+            if result['status'] == 'SUCCESS':
+                code = 200
+                break
+    except Exception as e:
+        code, data = getattr(e, 'code', 400), \
+                     getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
+    return Response(code=code, data=data)

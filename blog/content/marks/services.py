@@ -114,7 +114,7 @@ class MarkService(Service):
     def update(self, mark_uuid, name=None, description=None, color=None,
                privacy=None, author_uuid=None, operate=None, resource_type=None,
                resource_uuid=None):
-        update_level, author_level = self.get_permission_level(PermissionName.MARK_SELECT)
+        update_level, author_level = self.get_permission_level(PermissionName.MARK_UPDATE)
         try:
             mark = Mark.objects.get(uuid=mark_uuid)
         except Mark.DoesNotExist:
@@ -143,6 +143,23 @@ class MarkService(Service):
         resources = MarkResource.objects.filter(mark=mark)
         mark.attach_count = len(resources)
         return 200, MarkService._mark_to_dict(mark=mark, resources=resources)
+
+    def delete(self, delete_id):
+        delete_level, _ = self.get_permission_level(PermissionName.MARK_DELETE)
+        result = {'id': delete_id}
+        try:
+            mark = Mark.objects.get(uuid=delete_id)
+            is_self = mark.author_id == self.uid
+            result['name'], result['status'] = mark.name, 'SUCCESS'
+            if is_self and delete_level.is_gt_lv1() or delete_level.is_gt_lv10():
+                mark.delete()
+            else:
+                raise ServiceError()
+        except Mark.DoesNotExist:
+            result['status'] = 'NOT_FOUND'
+        except ServiceError:
+            result['status'] = 'PERMISSION_DENIED'
+        return result
 
     def _has_get_permission(self, mark):
         is_self = mark.author_id == self.uid

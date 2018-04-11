@@ -43,7 +43,7 @@ class MarkResource(models.Model):
     )
 
     id = models.AutoField(primary_key=True)
-    mark = models.ForeignKey(to=Mark, related_name='resources')
+    mark = models.ForeignKey(to=Mark, related_name='resources', on_delete=models.CASCADE)
     resource_type = models.IntegerField(choices=TYPE_CHOICES, default=ARTICLE)
     resource_uuid = models.CharField(max_length=36)
 
