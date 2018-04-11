@@ -35,7 +35,7 @@ class MarkService(Service):
         except Mark.DoesNotExist:
             raise ServiceError(code=404, message=ContentErrorMsg.MARK_NOT_FOUND)
         resources = MarkResource.objects.filter(mark=mark)
-        return 200, MarkService._mark_to_dict(mark=mark)
+        return 200, MarkService._mark_to_dict(mark=mark, resources=resources)
 
     def create(self, name, description=None, color=None, privacy=Mark.PUBLIC,
                author_uuid=None, resource_type=None, resource_uuid=None):
@@ -54,11 +54,13 @@ class MarkService(Service):
                                    color=color,
                                    privacy=privacy,
                                    author_id=author_id)
+        resources = []
         if resource_type is not None and resource_uuid:
-            self._attach_resource(mark=mark,
-                                  resource_type=resource_type,
-                                  resource_uuid=resource_uuid)
-        return 201, MarkService._mark_to_dict(mark=mark)
+            resource = self._attach_resource(mark=mark,
+                                             resource_type=resource_type,
+                                             resource_uuid=resource_uuid)
+            resources = [resource]
+        return 201, MarkService._mark_to_dict(mark=mark, resources=resources)
 
     def _has_get_permission(self, mark):
         is_self = mark.author_id == self.uid
@@ -90,15 +92,10 @@ class MarkService(Service):
                 raise ServiceError(code=404, message=ContentErrorMsg.RESOURCE_NOT_FOUND)
         except (Article.DoesNotExist, Album.DoesNotExist, Photo.DoesNotExist):
             raise ServiceError(code=404, message=ContentErrorMsg.RESOURCE_NOT_FOUND)
-        try:
-            MarkResource.objects.get(mark=mark,
-                                     resource_type=resource_type,
-                                     resource_uuid=resource_uuid)
-        except MarkResource.DoesNotExist:
-            MarkResource.objects.create(mark=mark,
-                                        resource_type=resource_type,
-                                        resource_uuid=resource_uuid)
-            mark.attach_mark()
+        resource, created = MarkResource.objects.get_or_create(mark=mark,
+                                                               resource_type=resource_type,
+                                                               resource_uuid=resource_uuid)
+        return resource
 
     def _get_privacy(self, privacy=Mark.PUBLIC):
         _, privacy_level = self.get_permission_level(PermissionName.MARK_PRIVACY, False)
@@ -108,9 +105,17 @@ class MarkService(Service):
         return privacy
 
     @staticmethod
-    def _mark_to_dict(mark, **kwargs):
+    def _mark_to_dict(mark, resources=None, **kwargs):
         mark_dict = model_to_dict(mark)
         UserService.user_to_dict(mark.author, mark_dict, 'author')
+        if resources is not None:
+            resource_dict_list = []
+            for resource in resources:
+                resource_dict_list.append({
+                    'resource_type': resource.resource_type,
+                    'resource_uuid': resource.resource_uuid
+                })
+            mark_dict['resources'] = resource_dict_list
         for key in kwargs:
             mark_dict[key] = kwargs[key]
         return mark_dict

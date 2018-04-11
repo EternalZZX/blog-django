@@ -28,7 +28,58 @@ def mark_operate(request, mark_uuid=None):
 
 
 def mark_get(request, mark_uuid):
-    pass
+    """
+    @api {get} /content/marks/{uuid}/ mark get
+    @apiVersion 0.1.0
+    @apiName mark_get
+    @apiGroup content
+    @apiDescription 获取标签信息详情
+    @apiPermission MARK_SELECT
+    @apiPermission MARK_PRIVACY
+    @apiUse Header
+    @apiSuccess {string} data 标签信息详情
+    @apiSuccessExample {json} Success-Response:
+    HTTP/1.1 200 OK
+    {
+        "data": {
+            "attach_count": 1,
+            "description": "description",
+            "author": {
+                "remark": null,
+                "uuid": "7357d28a-a611-5efd-ae6e-a550a5b95487",
+                "create_at": "2017-12-20T11:19:17Z",
+                "nick": "admin",
+                "role": 1,
+                "avatar": "/media/photos/9b19df9b-25f5-5a09-a4ce-b7e0149699dc.jpeg",
+                "groups": []
+            },
+            "color": "#ffffff",
+            "privacy": 1,
+            "uuid": "b9751e9d-ec9b-5f9a-a382-c656af9ce2b4",
+            "create_at": "2018-04-11T07:08:21Z",
+            "id": 4,
+            "resources": [
+                {
+                    "resource_type": 0,
+                    "resource_uuid": "6623d8a4-55b0-5d9f-8623-5ff5e1d8ce09"
+                }
+            ],
+            "name": "test"
+        }
+    }
+    @apiUse ErrorData
+    @apiErrorExample {json} Error-Response:
+    HTTP/1.1 404 Not Found
+    {
+        "data": "Mark not found"
+    }
+    """
+    try:
+        code, data = MarkService(request).get(mark_uuid=mark_uuid)
+    except Exception as e:
+        code, data = getattr(e, 'code', 400), \
+                     getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
+    return Response(code=code, data=data)
 
 
 def mark_list(request):

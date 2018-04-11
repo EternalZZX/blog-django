@@ -1,6 +1,7 @@
 import uuid
 
 from django.db import models
+from django.dispatch import receiver
 
 from blog.account.users.models import User
 
@@ -26,14 +27,6 @@ class Mark(models.Model):
     privacy = models.IntegerField(choices=PRIVACY_CHOICES, default=PUBLIC)
     create_at = models.DateTimeField(auto_now_add=True)
 
-    def attach_mark(self, count=1):
-        self.attach_count = self.attach_count + count
-        self.save()
-
-    def detach_mark(self, count=1):
-        self.attach_count = self.attach_count - count
-        self.save()
-
     class Meta:
         db_table = 'mark'
 
@@ -57,10 +50,18 @@ class MarkResource(models.Model):
         db_table = 'mark_resource'
 
 
-def get_resource_marks(res_id, res_type):
-    marks = []
-    resources = MarkResource.objects.filter(res_id=res_id, res_type=res_type)
-    for resource in resources:
-        mark = Mark.objects.get(id=resource.mark_id)
-        marks.append(mark)
-    return marks
+@receiver(models.signals.post_save, sender=MarkResource,
+          dispatch_uid='models.mark_resource_obj_create')
+def mark_resource_obj_create(sender, instance, created, **kwargs):
+    if created:
+        attach_count = instance.mark.attach_count + 1
+        instance.mark.attach_count = attach_count
+        instance.mark.save()
+
+
+@receiver(models.signals.pre_delete, sender=MarkResource,
+          dispatch_uid='models.mark_resource_obj_delete')
+def mark_resource_obj_delete(sender, instance, **kwargs):
+    attach_count = instance.mark.attach_count - 1
+    instance.mark.attach_count = attach_count
+    instance.mark.save()
