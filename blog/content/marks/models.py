@@ -3,10 +3,11 @@ import uuid
 from django.db import models
 from django.dispatch import receiver
 
+from blog.common.tools import BaseModel
 from blog.account.users.models import User
 
 
-class Mark(models.Model):
+class Mark(models.Model, BaseModel):
     PRIVATE = 0
     PUBLIC = 1
     PRIVACY_CHOICES = (

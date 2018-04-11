@@ -176,9 +176,10 @@ class SectionService(Service):
         try:
             section = Section.objects.get(id=section_id)
         except Section.DoesNotExist:
-            raise ServiceError(code=404,
-                               message=ContentErrorMsg.SECTION_NOT_FOUND)
+            raise ServiceError(code=404, message=ContentErrorMsg.SECTION_NOT_FOUND)
         set_role = self.is_manager(user_uuid=self.uuid, section=section)
+        if not set_role.is_manager and not op and policy_level.is_lt_lv10():
+            raise ServiceError(code=403, message=ErrorMsg.PERMISSION_DENIED)
         permission = section.permission
         if name and self.has_set_permission(permission.set_name, set_role, op) and \
                 SectionService.is_unique(model_obj=Section, exclude_id=section_id, name=name):

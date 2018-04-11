@@ -155,6 +155,8 @@ class AlbumService(Service):
                 system_level, _ = self.get_permission_level(PermissionName.ALBUM_SYSTEM)
                 if system_level.is_gt_lv10():
                     album.system = AlbumService.choices_format(system, Album.SYSTEM_ALBUM_CHOICES, None)
+        else:
+            raise ServiceError(code=403, message=ErrorMsg.PERMISSION_DENIED)
         album.save()
         metadata = AlbumMetadataService().get_metadata_count(resource=album)
         return 200, AlbumService._album_to_dict(album=album, metadata=metadata)

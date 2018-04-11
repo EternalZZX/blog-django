@@ -234,7 +234,83 @@ def mark_create(request):
 
 
 def mark_update(request, mark_uuid):
-    pass
+    """
+    @api {put} /content/marks/{uuid}/ mark update
+    @apiVersion 0.1.0
+    @apiName mark_update
+    @apiGroup content
+    @apiDescription 编辑标签
+    @apiPermission MARK_UPDATE
+    @apiPermission MARK_PRIVACY
+    @apiUse Header
+    @apiParam {string} name 标签名
+    @apiParam {string} [description] 标签描述
+    @apiParam {string} [color] 标签颜色
+    @apiParam {number=0, 1} [privacy=1] 标签私有状态, Private=0, Public=1
+    @apiParam {string} [author_uuid={self}] 作者UUID
+    @apiParam {number=0, 1} [operate] 绑定解绑标签操作, Attach=1, Detach=0
+    @apiParam {number=0, 1, 2} [resource_type] 标签绑定解绑资源类型, Article=0, Album=1, Photo=2
+    @apiParam {string} [resource_uuid] 标签绑定解绑资源UUID
+    @apiSuccess {string} data 编辑标签信息详情
+    @apiSuccessExample {json} Success-Response:
+    HTTP/1.1 200 OK
+    {
+        "data": {
+            "attach_count": 1,
+            "description": "description",
+            "author": {
+                "remark": null,
+                "uuid": "7357d28a-a611-5efd-ae6e-a550a5b95487",
+                "create_at": "2017-12-20T11:19:17Z",
+                "nick": "admin",
+                "role": 1,
+                "avatar": "/media/photos/9b19df9b-25f5-5a09-a4ce-b7e0149699dc.jpeg",
+                "groups": []
+            },
+            "color": "#ffffff",
+            "privacy": 1,
+            "uuid": "d2336aba-5129-5b6b-9d94-fc3744bed04c",
+            "create_at": "2018-04-11T07:01:15Z",
+            "id": 3,
+            "resources": [
+                {
+                    "resource_type": 0,
+                    "resource_uuid": "6623d8a4-55b0-5d9f-8623-5ff5e1d8ce09"
+                }
+            ],
+            "name": "mark"
+        }
+    }
+    @apiUse ErrorData
+    @apiErrorExample {json} Error-Response:
+    HTTP/1.1 403 Forbidden
+    {
+        "data": "Permission denied"
+    }
+    """
+    data = QueryDict(request.body)
+    name = data.get('name')
+    description = data.get('description')
+    color = data.get('color')
+    privacy = data.get('privacy')
+    author_uuid = data.get('author_uuid')
+    operate = data.get('operate')
+    resource_type = data.get('resource_type')
+    resource_uuid = data.get('resource_uuid')
+    try:
+        code, data = MarkService(request).update(mark_uuid=mark_uuid,
+                                                 name=name,
+                                                 description=description,
+                                                 color=color,
+                                                 privacy=privacy,
+                                                 author_uuid=author_uuid,
+                                                 operate=operate,
+                                                 resource_type=resource_type,
+                                                 resource_uuid=resource_uuid)
+    except Exception as e:
+        code, data = getattr(e, 'code', 400), \
+                     getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
+    return Response(code=code, data=data)
 
 
 def mark_delete(request, mark_uuid):

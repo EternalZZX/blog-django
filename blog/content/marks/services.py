@@ -25,6 +25,8 @@ from blog.common.setting import PermissionName
 class MarkService(Service):
     MARK_ORDER_FIELD = ['id', 'name', 'description', 'author', 'color',
                         'attach_count', 'privacy', 'create_at']
+    OPERATE_ATTACH = 1
+    OPERATE_DETACH = 0
 
     def get(self, mark_uuid):
         self.has_permission(PermissionName.MARK_SELECT)
@@ -105,13 +107,42 @@ class MarkService(Service):
                                    color=color,
                                    privacy=privacy,
                                    author_id=author_id)
-        resources = []
-        if resource_type is not None and resource_uuid:
-            resource = self._attach_resource(mark=mark,
-                                             resource_type=resource_type,
-                                             resource_uuid=resource_uuid)
-            resources = [resource]
+        resource = self._attach_resource(mark, resource_type, resource_uuid)
+        resources = [resource] if resource else []
         return 201, MarkService._mark_to_dict(mark=mark, resources=resources)
+
+    def update(self, mark_uuid, name=None, description=None, color=None,
+               privacy=None, author_uuid=None, operate=None, resource_type=None,
+               resource_uuid=None):
+        update_level, author_level = self.get_permission_level(PermissionName.MARK_SELECT)
+        try:
+            mark = Mark.objects.get(uuid=mark_uuid)
+        except Mark.DoesNotExist:
+            raise ServiceError(code=404, message=ContentErrorMsg.MARK_NOT_FOUND)
+        is_self = mark.author_id == self.uid
+        if is_self or update_level.is_gt_lv10():
+            if name:
+                mark.name = name
+            mark.update_char_field('description', description)
+            mark.update_char_field('color', color)
+            if privacy and int(privacy) != mark.privacy:
+                mark.privacy = self._get_privacy(privacy=privacy)
+            if author_uuid and author_level.is_gt_lv10():
+                try:
+                    mark.author_id = User.objects.get(uuid=author_uuid).id
+                except User.DoesNotExist:
+                    raise ServiceError(message=AccountErrorMsg.USER_NOT_FOUND)
+        else:
+            raise ServiceError(code=403, message=ErrorMsg.PERMISSION_DENIED)
+        mark.save()
+        if operate is not None:
+            if int(operate) == MarkService.OPERATE_ATTACH:
+                self._attach_resource(mark, resource_type, resource_uuid)
+            elif int(operate) == MarkService.OPERATE_DETACH:
+                self._detach_resource(mark, resource_type, resource_uuid)
+        resources = MarkResource.objects.filter(mark=mark)
+        mark.attach_count = len(resources)
+        return 200, MarkService._mark_to_dict(mark=mark, resources=resources)
 
     def _has_get_permission(self, mark):
         is_self = mark.author_id == self.uid
@@ -123,6 +154,8 @@ class MarkService(Service):
         return get_level.is_gt_lv10()
 
     def _attach_resource(self, mark, resource_type, resource_uuid):
+        if resource_type is None or not resource_uuid:
+            return None
         try:
             resource_type = int(resource_type)
             if resource_type == MarkResource.ARTICLE:
@@ -147,6 +180,14 @@ class MarkService(Service):
                                                                resource_type=resource_type,
                                                                resource_uuid=resource_uuid)
         return resource
+
+    def _detach_resource(self, mark, resource_type, resource_uuid):
+        if resource_type is None or not resource_uuid:
+            return
+        resources = MarkResource.objects.filter(mark=mark,
+                                                resource_type=resource_type,
+                                                resource_uuid=resource_uuid)
+        resources.delete()
 
     def _get_privacy(self, privacy=Mark.PUBLIC):
         _, privacy_level = self.get_permission_level(PermissionName.MARK_PRIVACY, False)
