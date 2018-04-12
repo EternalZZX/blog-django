@@ -216,7 +216,7 @@ class MarkService(Service):
     @staticmethod
     def _mark_to_dict(mark, resources=None, **kwargs):
         mark_dict = model_to_dict(mark)
-        UserService.user_to_dict(mark.author, mark_dict, 'author')
+        UserService.dict_add_user(mark.author, mark_dict, 'author')
         if resources is not None:
             resource_dict_list = []
             for resource in resources:

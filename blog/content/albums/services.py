@@ -221,7 +221,7 @@ class AlbumService(Service):
     @staticmethod
     def _album_to_dict(album, metadata=None, **kwargs):
         album_dict = model_to_dict(album)
-        UserService.user_to_dict(album.author, album_dict, 'author')
+        UserService.dict_add_user(album.author, album_dict, 'author')
         album_dict['metadata'] = {}
         album_dict['metadata']['read_count'] = metadata.read_count if metadata else 0
         album_dict['metadata']['comment_count'] = metadata.comment_count if metadata else 0

@@ -11,7 +11,7 @@ class Setting(StaticObject):
     SESSION_LIMIT = True
     TOKEN_EXPIRATION = True
     TOKEN_EXPIRATION_TIME = 604800
-    SIGN_UP_POLICY = True
+    SIGN_UP = True
     SIGN_UP_KEY = False
     USER_CANCEL = True
     USERNAME_UPDATE = False
@@ -42,7 +42,7 @@ class Setting(StaticObject):
             cls.TOKEN_EXPIRATION = cls._format_value(settings.get(key=SettingKey.TOKEN_EXPIRATION).value)
             cls.TOKEN_EXPIRATION_TIME = cls._format_value(settings.get(key=SettingKey.TOKEN_EXPIRATION_TIME).value,
                                                           'int')
-            cls.SIGN_UP_POLICY = cls._format_value(settings.get(key=SettingKey.SIGN_UP_POLICY).value)
+            cls.SIGN_UP = cls._format_value(settings.get(key=SettingKey.SIGN_UP).value)
             cls.SIGN_UP_KEY = cls._format_value(settings.get(key=SettingKey.SIGN_UP_KEY).value)
             cls.USER_CANCEL = cls._format_value(settings.get(key=SettingKey.USER_CANCEL).value)
             cls.USERNAME_UPDATE = cls._format_value(settings.get(key=SettingKey.USERNAME_UPDATE).value)
@@ -81,7 +81,7 @@ class SettingKey(StaticObject):
     SESSION_LIMIT = 'session_limit'
     TOKEN_EXPIRATION = 'token_expiration'
     TOKEN_EXPIRATION_TIME = 'token_expiration_time'
-    SIGN_UP_POLICY = 'sign_up_policy'
+    SIGN_UP = 'sign_up'
     SIGN_UP_KEY = 'sign_up_key'
     USER_CANCEL = 'user_cancel'
     USERNAME_UPDATE = 'username_update'
@@ -185,5 +185,6 @@ class PermissionLevel(StaticObject):
 
 
 class AuthType(StaticObject):
-    COOKIE = 0
+    NONE = 0
     HEADER = 1
+    COOKIE = 2

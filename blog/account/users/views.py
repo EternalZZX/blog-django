@@ -187,7 +187,7 @@ def user_create(request):
     }
     @apiUse ErrorData
     @apiErrorExample {json} Error-Response:
-    HTTP/1.1 400 Bad Request
+    HTTP/1.1 409 Bad Request
     {
         "data": "Duplicate identity field"
     }

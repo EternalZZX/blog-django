@@ -10,6 +10,8 @@ class ErrorMsg:
     REQUEST_METHOD_ERROR = 'Request method error'
     REQUEST_PARAMS_ERROR = 'Request params error'
 
+    SIGN_UP_ERROR = 'Sign up permission denied'
+
     PERMISSION_DENIED = 'Permission denied'
     ORDER_PARAMS_ERROR = 'Order field error'
     ORDER_PERMISSION_DENIED = 'Order field permission denied'

@@ -527,8 +527,8 @@ class ArticleService(Service):
             del article_dict['content']
         elif article.content_file:
             article_dict['content'] = article.content_file.read()
-        UserService.user_to_dict(article.author, article_dict, 'author')
-        UserService.user_to_dict(article.last_editor, article_dict, 'last_editor')
+        UserService.dict_add_user(article.author, article_dict, 'author')
+        UserService.dict_add_user(article.last_editor, article_dict, 'last_editor')
         article_dict['metadata'] = {}
         article_dict['metadata']['read_count'] = metadata.read_count if metadata else 0
         article_dict['metadata']['comment_count'] = metadata.comment_count if metadata else 0

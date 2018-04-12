@@ -336,16 +336,29 @@ class Service(object):
             self.role_level = instance.role_level
             return
         self.request = request
-        self.token = request.META.get('HTTP_AUTH_TOKEN') \
-            if auth_type == AuthType.HEADER else request.COOKIES.get('Auth-Token')
+        self.auth_type = auth_type
+        self.token = None
+        self.uuid, self.uid, self.role_id = None, None, None
+        self.permission = None
+        self.role_level = None
+        if auth_type != AuthType.NONE:
+            self._auth_init()
+
+    def _auth_init(self):
+        if self.auth_type == AuthType.HEADER:
+            self.token = self.request.META.get('HTTP_AUTH_TOKEN')
+        elif self.auth_type == AuthType.COOKIE:
+            self.token = self.request.COOKIES.get('Auth-Token')
         self.uuid, self.uid, self.role_id = Authorize().auth_token(self.token)
         self.permission = Grant().get_permission(role_id=self.role_id)
         try:
             self.role_level = self.permission['_role_level']
-        except KeyError:
+        except (KeyError, TypeError):
             raise AuthError(code=503, message=ErrorMsg.PERMISSION_KEY_ERROR + '_role_level')
 
     def has_permission(self, perm_name, raise_error=True):
+        if self.auth_type == AuthType.NONE:
+            return True
         if self._has_permission(perm_name):
             return True
         if raise_error:
@@ -356,7 +369,7 @@ class Service(object):
         try:
             if not self.permission[perm_name]['state']:
                 return False
-        except KeyError:
+        except (KeyError, TypeError):
             return False
         return True
 
@@ -365,11 +378,11 @@ class Service(object):
             return LevelObject(0), LevelObject(0)
         try:
             major_level = LevelObject(self.permission[perm_name]['major_level'])
-        except KeyError:
+        except (KeyError, TypeError):
             major_level = LevelObject(0)
         try:
             minor_level = LevelObject(self.permission[perm_name]['minor_level'])
-        except KeyError:
+        except (KeyError, TypeError):
             minor_level = LevelObject(0)
         return major_level, minor_level
 
@@ -378,7 +391,7 @@ class Service(object):
             return 0
         try:
             return self.permission[perm_name]['value']
-        except KeyError:
+        except (KeyError, TypeError):
             return 0
 
     @staticmethod
@@ -392,7 +405,7 @@ class Service(object):
     def is_unique(model_obj, exclude_id=None, **kwargs):
         try:
             if model_obj.objects.exclude(id=exclude_id).get(**kwargs):
-                raise ServiceError(message=ErrorMsg.DUPLICATE_IDENTITY)
+                raise ServiceError(code=409, message=ErrorMsg.DUPLICATE_IDENTITY)
         except model_obj.MultipleObjectsReturned:
             raise ServiceError(code=500, message=ErrorMsg.DUPLICATE_IDENTITY)
         except model_obj.DoesNotExist:

@@ -53,8 +53,7 @@ class UserService(Service):
             if privacy_dict:
                 user_dict['privacy_setting'] = privacy_dict
         except (User.DoesNotExist, UserPrivacySetting.DoesNotExist):
-            raise ServiceError(code=404,
-                               message=AccountErrorMsg.USER_NOT_FOUND)
+            raise ServiceError(code=404, message=AccountErrorMsg.USER_NOT_FOUND)
         return 200, user_dict
 
     def list(self, page=0, page_size=10, order_field=None, order='desc',
@@ -139,12 +138,13 @@ class UserService(Service):
         privacy_dict = model_to_dict(UserService._user_privacy_update(user, **kwargs))
         del privacy_dict['user']
         user_dict['privacy_setting'] = privacy_dict
-        for group_id in group_ids:
-            try:
-                user.groups.add(Group.objects.get(id=group_id))
-                user_dict['groups'].append(int(group_id))
-            except Group.DoesNotExist:
-                pass
+        if group_ids:
+            for group_id in group_ids:
+                try:
+                    user.groups.add(group_id)
+                    user_dict['groups'].append(int(group_id))
+                except Group.DoesNotExist:
+                    pass
         return 201, user_dict
 
     def update(self, user_uuid, username=None, old_password=None,
@@ -317,16 +317,28 @@ class UserService(Service):
             return None
 
     @staticmethod
-    def get_user_dict(user_id):
+    def user_to_dict(user, **kwargs):
+        user_dict = model_to_dict(user)
+        user_public_dict = {}
+        for user_field in UserService.USER_PUBLIC_FIELD:
+            user_public_dict[user_field] = user_dict[user_field]
+        for key in kwargs:
+            user_public_dict[key] = kwargs[key]
+        return user_public_dict
+
+    @staticmethod
+    def get_user_dict(user_id, **kwargs):
         user = User.objects.get(id=user_id)
         user_dict = model_to_dict(user)
         user_public_dict = {}
         for user_field in UserService.USER_PUBLIC_FIELD:
             user_public_dict[user_field] = user_dict[user_field]
+        for key in kwargs:
+            user_public_dict[key] = kwargs[key]
         return user_public_dict
 
     @staticmethod
-    def user_to_dict(user, dictionary, field):
+    def dict_add_user(user, dictionary, field):
         user_dict = model_to_dict(user)
         dictionary[field] = {}
         for user_field in UserService.USER_PUBLIC_FIELD:

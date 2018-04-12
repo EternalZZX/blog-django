@@ -448,9 +448,9 @@ class CommentService(Service):
     def _comment_to_dict(comment, metadata=None, **kwargs):
         comment_dict = model_to_dict(comment)
         if comment.reply_comment:
-            UserService.user_to_dict(comment.reply_comment.author, comment_dict, 'reply_user')
-        UserService.user_to_dict(comment.author, comment_dict, 'author')
-        UserService.user_to_dict(comment.last_editor, comment_dict, 'last_editor')
+            UserService.dict_add_user(comment.reply_comment.author, comment_dict, 'reply_user')
+        UserService.dict_add_user(comment.author, comment_dict, 'author')
+        UserService.dict_add_user(comment.last_editor, comment_dict, 'last_editor')
         comment_dict['metadata'] = {}
         comment_dict['metadata']['read_count'] = metadata.read_count if metadata else 0
         comment_dict['metadata']['comment_count'] = metadata.comment_count if metadata else 0

@@ -1,10 +1,11 @@
 from django.conf.urls import include, url
 
-from blog.account.views import auth
+from blog.account import views
 
 
 urlpatterns = [
-    url(r'^auth/$', auth),
+    url(r'^sign_in/$', views.sign_in),
+    url(r'^sign_up/$', views.sign_up),
     url(r'^users/', include('blog.account.users.urls')),
     url(r'^roles/', include('blog.account.roles.urls')),
 ]

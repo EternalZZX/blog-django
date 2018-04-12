@@ -410,8 +410,8 @@ class PhotoService(Service):
     @staticmethod
     def _photo_to_dict(photo, metadata=None, **kwargs):
         photo_dict = model_to_dict(photo)
-        UserService.user_to_dict(photo.author, photo_dict, 'author')
-        UserService.user_to_dict(photo.last_editor, photo_dict, 'last_editor')
+        UserService.dict_add_user(photo.author, photo_dict, 'author')
+        UserService.dict_add_user(photo.last_editor, photo_dict, 'last_editor')
         photo_dict['metadata'] = {}
         photo_dict['metadata']['read_count'] = metadata.read_count if metadata else 0
         photo_dict['metadata']['comment_count'] = metadata.comment_count if metadata else 0

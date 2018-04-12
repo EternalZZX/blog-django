@@ -100,8 +100,8 @@ def mark_list(request):
     @apiParam {string} [order_field] 标签信息列表排序字段
     @apiParam {string=desc, asc} [order="desc"] 标签信息列表排序方向
     @apiParam {string} [query] 搜索内容，若无搜索字段则全局搜索uuid, name, description, author, color
-    @apiParam {string=uuid, name, description, author, color, DjangoFilterParams}
-                       [query_field] 搜索字段, 支持Django filter参数
+    @apiParam {string=uuid, name, description, author, color, DjangoFilterParams} [query_field]
+                               搜索字段, 支持Django filter参数
     @apiSuccess {String} total 标签信息列表总数
     @apiSuccess {String} marks 标签信息列表
     @apiSuccessExample {json} Success-Response:
