@@ -103,7 +103,7 @@ class AlbumService(Service):
     def create(self, name, description=None, cover_uuid=None, author_uuid=None,
                privacy=Album.PUBLIC, system=None):
         create_level, _ = self.get_permission_level(PermissionName.ALBUM_CREATE)
-        album_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, (name + self.uuid + str(time.time())).encode('utf-8')))
+        album_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, ('%s%s%s' % (name, self.uuid, time.time())).encode('utf-8')))
         author_id = self.uid
         if author_uuid and create_level.is_gt_lv10():
             try:

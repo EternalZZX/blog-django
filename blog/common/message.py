@@ -10,8 +10,6 @@ class ErrorMsg:
     REQUEST_METHOD_ERROR = 'Request method error'
     REQUEST_PARAMS_ERROR = 'Request params error'
 
-    SIGN_UP_ERROR = 'Sign up permission denied'
-
     PERMISSION_DENIED = 'Permission denied'
     ORDER_PARAMS_ERROR = 'Order field error'
     ORDER_PERMISSION_DENIED = 'Order field permission denied'
@@ -29,6 +27,9 @@ class AccountErrorMsg:
     UNEXPECTED_FLAG = 'Unexpected token marks bit'
     TOKEN_TIMEOUT = 'Token timeout'
     PASSWORD_ERROR = 'Username and password do not match'
+
+    SIGN_UP_ERROR = 'Sign up permission denied'
+    GUEST_ERROR = 'Guest permission denied'
 
     USER_NOT_FOUND = 'User not found'
     ROLE_NOT_FOUND = 'Role not found'

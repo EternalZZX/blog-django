@@ -197,7 +197,7 @@ class UserService(Service):
         user.update_char_field('remark', remark)
         if role_id:
             user.role = self._get_update_role(role_id=role_id, user=user)
-            Authorize().update_token(uuid=user_uuid, role_id=role_id)
+            Authorize().update_token(uuid=user_uuid, role_id=role_id, update_stamp=False)
         if group_ids is not None and update_level.is_gt_lv10():
             user.groups.clear()
             for group_id in group_ids:

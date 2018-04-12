@@ -139,7 +139,8 @@ class PhotoService(Service):
         if create_level.is_lt_lv10() and count_level != -1 and \
                 count_level <= Photo.objects.filter(author__uid=self.uid).count():
             raise ServiceError(code=403, message=ContentErrorMsg.PHOTO_LIMIT_EXCEED)
-        photo_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, (description + self.uuid + str(time.time())).encode('utf-8')))
+        photo_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS,
+                                    ('%s%s%s' % (description, self.uuid, time.time())).encode('utf-8')))
         album = self._get_album(album_uuid=album_uuid)
         status = self._get_create_status(status=status)
         privacy = self._get_privacy(privacy=privacy)

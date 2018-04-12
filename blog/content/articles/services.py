@@ -42,6 +42,8 @@ class ArticleService(Service):
             get_permission, read_permission = self.has_get_permission(article=article)
             if not get_permission:
                 raise Article.DoesNotExist
+            if not read_permission:
+                raise ServiceError(code=403, message=ErrorMsg.PERMISSION_DENIED)
         except Article.DoesNotExist:
             raise ServiceError(code=404, message=ContentErrorMsg.ARTICLE_NOT_FOUND)
         if like_list_type is None:
@@ -137,7 +139,7 @@ class ArticleService(Service):
                content=None, section_id=None, status=Article.AUDIT,
                privacy=Article.PUBLIC, read_level=100, file_storage=False):
         self.has_permission(PermissionName.ARTICLE_CREATE)
-        article_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, (title + self.uuid + str(time.time())).encode('utf-8')))
+        article_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, ('%s%s%s' % (title, self.uuid, time.time())).encode('utf-8')))
         keyword_str = ''
         for keyword in keywords:
             keyword_str = keyword_str + keyword + ','

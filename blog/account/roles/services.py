@@ -115,7 +115,9 @@ class RoleService(Service):
                 if default_roles:
                     users.update(role=default_roles[0])
                     for user in users:
-                        Authorize().update_token(uuid=user.uuid, role_id=default_roles[0].id)
+                        Authorize().update_token(uuid=user.uuid,
+                                                 role_id=default_roles[0].id,
+                                                 update_stamp=False)
                 else:
                     raise ServiceError(code=403, message=AccountErrorMsg.NO_DEFAULT_ROLE)
             role.delete()

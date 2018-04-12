@@ -131,7 +131,7 @@ class CommentService(Service):
         resource, section = self._get_resource(resource_type, resource_uuid)
         dialog_uuid, reply_comment = self._get_reply(reply_uuid=reply_uuid, resource_uuid=resource_uuid)
         comment_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS,
-                                      (resource_uuid + self.uuid + str(time.time())).encode('utf-8')))
+                                      ('%s%s%s' % (resource_uuid, self.uuid, time.time())).encode('utf-8')))
         status = self._get_create_status(status=status, section=section)
         comment = Comment.objects.create(uuid=comment_uuid,
                                          resource_type=resource_type,
@@ -409,9 +409,8 @@ class CommentService(Service):
                 if reply_comment.dialog_uuid and reply_comment.reply_comment.author_id == self.uid:
                     dialog_uuid = reply_comment.dialog_uuid
                 else:
-                    dialog_uuid = reply_uuid + ' ' + \
-                                  str(uuid.uuid5(uuid.NAMESPACE_DNS,
-                                                 (reply_uuid + self.uuid + str(time.time())).encode('utf-8')))
+                    stamp = ('%s%s%s' % (reply_uuid, self.uuid, time.time())).encode('utf-8')
+                    dialog_uuid = '%s %s' % (reply_uuid, uuid.uuid5(uuid.NAMESPACE_DNS, stamp))
             except Comment.DoesNotExist:
                 raise ServiceError(code=404, message=ContentErrorMsg.COMMENT_NOT_FOUND)
         return dialog_uuid, reply_comment

@@ -7,6 +7,7 @@ import memcache
 import random
 import time
 import json
+import uuid as identifier
 
 from functools import reduce
 from abc import ABCMeta, abstractmethod
@@ -119,7 +120,15 @@ class Authorize(object):
             self._save_token(uuid=uuid, md5=md5)
         return token
 
-    def update_token(self, token=None, uuid=None, role_id=None):
+    def gen_guest_token(self):
+        md5 = get_md5(str(random.random()))
+        uuid = str(identifier.uuid5(identifier.NAMESPACE_DNS, ('%s%s' % (md5, time.time())).encode('utf-8')))
+        role_id = Setting().GUEST_ROLE
+        token = base64.b64encode('ETE%s%s' % (md5, base64.b64encode(uuid))).rstrip('=')
+        self._save_token(uuid=uuid, md5=md5, user_id=0, role_id=role_id)
+        return {'token': token, 'uuid': uuid, 'role': role_id}
+
+    def update_token(self, token=None, uuid=None, role_id=None, update_stamp=True):
         if uuid and RedisClient().get(name=uuid):
             user_id, role_id_stamp, md5_stamp, time_stamp = self._parse_memcached_value(uuid=uuid)
             token = base64.b64encode('ETE%s%s' % (md5_stamp, base64.b64encode(uuid))).rstrip('=')
@@ -127,8 +136,8 @@ class Authorize(object):
             uuid, user_id, role_id_stamp, md5_stamp, time_stamp = self._auth_token_md5(token=token)
         else:
             return None
-        time_stamp = time_stamp if role_id else None
-        role_id = role_id if role_id else role_id_stamp
+        time_stamp = time_stamp if update_stamp else None
+        role_id = role_id_stamp if role_id is None else role_id
         if uuid and md5_stamp:
             self._save_token(uuid=uuid,
                              md5=md5_stamp,
@@ -148,8 +157,9 @@ class Authorize(object):
         self._save_token(uuid=uuid, md5=md5_stamp, user_id=user_id, role_id=role_id)
         return uuid, user_id, role_id
 
-    @staticmethod
-    def cancel_token(uuid):
+    def cancel_token(self, uuid=None, token=None):
+        if not uuid:
+            uuid, md5 = self._parse_token(token=token)
         RedisClient().delete(uuid)
 
     def _auth_token_md5(self, token):
@@ -167,14 +177,14 @@ class Authorize(object):
     def _save_token(uuid, md5, time_stamp=None, user_id=None, role_id=None):
         if not time_stamp:
             time_stamp = str(int(time.time()))
-        if not user_id or not role_id:
+        if user_id is None or role_id is None:
             try:
                 user = User.objects.get(uuid=uuid)
                 user_id = user.id
                 role_id = user.role.id
             except User.DoesNotExist:
                 raise AuthError()
-        if not user_id or not role_id:
+        if user_id is None or role_id is None:
             raise AuthError()
         value = '%s&%s&%s&%s' % (md5, time_stamp, user_id, role_id)
         RedisClient().set(name=uuid, value=value, ex=Setting().TOKEN_EXPIRATION_TIME)
@@ -330,6 +340,7 @@ class Service(object):
     def __init__(self, request, instance=None, auth_type=AuthType.HEADER):
         if instance:
             self.request = instance.request
+            self.auth_type = instance.auth_type
             self.token = instance.token
             self.uuid, self.uid, self.role_id = instance.uuid, instance.uid, instance.role_id
             self.permission = instance.permission

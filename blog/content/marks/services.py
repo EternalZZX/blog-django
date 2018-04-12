@@ -93,7 +93,7 @@ class MarkService(Service):
     def create(self, name, description=None, color=None, privacy=Mark.PUBLIC,
                author_uuid=None, resource_type=None, resource_uuid=None):
         create_level, _ = self.get_permission_level(PermissionName.MARK_CREATE)
-        mark_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, (name + self.uuid + str(time.time())).encode('utf-8')))
+        mark_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, ('%s%s%s' % (name, self.uuid, time.time())).encode('utf-8')))
         privacy = self._get_privacy(privacy=privacy)
         author_id = self.uid
         if author_uuid and create_level.is_gt_lv10():
@@ -198,7 +198,8 @@ class MarkService(Service):
                                                                resource_uuid=resource_uuid)
         return resource
 
-    def _detach_resource(self, mark, resource_type, resource_uuid):
+    @staticmethod
+    def _detach_resource(mark, resource_type, resource_uuid):
         if resource_type is None or not resource_uuid:
             return
         resources = MarkResource.objects.filter(mark=mark,

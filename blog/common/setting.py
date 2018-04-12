@@ -13,6 +13,8 @@ class Setting(StaticObject):
     TOKEN_EXPIRATION_TIME = 604800
     SIGN_UP = True
     SIGN_UP_KEY = False
+    GUEST = True
+    GUEST_ROLE = 3
     USER_CANCEL = True
     USERNAME_UPDATE = False
     NICK_UPDATE = True
@@ -37,27 +39,14 @@ class Setting(StaticObject):
     @classmethod
     def load_setting(cls):
         settings = ServerSetting.objects.all()
+        int_setting_keys = ['TOKEN_EXPIRATION_TIME', 'GUEST_ROLE',
+                            'PHOTO_LARGE_SIZE', 'PHOTO_MIDDLE_SIZE',
+                            'PHOTO_SMALL_SIZE', 'HOT_EXPIRATION_TIME']
         try:
-            cls.SESSION_LIMIT = cls._format_value(settings.get(key=SettingKey.SESSION_LIMIT).value)
-            cls.TOKEN_EXPIRATION = cls._format_value(settings.get(key=SettingKey.TOKEN_EXPIRATION).value)
-            cls.TOKEN_EXPIRATION_TIME = cls._format_value(settings.get(key=SettingKey.TOKEN_EXPIRATION_TIME).value,
-                                                          'int')
-            cls.SIGN_UP = cls._format_value(settings.get(key=SettingKey.SIGN_UP).value)
-            cls.SIGN_UP_KEY = cls._format_value(settings.get(key=SettingKey.SIGN_UP_KEY).value)
-            cls.USER_CANCEL = cls._format_value(settings.get(key=SettingKey.USER_CANCEL).value)
-            cls.USERNAME_UPDATE = cls._format_value(settings.get(key=SettingKey.USERNAME_UPDATE).value)
-            cls.NICK_UPDATE = cls._format_value(settings.get(key=SettingKey.NICK_UPDATE).value)
-            cls.ARTICLE_CANCEL = cls._format_value(settings.get(key=SettingKey.ARTICLE_CANCEL).value)
-            cls.ARTICLE_AUDIT = cls._format_value(settings.get(key=SettingKey.ARTICLE_AUDIT).value)
-            cls.COMMENT_CANCEL = cls._format_value(settings.get(key=SettingKey.COMMENT_CANCEL).value)
-            cls.COMMENT_AUDIT = cls._format_value(settings.get(key=SettingKey.COMMENT_AUDIT).value)
-            cls.PHOTO_CANCEL = cls._format_value(settings.get(key=SettingKey.ARTICLE_CANCEL).value)
-            cls.PHOTO_AUDIT = cls._format_value(settings.get(key=SettingKey.PHOTO_AUDIT).value)
-            cls.PHOTO_THUMBNAIL = cls._format_value(settings.get(key=SettingKey.PHOTO_THUMBNAIL).value)
-            cls.PHOTO_LARGE_SIZE = cls._format_value(settings.get(key=SettingKey.PHOTO_LARGE_SIZE).value, 'int')
-            cls.PHOTO_MIDDLE_SIZE = cls._format_value(settings.get(key=SettingKey.PHOTO_MIDDLE_SIZE).value, 'int')
-            cls.PHOTO_SMALL_SIZE = cls._format_value(settings.get(key=SettingKey.PHOTO_SMALL_SIZE).value, 'int')
-            cls.HOT_EXPIRATION_TIME = cls._format_value(settings.get(key=SettingKey.HOT_EXPIRATION_TIME).value, 'int')
+            for k, v in SettingKey():
+                value = cls._format_value(settings.get(key=v).value, 'int') \
+                    if k in int_setting_keys else cls._format_value(settings.get(key=v).value)
+                setattr(cls, k, value)
         except ServerSetting.DoesNotExist:
             raise ServerError(code=503, message=ErrorMsg.SETTING_ERROR)
 
@@ -83,6 +72,8 @@ class SettingKey(StaticObject):
     TOKEN_EXPIRATION_TIME = 'token_expiration_time'
     SIGN_UP = 'sign_up'
     SIGN_UP_KEY = 'sign_up_key'
+    GUEST = 'guest'
+    GUEST_ROLE = 'guest_role'
     USER_CANCEL = 'user_cancel'
     USERNAME_UPDATE = 'username_update'
     NICK_UPDATE = 'nick_update'
@@ -188,3 +179,4 @@ class AuthType(StaticObject):
     NONE = 0
     HEADER = 1
     COOKIE = 2
+
