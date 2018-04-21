@@ -107,8 +107,8 @@ ENV/
 .idea
 
 # migrations
-migrations/
-!__init__.py
+*_auto_*
+*_initial.py
 
 # data
 /data/
