@@ -100,6 +100,11 @@ MEDIA_URL = '/media/'
 
 APPEND_SLASH = False
 
+# Token Key
+HEADER_KEY = 'Auth-Token'
+TOKEN_COOKIE_KEY = 'BLOG-TOKEN'
+TOKEN_HEADER_KEY = 'HTTP_%s' % HEADER_KEY.replace('-', '_').upper()
+
 # Redis
 REDIS_HOSTS = '127.0.0.1'
 REDIS_PASSWORD = 'qwer4321'

@@ -20,7 +20,7 @@ from blog.common.error import AuthError, ServiceError
 from blog.common.message import ErrorMsg, AccountErrorMsg
 from blog.common.setting import Setting, PermissionName, PermissionLevel, AuthType
 from blog.common.utils import ignored, get_md5
-from blog.settings import REDIS_HOSTS, REDIS_PASSWORD, MEMCACHED_HOSTS
+from blog.settings import TOKEN_HEADER_KEY, TOKEN_COOKIE_KEY, REDIS_HOSTS, REDIS_PASSWORD, MEMCACHED_HOSTS
 
 
 class RedisClient(object):
@@ -357,9 +357,9 @@ class Service(object):
 
     def _auth_init(self):
         if self.auth_type == AuthType.HEADER:
-            self.token = self.request.META.get('HTTP_AUTH_TOKEN')
+            self.token = self.request.META.get(TOKEN_HEADER_KEY)
         elif self.auth_type == AuthType.COOKIE:
-            self.token = self.request.COOKIES.get('Auth-Token')
+            self.token = self.request.COOKIES.get(TOKEN_COOKIE_KEY)
         self.uuid, self.uid, self.role_id = Authorize().auth_token(self.token)
         self.permission = Grant().get_permission(role_id=self.role_id)
         try:
