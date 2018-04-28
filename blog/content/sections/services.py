@@ -90,8 +90,7 @@ class SectionService(Service):
                                        message=ErrorMsg.QUERY_PERMISSION_DENIED)
                 sections = self.query_by_list(sections, [{query_field: item} for item in str_to_list(query)])
             elif query_level.is_gt_lv2():
-                sections = sections.filter(Q(id=query) |
-                                           Q(name__icontains=query) |
+                sections = sections.filter(Q(name__icontains=query) |
                                            Q(nick__icontains=query) |
                                            Q(description__icontains=query))
             else:
@@ -388,7 +387,7 @@ class SectionMetadataService(object):
         owner_uuid = self.redis_client.get(name=owner_key)
         moderator_uuids = self.redis_client.set_all(name=moderator_key)
         assistant_uuids = self.redis_client.set_all(name=assistant_key)
-        if not owner_uuid or not moderator_uuids or not assistant_uuids:
+        if not owner_uuid:
             return self.update_manager(section=section)
         return self.Manager(owner_uuid, moderator_uuids, assistant_uuids)
 
@@ -410,8 +409,10 @@ class SectionMetadataService(object):
         owner_key, moderator_key, assistant_key = self._get_manager_key(section.id)
         self.redis_client.delete(moderator_key, assistant_key)
         self.redis_client.set(name=owner_key, value=manager.owner_uuid)
-        self.redis_client.set_add(moderator_key, *manager.moderator_uuids)
-        self.redis_client.set_add(assistant_key, *manager.assistant_uuids)
+        if manager.moderator_uuids:
+            self.redis_client.set_add(moderator_key, *manager.moderator_uuids)
+        if manager.assistant_uuids:
+            self.redis_client.set_add(assistant_key, *manager.assistant_uuids)
 
     def _get_manager_key(self, section_id):
         owner_key = '%s&%s' % (self.OWNER_KEY, section_id)

@@ -53,8 +53,7 @@ class RoleService(Service):
                                        message=ErrorMsg.QUERY_PERMISSION_DENIED)
                 roles = self.query_by_list(roles, [{query_field: item} for item in str_to_list(query)])
             elif query_level.is_gt_lv2():
-                roles = roles.filter(Q(id=query) |
-                                     Q(name__icontains=query) |
+                roles = roles.filter(Q(name__icontains=query) |
                                      Q(nick__icontains=query))
             else:
                 raise ServiceError(code=403,
