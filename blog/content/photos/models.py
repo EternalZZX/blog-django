@@ -43,7 +43,7 @@ class Photo(models.Model, BaseModel):
     image_middle = models.ImageField(upload_to=photo_middle_path, null=True)
     image_small = models.ImageField(upload_to=photo_small_path, null=True)
     image_untreated = models.ImageField(upload_to=photo_untreated_path, null=True)
-    description = models.CharField(max_length=200)
+    description = models.CharField(max_length=200, null=True)
     author = models.ForeignKey(to=User, related_name='photos_create')
     album = models.ForeignKey(Album, null=True, on_delete=models.SET_NULL)
     status = models.IntegerField(choices=STATUS_CHOICES, default=ACTIVE)

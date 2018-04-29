@@ -152,7 +152,8 @@ def photo_list(request):
     @apiParam {string} [order_field] 照片信息列表排序字段
     @apiParam {string=desc, asc} [order="desc"] 照片信息列表排序方向
     @apiParam {string} [query] 搜索内容，若无搜索字段则全局搜索description, author, album
-    @apiParam {string=uuid, description, author, album, status, DjangoFilterParams} [query_field] 搜索字段, 支持Django filter参数
+    @apiParam {string=uuid, description, author, album, status, DjangoFilterParams} [query_field] 搜索字段,
+                                                                                                  支持Django filter参数
     @apiSuccess {String} total 照片信息列表总数
     @apiSuccess {String} photos 照片信息列表
     @apiSuccessExample {json} Success-Response:
@@ -236,7 +237,7 @@ def photo_create(request):
     @apiPermission PHOTO_AUDIT
     @apiUse Header
     @apiParam {file} image 照片文件
-    @apiParam {string} description 照片描述
+    @apiParam {string} [description] 照片描述
     @apiParam {string} [album_uuid] 照片所属相册UUID
     @apiParam {number=0, 1, 2, 3, 4, 5} [status=1] 照片状态, Cancel=0, Active=1, Audit=2,
                                                    Failed=3, Recycled=4
