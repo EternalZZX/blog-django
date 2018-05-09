@@ -2,8 +2,10 @@
 # -*- coding: utf-8 -*-
 
 from django.http import QueryDict
+from django.views.decorators.http import require_GET
 
 from blog.account.users.services import UserService
+from blog.common.base import Authorize
 from blog.common.error import ParamsError
 from blog.common.message import ErrorMsg
 from blog.common.utils import Response, json_response, str_to_list
@@ -25,6 +27,47 @@ def user_operate(request, uuid=None):
     else:
         response = Response(code=405, data=ErrorMsg.REQUEST_METHOD_ERROR)
     return response
+
+
+@json_response
+@require_GET
+def user_self(request):
+    """
+    @api {get} /account/users/self/ user get self info
+    @apiVersion 0.1.0
+    @apiName user_self
+    @apiGroup account
+    @apiDescription 获取用户自身信息详情
+    @apiUse Header
+    @apiSuccess {string} data 用户信息详情
+    @apiSuccessExample {json} Success-Response:
+    HTTP/1.1 200 OK
+    {
+        "data": {
+            "remark": null,
+            "uuid": "7357d28a-a611-5efd-ae6e-a550a5b95487",
+            "create_at": "2017-12-20T11:19:17Z",
+            "nick": "test",
+            "role": 2,
+            "avatar": "/media/photos/7357d28a-a611-5efd-ae6e-a550a5b95487.jpeg",
+            "groups": []
+        }
+    }
+    @apiUse ErrorData
+    @apiErrorExample {json} Error-Response:
+    HTTP/1.1 403 Forbidden
+    {
+        "data": "Permission denied"
+    }
+    """
+    request_token = request.META.get('HTTP_AUTH_TOKEN')
+    try:
+        uuid, user_id, role_id = Authorize().auth_token(request_token)
+        code, data = 200, UserService.get_user_dict(user_id=user_id)
+    except Exception as e:
+        code, data = getattr(e, 'code', 400), \
+                     getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
+    return Response(code=code, data=data)
 
 
 def user_get(request, uuid):

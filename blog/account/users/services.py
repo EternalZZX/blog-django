@@ -328,6 +328,7 @@ class UserService(Service):
 
     @staticmethod
     def get_user_dict(user_id, **kwargs):
+        # Todo return something when user canceled
         user = User.objects.get(id=user_id)
         user_dict = model_to_dict(user)
         user_public_dict = {}
