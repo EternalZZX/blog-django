@@ -111,12 +111,16 @@ class MemcachedClient(object):
 
 
 class Authorize(object):
+    TOKEN_FLAG = 'ETERN'
+    GUEST_FLAG = 'GUEST'
+
     def gen_token(self, uuid):
         if not Setting().SESSION_LIMIT and RedisClient().get(name=uuid):
             token = self.update_token(uuid=uuid)
         else:
             md5 = get_md5(str(random.random()))
-            token = base64.b64encode('ETE%s%s' % (md5, base64.b64encode(uuid))).rstrip('=')
+            token = base64.b64encode('%s%s' % (md5, base64.b64encode(uuid))).rstrip('=')
+            token = '%s%s' % (self.TOKEN_FLAG, token)
             self._save_token(uuid=uuid, md5=md5)
         return token
 
@@ -124,14 +128,20 @@ class Authorize(object):
         md5 = get_md5(str(random.random()))
         uuid = str(identifier.uuid5(identifier.NAMESPACE_DNS, ('%s%s' % (md5, time.time())).encode('utf-8')))
         role_id = Setting().GUEST_ROLE
-        token = base64.b64encode('ETE%s%s' % (md5, base64.b64encode(uuid))).rstrip('=')
+        token = base64.b64encode('%s%s' % (md5, base64.b64encode(uuid))).rstrip('=')
+        token = '%s%s' % (self.GUEST_FLAG, token)
         self._save_token(uuid=uuid, md5=md5, user_id=0, role_id=role_id)
         return {'token': token, 'uuid': uuid, 'role': role_id}
 
     def update_token(self, token=None, uuid=None, role_id=None, update_stamp=True):
         if uuid and RedisClient().get(name=uuid):
-            user_id, role_id_stamp, md5_stamp, time_stamp = self._parse_memcached_value(uuid=uuid)
-            token = base64.b64encode('ETE%s%s' % (md5_stamp, base64.b64encode(uuid))).rstrip('=')
+            user_id, role_id_stamp, md5_stamp, time_stamp = self._parse_cache_value(uuid=uuid)
+            token = base64.b64encode('%s%s' % (md5_stamp, base64.b64encode(uuid))).rstrip('=')
+            if role_id == Setting().GUEST_ROLE or \
+                    role_id is None and role_id_stamp == Setting().GUEST_ROLE:
+                token = '%s%s' % (self.GUEST_FLAG, token)
+            else:
+                token = '%s%s' % (self.TOKEN_FLAG, token)
         elif token:
             uuid, user_id, role_id_stamp, md5_stamp, time_stamp = self._auth_token_md5(token=token)
         else:
@@ -166,7 +176,7 @@ class Authorize(object):
         uuid, md5 = self._parse_token(token=token)
         if not uuid:
             raise AuthError()
-        user_id, role_id, md5_stamp, time_stamp = self._parse_memcached_value(uuid=uuid)
+        user_id, role_id, md5_stamp, time_stamp = self._parse_cache_value(uuid=uuid)
         if not md5_stamp:
             raise AuthError(code=419, message=AccountErrorMsg.TOKEN_TIMEOUT)
         if md5_stamp != md5:
@@ -191,9 +201,12 @@ class Authorize(object):
 
     @staticmethod
     def _parse_token(token):
-        if token and len(token) > 4:
-            code = token
-            num = 4 - (len(token) % 4)
+        flag_len = len(Authorize.TOKEN_FLAG)
+        if token and len(token) > flag_len + 4:
+            if token[:flag_len] not in (Authorize.TOKEN_FLAG, Authorize.GUEST_FLAG):
+                return None, None
+            code = token[flag_len:]
+            num = 4 - (len(code) % 4)
             if num < 4:
                 for i in range(num):
                     code += '='
@@ -201,12 +214,12 @@ class Authorize(object):
                 code = base64.b64decode(code)
             except TypeError:
                 return None, None
-            if len(code) > 35 and code[:3] == 'ETE':
-                return base64.b64decode(code[35:]), code[3:35]
+            if len(code) > 32:
+                return base64.b64decode(code[32:]), code[:32]
         return None, None
 
     @staticmethod
-    def _parse_memcached_value(uuid):
+    def _parse_cache_value(uuid):
         value = RedisClient().get(name=uuid)
         if not value:
             return None, None, None, None

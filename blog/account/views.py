@@ -49,7 +49,6 @@ def sign_in(request):
     """
     username = request.POST.get('username')
     password = request.POST.get('password')
-    request_token = request.META.get('HTTP_AUTH_TOKEN')
     if username and password:
         try:
             user = User.objects.get(username=username)
@@ -57,8 +56,6 @@ def sign_in(request):
                 raise AuthError()
             code, data = 200, UserService.user_to_dict(user=user,
                                                        token=Authorize().gen_token(uuid=user.uuid))
-            if request_token:
-                Authorize().cancel_token(token=request_token)
         except (User.DoesNotExist, AuthError):
             code, data = 403, AccountErrorMsg.PASSWORD_ERROR
     else:
@@ -159,6 +156,7 @@ def sign_up(request):
     if Setting().SIGN_UP:
         username = request.POST.get('username')
         password = request.POST.get('password')
+        request_token = request.META.get('HTTP_AUTH_TOKEN')
         try:
             if not username or not password:
                 raise ParamsError()
@@ -166,6 +164,8 @@ def sign_up(request):
                                                                               password=password)
             if code is 201:
                 code, data['token'] = 200, Authorize().gen_token(uuid=data['uuid'])
+                if request_token:
+                    Authorize().cancel_token(token=request_token)
         except Exception as e:
             code, data = getattr(e, 'code', 400), \
                          getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
