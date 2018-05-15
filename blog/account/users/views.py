@@ -33,7 +33,7 @@ def user_operate(request, uuid=None):
 @require_GET
 def user_self(request):
     """
-    @api {get} /account/users/self/ user get self info
+    @api {get} /account/users/self/ user self
     @apiVersion 0.1.0
     @apiName user_self
     @apiGroup account

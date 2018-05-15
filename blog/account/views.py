@@ -49,6 +49,9 @@ def sign_in(request):
     """
     username = request.POST.get('username')
     password = request.POST.get('password')
+    request_token = request.META.get('HTTP_AUTH_TOKEN')
+    if request_token:
+        Authorize().cancel_token(token=request_token)
     if username and password:
         try:
             user = User.objects.get(username=username)
