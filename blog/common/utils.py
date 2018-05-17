@@ -88,13 +88,13 @@ def ignored(*exceptions):
 
 
 def paging(object_list, page=0, page_size=10):
-    total = len(object_list)
+    total, page, page_size = len(object_list), int(page), int(page_size)
     if page <= 0:
         return object_list, total
     try:
         paginator = Paginator(object_list, page_size)
         if page > paginator.num_pages:
-            page = paginator.num_pages
+            return [], total
         page_list = paginator.page(page).object_list
     except (EmptyPage, InvalidPage, PageNotAnInteger):
         page_list = object_list
