@@ -30,6 +30,7 @@ class Mark(models.Model, BaseModel):
 
     class Meta:
         db_table = 'mark'
+        ordering = ['id']
 
 
 class MarkResource(models.Model):

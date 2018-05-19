@@ -35,6 +35,7 @@ class Section(models.Model, BaseModel):
 
     class Meta:
         db_table = 'section'
+        ordering = ['id']
 
 
 class SectionPolicy(models.Model):

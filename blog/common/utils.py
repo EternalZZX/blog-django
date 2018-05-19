@@ -126,6 +126,23 @@ def model_to_dict(instance, **kwargs):
     return data
 
 
+def request_parser(data, params):
+    params_dict = {}
+    for key, value in data.items():
+        if value is not None and key in params.keys():
+            if params[key] == str:
+                params_dict[key] = value
+            elif params[key] == bool:
+                params_dict[key] = value == 'true'
+            elif params[key] == int:
+                params_dict[key] = int(value)
+            elif params[key] == list:
+                params_dict[key] = str_to_list(value)
+            else:
+                params_dict[key] = value
+    return params_dict
+
+
 def str_to_list(data):
     if isinstance(data, (unicode, str)):
         return [item for item in data.split(',') if item]

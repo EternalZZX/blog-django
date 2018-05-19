@@ -55,6 +55,7 @@ class Photo(models.Model, BaseModel):
 
     class Meta:
         db_table = 'photo'
+        ordering = ['id']
 
 
 class PhotoMetaData(models.Model):

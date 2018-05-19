@@ -43,6 +43,7 @@ class Album(models.Model, BaseModel):
 
     class Meta:
         db_table = 'album'
+        ordering = ['id']
 
 
 class AlbumMetaData(models.Model):

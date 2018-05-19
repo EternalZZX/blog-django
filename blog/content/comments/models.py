@@ -51,6 +51,7 @@ class Comment(models.Model):
 
     class Meta:
         db_table = 'comment'
+        ordering = ['id']
 
 
 class CommentMetaData(models.Model):

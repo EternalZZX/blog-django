@@ -7,7 +7,7 @@ from blog.account.roles.services import RoleService
 from blog.common.message import ErrorMsg
 from blog.common.setting import PermissionName
 from blog.common.error import ParamsError
-from blog.common.utils import Response, json_response
+from blog.common.utils import Response, json_response, request_parser
 
 
 @json_response
@@ -126,19 +126,17 @@ def role_list(request):
         "data": "Order field permission denied"
     }
     """
-    page = request.GET.get('page')
-    page_size = request.GET.get('page_size')
-    order_field = request.GET.get('order_field')
-    order = request.GET.get('order')
-    query = request.GET.get('query')
-    query_field = request.GET.get('query_field')
+    params = {
+        'page': int,
+        'page_size': int,
+        'order_field': str,
+        'order': str,
+        'query': str,
+        'query_field': str
+    }
     try:
-        code, data = RoleService(request).list(page=page,
-                                               page_size=page_size,
-                                               order_field=order_field,
-                                               order=order,
-                                               query=query,
-                                               query_field=query_field)
+        params_dict = request_parser(data=request.GET, params=params)
+        code, data = RoleService(request).list(**params_dict)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
@@ -191,21 +189,21 @@ def role_create(request):
         "data": "Duplicate identity field"
     }
     """
-    name = request.POST.get('name')
-    nick = request.POST.get('nick')
-    role_level = request.POST.get('role_level')
-    default = request.POST.get('default') == 'true'
-    kwargs = {}
-    for k, v in PermissionName():
-        json_str = request.POST.get(v)
-        if json_str:
-            kwargs[v] = json_str
+    params = {
+        'name': str,
+        'nick': str,
+        'role_level': int,
+        'default': bool
+    }
     try:
-        code, data = RoleService(request).create(name=name,
-                                                 nick=nick,
-                                                 role_level=role_level,
-                                                 default=default,
-                                                 **kwargs)
+        params_dict = request_parser(data=request.POST, params=params)
+        kwargs = {}
+        for k, v in PermissionName():
+            json_str = request.POST.get(v)
+            if json_str:
+                kwargs[v] = json_str
+        params_dict.update(kwargs)
+        code, data = RoleService(request).create(**params_dict)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
@@ -258,25 +256,23 @@ def role_update(request, role_id):
         "data": "Role not found"
     }
     """
-    data = QueryDict(request.body)
-    name = data.get('name')
-    nick = data.get('nick')
-    role_level = data.get('role_level')
-    default = data.get('default')
-    kwargs = {}
-    for k, v in PermissionName():
-        json_str = data.get(v)
-        if json_str:
-            kwargs[v] = json_str
+    params = {
+        'name': str,
+        'nick': str,
+        'role_level': int,
+        'default': bool
+    }
     try:
-        if default is not None:
-            default = default == 'true'
+        data = QueryDict(request.body)
+        params_dict = request_parser(data=data, params=params)
+        kwargs = {}
+        for k, v in PermissionName():
+            json_str = data.get(v)
+            if json_str:
+                kwargs[v] = json_str
+        params_dict.update(kwargs)
         code, data = RoleService(request).update(role_id=role_id,
-                                                 name=name,
-                                                 nick=nick,
-                                                 role_level=role_level,
-                                                 default=default,
-                                                 **kwargs)
+                                                 **params_dict)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)

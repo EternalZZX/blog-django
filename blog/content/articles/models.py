@@ -56,6 +56,7 @@ class Article(models.Model, BaseModel):
 
     class Meta:
         db_table = 'article'
+        ordering = ['id']
 
 
 class ArticleMetaData(models.Model):

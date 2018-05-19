@@ -12,6 +12,7 @@ class Role(models.Model):
 
     class Meta:
         db_table = 'role'
+        ordering = ['id']
 
 
 class Permission(models.Model):

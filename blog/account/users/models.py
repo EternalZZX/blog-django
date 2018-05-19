@@ -45,6 +45,7 @@ class User(models.Model, BaseModel):
 
     class Meta:
         db_table = 'user'
+        ordering = ['id']
 
 
 class UserPrivacySetting(models.Model):
