@@ -263,11 +263,11 @@ def role_update(request, role_id):
         'default': bool
     }
     try:
-        data = QueryDict(request.body)
-        params_dict = request_parser(data=data, params=params)
+        body = QueryDict(request.body)
+        params_dict = request_parser(data=body, params=params)
         kwargs = {}
         for k, v in PermissionName():
-            json_str = data.get(v)
+            json_str = body.get(v)
             if json_str:
                 kwargs[v] = json_str
         params_dict.update(kwargs)

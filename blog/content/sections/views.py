@@ -6,7 +6,7 @@ from django.http import QueryDict
 from blog.content.sections.services import SectionService
 from blog.common.message import ErrorMsg
 from blog.common.error import ParamsError
-from blog.common.utils import Response, json_response, str_to_list
+from blog.common.utils import Response, json_response, request_parser
 
 
 @json_response
@@ -162,19 +162,17 @@ def section_list(request):
         "data": "Query permission denied"
     }
     """
-    page = request.GET.get('page')
-    page_size = request.GET.get('page_size')
-    order_field = request.GET.get('order_field')
-    order = request.GET.get('order')
-    query = request.GET.get('query')
-    query_field = request.GET.get('query_field')
+    params = {
+        'page': int,
+        'page_size': int,
+        'order_field': str,
+        'order': str,
+        'query': str,
+        'query_field': str
+    }
     try:
-        code, data = SectionService(request).list(page=page,
-                                                  page_size=page_size,
-                                                  order_field=order_field,
-                                                  order=order,
-                                                  query=query,
-                                                  query_field=query_field)
+        params_dict = request_parser(data=request.GET, params=params)
+        code, data = SectionService(request).list(**params_dict)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
@@ -298,42 +296,30 @@ def section_create(request):
         "data": "Duplicate identity field"
     }
     """
-    name = request.POST.get('name')
-    nick = request.POST.get('nick')
-    description = request.POST.get('description')
-    cover_uuid = request.POST.get('cover_uuid')
-    owner_uuid = request.POST.get('owner_uuid')
-    moderator_uuids = request.POST.get('moderator_uuids')
-    assistant_uuids = request.POST.get('assistant_uuids')
-    status = request.POST.get('status')
-    read_level = request.POST.get('read_level')
-    only_roles = request.POST.get('only_roles') == 'true'
-    role_ids = request.POST.get('role_ids')
-    only_groups = request.POST.get('only_groups') == 'true'
-    group_ids = request.POST.get('group_ids')
-    kwargs = {}
-    for key in (SectionService.SECTION_POLICY_FIELD + SectionService.SECTION_PERMISSION_FIELD):
-        value = request.POST.get(key)
-        if value is not None:
-            kwargs[key] = value
+    params = {
+        'name': str,
+        'nick': str,
+        'description': str,
+        'cover_uuid': str,
+        'owner_uuid': str,
+        'moderator_uuids': list,
+        'assistant_uuids': list,
+        'status': int,
+        'read_level': int,
+        'only_roles': bool,
+        'role_ids': list,
+        'only_groups': bool,
+        'group_ids': list,
+    }
     try:
-        moderator_uuids = str_to_list(moderator_uuids)
-        assistant_uuids = str_to_list(assistant_uuids)
-        role_ids = str_to_list(role_ids)
-        group_ids = str_to_list(group_ids)
-        code, data = SectionService(request).create(name=name,
-                                                    nick=nick,
-                                                    description=description,
-                                                    cover_uuid=cover_uuid,
-                                                    owner_uuid=owner_uuid,
-                                                    moderator_uuids=moderator_uuids,
-                                                    assistant_uuids=assistant_uuids,
-                                                    status=status,
-                                                    read_level=read_level,
-                                                    only_roles=only_roles,
-                                                    role_ids=role_ids,
-                                                    only_groups=only_groups,
-                                                    group_ids=group_ids, **kwargs)
+        params_dict = request_parser(data=request.POST, params=params)
+        kwargs = {}
+        for key in (SectionService.SECTION_POLICY_FIELD + SectionService.SECTION_PERMISSION_FIELD):
+            value = request.POST.get(key)
+            if value is not None:
+                kwargs[key] = value
+        params_dict.update(kwargs)
+        code, data = SectionService(request).create(**params_dict)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
@@ -457,51 +443,32 @@ def section_update(request, section_id):
         "data": "Section not found"
     }
     """
-    data = QueryDict(request.body)
-    name = data.get('name')
-    nick = data.get('nick')
-    description = data.get('description')
-    cover_uuid = data.get('cover_uuid')
-    owner_uuid = data.get('owner_uuid')
-    moderator_uuids = data.get('moderator_uuids')
-    assistant_uuids = data.get('assistant_uuids')
-    status = data.get('status')
-    read_level = data.get('read_level')
-    only_roles = data.get('only_roles')
-    role_ids = data.get('role_ids')
-    only_groups = data.get('only_groups')
-    group_ids = data.get('group_ids')
-    kwargs = {}
-    for key in (SectionService.SECTION_POLICY_FIELD + SectionService.SECTION_PERMISSION_FIELD):
-        value = data.get(key)
-        if value is not None:
-            kwargs[key] = value
+    params = {
+        'name': str,
+        'nick': str,
+        'description': str,
+        'cover_uuid': str,
+        'owner_uuid': str,
+        'moderator_uuids': list,
+        'assistant_uuids': list,
+        'status': int,
+        'read_level': int,
+        'only_roles': bool,
+        'role_ids': list,
+        'only_groups': bool,
+        'group_ids': list,
+    }
     try:
-        if only_roles is not None:
-            only_roles = only_roles == 'true'
-        if only_groups is not None:
-            only_groups = only_groups == 'true'
-        if moderator_uuids is not None:
-            moderator_uuids = str_to_list(moderator_uuids)
-        if assistant_uuids is not None:
-            assistant_uuids = str_to_list(assistant_uuids)
-        if role_ids is not None:
-            role_ids = str_to_list(role_ids)
-        if group_ids is not None:
-            group_ids = str_to_list(group_ids)
+        body = QueryDict(request.body)
+        params_dict = request_parser(data=body, params=params)
+        kwargs = {}
+        for key in (SectionService.SECTION_POLICY_FIELD + SectionService.SECTION_PERMISSION_FIELD):
+            value = body.get(key)
+            if value is not None:
+                kwargs[key] = value
+        params_dict.update(kwargs)
         code, data = SectionService(request).update(section_id=section_id,
-                                                    name=name,
-                                                    nick=nick,
-                                                    description=description,
-                                                    cover_uuid=cover_uuid,
-                                                    owner_uuid=owner_uuid,
-                                                    moderator_uuids=moderator_uuids,
-                                                    assistant_uuids=assistant_uuids,
-                                                    status=status, read_level=read_level,
-                                                    only_roles=only_roles,
-                                                    role_ids=role_ids,
-                                                    only_groups=only_groups,
-                                                    group_ids=group_ids, **kwargs)
+                                                    **params_dict)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)

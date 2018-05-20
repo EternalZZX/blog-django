@@ -7,7 +7,7 @@ from django.http import HttpResponse, JsonResponse
 from blog.content.photos.services import PhotoService
 from blog.common.message import ErrorMsg
 from blog.common.error import ParamsError
-from blog.common.utils import Response, json_response
+from blog.common.utils import Response, json_response, request_parser
 from blog.common.setting import AuthType
 
 
@@ -114,14 +114,15 @@ def photo_get(request, photo_uuid):
         "data": "Photo not found"
     }
     """
-    like_list_type = request.GET.get('like_list_type')
-    like_list_start = request.GET.get('like_list_start')
-    like_list_end = request.GET.get('like_list_end')
+    params = {
+        'like_list_type': int,
+        'like_list_start': int,
+        'like_list_end': int
+    }
     try:
+        params_dict = request_parser(data=request.GET, params=params)
         code, data = PhotoService(request).get(photo_uuid=photo_uuid,
-                                               like_list_type=like_list_type,
-                                               like_list_start=like_list_start,
-                                               like_list_end=like_list_end)
+                                               **params_dict)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
@@ -196,27 +197,21 @@ def photo_list(request):
         "data": "Query permission denied"
     }
     """
-    page = request.GET.get('page')
-    page_size = request.GET.get('page_size')
-    album_uuid = request.GET.get('album_uuid')
-    album_system = request.GET.get('album_system')
-    author_uuid = request.GET.get('author_uuid')
-    status = request.GET.get('status')
-    order_field = request.GET.get('order_field')
-    order = request.GET.get('order')
-    query = request.GET.get('query')
-    query_field = request.GET.get('query_field')
+    params = {
+        'page': int,
+        'page_size': int,
+        'album_uuid': str,
+        'album_system': int,
+        'author_uuid': str,
+        'status': int,
+        'order_field': str,
+        'order': str,
+        'query': str,
+        'query_field': str
+    }
     try:
-        code, data = PhotoService(request).list(page=page,
-                                                page_size=page_size,
-                                                album_uuid=album_uuid,
-                                                album_system=album_system,
-                                                author_uuid=author_uuid,
-                                                status=status,
-                                                order_field=order_field,
-                                                order=order,
-                                                query=query,
-                                                query_field=query_field)
+        params_dict = request_parser(data=request.GET, params=params)
+        code, data = PhotoService(request).list(**params_dict)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
@@ -281,23 +276,20 @@ def photo_create(request):
         "data": "Album permission denied"
     }
     """
-    image = request.FILES.get('image')
-    description = request.POST.get('description')
-    album_uuid = request.POST.get('album_uuid')
-    status = request.POST.get('status')
-    privacy = request.POST.get('privacy')
-    read_level = request.POST.get('read_level')
-    origin = request.POST.get('origin') == 'true'
-    untreated = request.POST.get('untreated') == 'true'
+    params = {
+        'description': str,
+        'album_uuid': str,
+        'status': int,
+        'privacy': int,
+        'read_level': int,
+        'origin': bool,
+        'untreated': bool
+    }
     try:
+        image = request.FILES.get('image')
+        params_dict = request_parser(data=request.POST, params=params)
         code, data = PhotoService(request).create(image=image,
-                                                  description=description,
-                                                  album_uuid=album_uuid,
-                                                  status=status,
-                                                  privacy=privacy,
-                                                  read_level=read_level,
-                                                  origin=origin,
-                                                  untreated=untreated)
+                                                  **params_dict)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
@@ -370,21 +362,19 @@ def photo_update(request, photo_uuid):
         "data": "Permission denied"
     }
     """
-    data = QueryDict(request.body)
-    description = data.get('description')
-    album_uuid = data.get('album_uuid')
-    status = data.get('status')
-    privacy = data.get('privacy')
-    read_level = data.get('read_level')
-    like_operate = data.get('like_operate')
+    params = {
+        'description': str,
+        'album_uuid': str,
+        'status': int,
+        'privacy': int,
+        'read_level': int,
+        'like_operate': int
+    }
     try:
+        body = QueryDict(request.body)
+        params_dict = request_parser(data=body, params=params)
         code, data = PhotoService(request).update(photo_uuid=photo_uuid,
-                                                  description=description,
-                                                  album_uuid=album_uuid,
-                                                  status=status,
-                                                  privacy=privacy,
-                                                  read_level=read_level,
-                                                  like_operate=like_operate)
+                                                  **params_dict)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)

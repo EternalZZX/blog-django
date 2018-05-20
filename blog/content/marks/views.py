@@ -6,7 +6,7 @@ from django.http import QueryDict
 from blog.content.marks.services import MarkService
 from blog.common.message import ErrorMsg
 from blog.common.error import ParamsError
-from blog.common.utils import Response, json_response
+from blog.common.utils import Response, json_response, request_parser
 
 
 @json_response
@@ -139,25 +139,20 @@ def mark_list(request):
         "data": "Query permission denied"
     }
     """
-    page = request.GET.get('page')
-    page_size = request.GET.get('page_size')
-    author_uuid = request.GET.get('author_uuid')
-    resource_type = request.GET.get('resource_type')
-    resource_uuid = request.GET.get('resource_uuid')
-    order_field = request.GET.get('order_field')
-    order = request.GET.get('order')
-    query = request.GET.get('query')
-    query_field = request.GET.get('query_field')
+    params = {
+        'page': int,
+        'page_size': int,
+        'author_uuid': str,
+        'resource_type': int,
+        'resource_uuid': str,
+        'order_field': str,
+        'order': str,
+        'query': str,
+        'query_field': str
+    }
     try:
-        code, data = MarkService(request).list(page=page,
-                                               page_size=page_size,
-                                               author_uuid=author_uuid,
-                                               resource_type=resource_type,
-                                               resource_uuid=resource_uuid,
-                                               order_field=order_field,
-                                               order=order,
-                                               query=query,
-                                               query_field=query_field)
+        params_dict = request_parser(data=request.GET, params=params)
+        code, data = MarkService(request).list(**params_dict)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
@@ -212,21 +207,18 @@ def mark_create(request):
         "data": "Permission denied"
     }
     """
-    name = request.POST.get('name')
-    description = request.POST.get('description')
-    color = request.POST.get('color')
-    privacy = request.POST.get('privacy')
-    author_uuid = request.POST.get('author_uuid')
-    resource_type = request.POST.get('resource_type')
-    resource_uuid = request.POST.get('resource_uuid')
+    params = {
+        'name': str,
+        'description': str,
+        'color': str,
+        'author_uuid': str,
+        'privacy': int,
+        'resource_type': int,
+        'resource_uuid': str
+    }
     try:
-        code, data = MarkService(request).create(name=name,
-                                                 description=description,
-                                                 color=color,
-                                                 privacy=privacy,
-                                                 author_uuid=author_uuid,
-                                                 resource_type=resource_type,
-                                                 resource_uuid=resource_uuid)
+        params_dict = request_parser(data=request.POST, params=params)
+        code, data = MarkService(request).create(**params_dict)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
@@ -288,25 +280,21 @@ def mark_update(request, mark_uuid):
         "data": "Permission denied"
     }
     """
-    data = QueryDict(request.body)
-    name = data.get('name')
-    description = data.get('description')
-    color = data.get('color')
-    privacy = data.get('privacy')
-    author_uuid = data.get('author_uuid')
-    operate = data.get('operate')
-    resource_type = data.get('resource_type')
-    resource_uuid = data.get('resource_uuid')
+    params = {
+        'name': str,
+        'description': str,
+        'color': str,
+        'author_uuid': str,
+        'privacy': int,
+        'operate': int,
+        'resource_type': int,
+        'resource_uuid': str
+    }
     try:
+        body = QueryDict(request.body)
+        params_dict = request_parser(data=body, params=params)
         code, data = MarkService(request).update(mark_uuid=mark_uuid,
-                                                 name=name,
-                                                 description=description,
-                                                 color=color,
-                                                 privacy=privacy,
-                                                 author_uuid=author_uuid,
-                                                 operate=operate,
-                                                 resource_type=resource_type,
-                                                 resource_uuid=resource_uuid)
+                                                 **params_dict)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)

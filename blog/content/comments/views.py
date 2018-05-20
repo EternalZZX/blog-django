@@ -6,7 +6,7 @@ from django.http import QueryDict
 from blog.content.comments.services import CommentService
 from blog.common.message import ErrorMsg
 from blog.common.error import ParamsError
-from blog.common.utils import Response, json_response
+from blog.common.utils import Response, json_response, request_parser
 
 
 @json_response
@@ -97,14 +97,15 @@ def comment_get(request, comment_uuid):
         "data": "Comment not found"
     }
     """
-    like_list_type = request.GET.get('like_list_type')
-    like_list_start = request.GET.get('like_list_start')
-    like_list_end = request.GET.get('like_list_end')
+    params = {
+        'like_list_type': int,
+        'like_list_start': int,
+        'like_list_end': int
+    }
     try:
+        params_dict = request_parser(data=request.GET, params=params)
         code, data = CommentService(request).get(comment_uuid=comment_uuid,
-                                                 like_list_type=like_list_type,
-                                                 like_list_start=like_list_start,
-                                                 like_list_end=like_list_end)
+                                                 **params_dict)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
@@ -189,33 +190,24 @@ def comment_list(request):
         "data": "Query permission denied"
     }
     """
-    page = request.GET.get('page')
-    page_size = request.GET.get('page_size')
-    resource_type = request.GET.get('resource_type')
-    resource_uuid = request.GET.get('resource_uuid')
-    resource_section_id = request.GET.get('resource_section_id')
-    dialog_uuid = request.GET.get('dialog_uuid')
-    reply_uuid = request.GET.get('reply_uuid')
-    author_uuid = request.GET.get('author_uuid')
-    status = request.GET.get('status')
-    order_field = request.GET.get('order_field')
-    order = request.GET.get('order')
-    query = request.GET.get('query')
-    query_field = request.GET.get('query_field')
+    params = {
+        'page': int,
+        'page_size': int,
+        'resource_type': int,
+        'resource_uuid': str,
+        'resource_section_id': int,
+        'dialog_uuid': str,
+        'reply_uuid': str,
+        'author_uuid': str,
+        'status': int,
+        'order_field': str,
+        'order': str,
+        'query': str,
+        'query_field': str
+    }
     try:
-        code, data = CommentService(request).list(page=page,
-                                                  page_size=page_size,
-                                                  resource_type=resource_type,
-                                                  resource_uuid=resource_uuid,
-                                                  resource_section_id=resource_section_id,
-                                                  dialog_uuid=dialog_uuid,
-                                                  reply_uuid=reply_uuid,
-                                                  author_uuid=author_uuid,
-                                                  status=status,
-                                                  order_field=order_field,
-                                                  order=order,
-                                                  query=query,
-                                                  query_field=query_field)
+        params_dict = request_parser(data=request.GET, params=params)
+        code, data = CommentService(request).list(**params_dict)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
@@ -293,17 +285,16 @@ def comment_create(request):
         "data": "Comment not found"
     }
     """
-    resource_type = request.POST.get('resource_type')
-    resource_uuid = request.POST.get('resource_uuid')
-    reply_uuid = request.POST.get('reply_uuid')
-    content = request.POST.get('content')
-    status = request.POST.get('status')
+    params = {
+        'resource_type': int,
+        'resource_uuid': str,
+        'reply_uuid': str,
+        'content': str,
+        'status': int
+    }
     try:
-        code, data = CommentService(request).create(resource_type=resource_type,
-                                                    resource_uuid=resource_uuid,
-                                                    reply_uuid=reply_uuid,
-                                                    content=content,
-                                                    status=status)
+        params_dict = request_parser(data=request.POST, params=params)
+        code, data = CommentService(request).create(**params_dict)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
@@ -380,15 +371,16 @@ def comment_update(request, comment_uuid):
         "data": "Permission denied"
     }
     """
-    data = QueryDict(request.body)
-    content = data.get('content')
-    status = data.get('status')
-    like_operate = data.get('like_operate')
+    params = {
+        'content': str,
+        'status': int,
+        'like_operate': int
+    }
     try:
+        body = QueryDict(request.body)
+        params_dict = request_parser(data=body, params=params)
         code, data = CommentService(request).update(comment_uuid=comment_uuid,
-                                                    content=content,
-                                                    status=status,
-                                                    like_operate=like_operate)
+                                                    **params_dict)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)

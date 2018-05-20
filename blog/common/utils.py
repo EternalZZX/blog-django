@@ -88,7 +88,7 @@ def ignored(*exceptions):
 
 
 def paging(object_list, page=0, page_size=10):
-    total, page, page_size = len(object_list), int(page), int(page_size)
+    total = len(object_list)
     if page <= 0:
         return object_list, total
     try:
@@ -128,18 +128,20 @@ def model_to_dict(instance, **kwargs):
 
 def request_parser(data, params):
     params_dict = {}
-    for key, value in data.items():
-        if value is not None and key in params.keys():
-            if params[key] == str:
-                params_dict[key] = value
-            elif params[key] == bool:
-                params_dict[key] = value == 'true'
-            elif params[key] == int:
-                params_dict[key] = int(value)
-            elif params[key] == list:
-                params_dict[key] = str_to_list(value)
-            else:
-                params_dict[key] = value
+    for key, type in params.items():
+        value = data.get(key)
+        if value is None:
+            continue
+        if type == str:
+            params_dict[key] = value
+        elif type == bool:
+            params_dict[key] = value == 'true'
+        elif type == int:
+            params_dict[key] = int(value)
+        elif type == list:
+            params_dict[key] = str_to_list(value)
+        else:
+            params_dict[key] = value
     return params_dict
 
 

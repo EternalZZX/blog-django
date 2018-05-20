@@ -8,7 +8,7 @@ from blog.account.users.services import UserService
 from blog.common.base import Authorize
 from blog.common.error import ParamsError
 from blog.common.message import ErrorMsg
-from blog.common.utils import Response, json_response, str_to_list
+from blog.common.utils import Response, json_response, request_parser
 
 
 @json_response
@@ -154,19 +154,17 @@ def user_list(request):
         "data": "Order field permission denied"
     }
     """
-    page = request.GET.get('page')
-    page_size = request.GET.get('page_size')
-    order_field = request.GET.get('order_field')
-    order = request.GET.get('order')
-    query = request.GET.get('query')
-    query_field = request.GET.get('query_field')
+    params = {
+        'page': int,
+        'page_size': int,
+        'order_field': str,
+        'order': str,
+        'query': str,
+        'query_field': str
+    }
     try:
-        code, data = UserService(request).list(page=page,
-                                               page_size=page_size,
-                                               order_field=order_field,
-                                               order=order,
-                                               query=query,
-                                               query_field=query_field)
+        params_dict = request_parser(data=request.POST, params=params)
+        code, data = UserService(request).list(**params_dict)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
@@ -235,35 +233,29 @@ def user_create(request):
         "data": "Duplicate identity field"
     }
     """
-    username = request.POST.get('username')
-    password = request.POST.get('password')
-    nick = request.POST.get('nick')
-    role_id = request.POST.get('role_id')
-    group_ids = request.POST.get('group_ids')
-    gender = request.POST.get('gender')
-    email = request.POST.get('email')
-    phone = request.POST.get('phone')
-    qq = request.POST.get('qq')
-    address = request.POST.get('address')
-    status = request.POST.get('status')
-    remark = request.POST.get('remark')
-    kwargs = {}
-    for key in UserService.USER_PRIVACY_FIELD:
-        value = request.POST.get(key)
-        if value is not None:
-            kwargs[key] = value
+    params = {
+        'username': str,
+        'password': str,
+        'nick': str,
+        'status': int,
+        'role_id': int,
+        'group_ids': list,
+        'gender': int,
+        'email': str,
+        'phone': str,
+        'qq': str,
+        'address': str,
+        'remark': str
+    }
     try:
-        group_ids = str_to_list(group_ids)
-        code, data = UserService(request).create(username=username,
-                                                 password=password,
-                                                 nick=nick,
-                                                 role_id=role_id,
-                                                 group_ids=group_ids,
-                                                 gender=gender,
-                                                 email=email, phone=phone,
-                                                 qq=qq, address=address,
-                                                 status=status,
-                                                 remark=remark, **kwargs)
+        params_dict = request_parser(data=request.POST, params=params)
+        kwargs = {}
+        for key in UserService.USER_PRIVACY_FIELD:
+            value = request.POST.get(key)
+            if value is not None:
+                kwargs[key] = value
+        params_dict.update(kwargs)
+        code, data = UserService(request).create(**params_dict)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
@@ -333,42 +325,33 @@ def user_update(request, uuid):
         "data": "User not found"
     }
     """
-    data = QueryDict(request.body)
-    username = data.get('username')
-    old_password = data.get('old_password')
-    new_password = data.get('new_password')
-    nick = data.get('nick')
-    avatar_uuid = data.get('avatar_uuid')
-    role_id = data.get('role_id')
-    group_ids = data.get('group_ids')
-    gender = data.get('gender')
-    email = data.get('email')
-    phone = data.get('phone')
-    qq = data.get('qq')
-    address = data.get('address')
-    status = data.get('status')
-    remark = data.get('remark')
-    kwargs = {}
-    for key in UserService.USER_PRIVACY_FIELD:
-        value = data.get(key)
-        if value is not None:
-            kwargs[key] = value
+    params = {
+        'username': str,
+        'old_password': str,
+        'new_password': str,
+        'nick': str,
+        'avatar_uuid': str,
+        'status': int,
+        'role_id': int,
+        'group_ids': list,
+        'gender': int,
+        'email': str,
+        'phone': str,
+        'qq': str,
+        'address': str,
+        'remark': str
+    }
     try:
-        if group_ids is not None:
-            group_ids = str_to_list(group_ids)
+        body = QueryDict(request.body)
+        params_dict = request_parser(data=body, params=params)
+        kwargs = {}
+        for key in UserService.USER_PRIVACY_FIELD:
+            value = body.get(key)
+            if value is not None:
+                kwargs[key] = value
+        params_dict.update(kwargs)
         code, data = UserService(request).update(user_uuid=uuid,
-                                                 username=username,
-                                                 old_password=old_password,
-                                                 new_password=new_password,
-                                                 nick=nick,
-                                                 avatar_uuid=avatar_uuid,
-                                                 role_id=role_id,
-                                                 group_ids=group_ids,
-                                                 gender=gender,
-                                                 email=email, phone=phone,
-                                                 qq=qq, address=address,
-                                                 status=status, remark=remark,
-                                                 **kwargs)
+                                                 **params_dict)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)

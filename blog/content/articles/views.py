@@ -6,7 +6,7 @@ from django.http import QueryDict
 from blog.content.articles.services import ArticleService
 from blog.common.message import ErrorMsg
 from blog.common.error import ParamsError
-from blog.common.utils import Response, json_response, str_to_list
+from blog.common.utils import Response, json_response, request_parser
 
 
 @json_response
@@ -81,14 +81,15 @@ def article_get(request, article_uuid):
         "data": "Article not found"
     }
     """
-    like_list_type = request.GET.get('like_list_type')
-    like_list_start = request.GET.get('like_list_start')
-    like_list_end = request.GET.get('like_list_end')
+    params = {
+        'like_list_type': int,
+        'like_list_start': int,
+        'like_list_end': int
+    }
     try:
+        params_dict = request_parser(data=request.GET, params=params)
         code, data = ArticleService(request).get(article_uuid=article_uuid,
-                                                 like_list_type=like_list_type,
-                                                 like_list_start=like_list_start,
-                                                 like_list_end=like_list_end)
+                                                 **params_dict)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
@@ -170,25 +171,20 @@ def article_list(request):
         "data": "Query permission denied"
     }
     """
-    page = request.GET.get('page')
-    page_size = request.GET.get('page_size')
-    section_id = request.GET.get('section_id')
-    author_uuid = request.GET.get('author_uuid')
-    status = request.GET.get('status')
-    order_field = request.GET.get('order_field')
-    order = request.GET.get('order')
-    query = request.GET.get('query')
-    query_field = request.GET.get('query_field')
+    params = {
+        'page': int,
+        'page_size': int,
+        'section_id': int,
+        'author_uuid': str,
+        'status': int,
+        'order_field': str,
+        'order': str,
+        'query': str,
+        'query_field': str
+    }
     try:
-        code, data = ArticleService(request).list(page=page,
-                                                  page_size=page_size,
-                                                  section_id=section_id,
-                                                  author_uuid=author_uuid,
-                                                  status=status,
-                                                  order_field=order_field,
-                                                  order=order,
-                                                  query=query,
-                                                  query_field=query_field)
+        params_dict = request_parser(data=request.GET, params=params)
+        code, data = ArticleService(request).list(**params_dict)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
@@ -264,28 +260,21 @@ def article_create(request):
         "data": "Section permission denied"
     }
     """
-    title = request.POST.get('title')
-    keywords = request.POST.get('keywords')
-    cover_uuid = request.POST.get('cover_uuid')
-    overview = request.POST.get('overview')
-    content = request.POST.get('content')
-    section_id = request.POST.get('section_id')
-    status = request.POST.get('status')
-    privacy = request.POST.get('privacy')
-    read_level = request.POST.get('read_level')
-    file_storage = request.POST.get('file_storage') == 'true'
+    params = {
+        'title': str,
+        'keywords': list,
+        'cover_uuid': str,
+        'overview': str,
+        'content': str,
+        'section_id': int,
+        'status': int,
+        'privacy': int,
+        'read_level': int,
+        'file_storage': bool
+    }
     try:
-        keywords = str_to_list(keywords)
-        code, data = ArticleService(request).create(title=title,
-                                                    keywords=keywords,
-                                                    cover_uuid=cover_uuid,
-                                                    overview=overview,
-                                                    content=content,
-                                                    section_id=section_id,
-                                                    status=status,
-                                                    privacy=privacy,
-                                                    read_level=read_level,
-                                                    file_storage=file_storage)
+        params_dict = request_parser(data=request.POST, params=params)
+        code, data = ArticleService(request).create(**params_dict)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
@@ -362,31 +351,23 @@ def article_update(request, article_uuid):
         "data": "Permission denied"
     }
     """
-    data = QueryDict(request.body)
-    title = data.get('title')
-    keywords = data.get('keywords')
-    cover_uuid = data.get('cover_uuid')
-    overview = data.get('overview')
-    content = data.get('content')
-    section_id = data.get('section_id')
-    status = data.get('status')
-    privacy = data.get('privacy')
-    read_level = data.get('read_level')
-    like_operate = data.get('like_operate')
+    params = {
+        'title': str,
+        'keywords': list,
+        'cover_uuid': str,
+        'overview': str,
+        'content': str,
+        'section_id': int,
+        'status': int,
+        'privacy': int,
+        'read_level': int,
+        'like_operate': int
+    }
     try:
-        if keywords is not None:
-            keywords = str_to_list(keywords)
+        body = QueryDict(request.body)
+        params_dict = request_parser(data=body, params=params)
         code, data = ArticleService(request).update(article_uuid=article_uuid,
-                                                    title=title,
-                                                    keywords=keywords,
-                                                    cover_uuid=cover_uuid,
-                                                    overview=overview,
-                                                    content=content,
-                                                    section_id=section_id,
-                                                    status=status,
-                                                    privacy=privacy,
-                                                    read_level=read_level,
-                                                    like_operate=like_operate)
+                                                    **params_dict)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)

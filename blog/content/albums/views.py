@@ -6,7 +6,7 @@ from django.http import QueryDict
 from blog.content.albums.services import AlbumService
 from blog.common.message import ErrorMsg
 from blog.common.error import ParamsError
-from blog.common.utils import Response, json_response
+from blog.common.utils import Response, json_response, request_parser
 
 
 @json_response
@@ -69,14 +69,15 @@ def album_get(request, album_uuid):
         "data": "Album not found"
     }
     """
-    like_list_type = request.GET.get('like_list_type')
-    like_list_start = request.GET.get('like_list_start')
-    like_list_end = request.GET.get('like_list_end')
+    params = {
+        'like_list_type': int,
+        'like_list_start': int,
+        'like_list_end': int
+    }
     try:
+        params_dict = request_parser(data=request.GET, params=params)
         code, data = AlbumService(request).get(album_uuid=album_uuid,
-                                               like_list_type=like_list_type,
-                                               like_list_start=like_list_start,
-                                               like_list_end=like_list_end)
+                                               **params_dict)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
@@ -134,21 +135,18 @@ def album_list(request):
         "data": "Query permission denied"
     }
     """
-    page = request.GET.get('page')
-    page_size = request.GET.get('page_size')
-    author_uuid = request.GET.get('author_uuid')
-    order_field = request.GET.get('order_field')
-    order = request.GET.get('order')
-    query = request.GET.get('query')
-    query_field = request.GET.get('query_field')
+    params = {
+        'page': int,
+        'page_size': int,
+        'author_uuid': str,
+        'order_field': str,
+        'order': str,
+        'query': str,
+        'query_field': str
+    }
     try:
-        code, data = AlbumService(request).list(page=page,
-                                                page_size=page_size,
-                                                author_uuid=author_uuid,
-                                                order_field=order_field,
-                                                order=order,
-                                                query=query,
-                                                query_field=query_field)
+        params_dict = request_parser(data=request.GET, params=params)
+        code, data = AlbumService(request).list(**params_dict)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
@@ -199,19 +197,17 @@ def album_create(request):
         "data": "Permission denied"
     }
     """
-    name = request.POST.get('name')
-    description = request.POST.get('description')
-    cover_uuid = request.POST.get('cover_uuid')
-    author_uuid = request.POST.get('author_uuid')
-    privacy = request.POST.get('privacy')
-    system = request.POST.get('system')
+    params = {
+        'name': str,
+        'description': str,
+        'cover_uuid': str,
+        'author_uuid': str,
+        'privacy': int,
+        'system': int
+    }
     try:
-        code, data = AlbumService(request).create(name=name,
-                                                  description=description,
-                                                  cover_uuid=cover_uuid,
-                                                  author_uuid=author_uuid,
-                                                  privacy=privacy,
-                                                  system=system)
+        params_dict = request_parser(data=request.POST, params=params)
+        code, data = AlbumService(request).create(**params_dict)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
@@ -264,23 +260,20 @@ def album_update(request, album_uuid):
         "data": "Permission denied"
     }
     """
-    data = QueryDict(request.body)
-    name = data.get('name')
-    description = data.get('description')
-    cover_uuid = data.get('cover_uuid')
-    author_uuid = data.get('author_uuid')
-    privacy = data.get('privacy')
-    system = data.get('system')
-    like_operate = data.get('like_operate')
+    params = {
+        'name': str,
+        'description': str,
+        'cover_uuid': str,
+        'author_uuid': str,
+        'privacy': int,
+        'system': int,
+        'like_operate': int
+    }
     try:
+        body = QueryDict(request.body)
+        params_dict = request_parser(data=body, params=params)
         code, data = AlbumService(request).update(album_uuid=album_uuid,
-                                                  name=name,
-                                                  description=description,
-                                                  cover_uuid=cover_uuid,
-                                                  author_uuid=author_uuid,
-                                                  privacy=privacy,
-                                                  system=system,
-                                                  like_operate=like_operate)
+                                                  **params_dict)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
