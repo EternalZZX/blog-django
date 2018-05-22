@@ -98,7 +98,7 @@ class ArticleService(Service):
                 elif query_field == 'keywords':
                     query_field = 'keywords__icontains'
                 elif query_field == 'content':
-                    query_field = 'content__icontains'
+                    query_field = 'content__search'
                 elif query_field == 'author':
                     query_field = 'author__nick__icontains'
                 elif query_field == 'section':
@@ -112,7 +112,7 @@ class ArticleService(Service):
                 articles = articles.filter(Q(uuid=query) |
                                            Q(title__icontains=query) |
                                            Q(keywords__icontains=query) |
-                                           Q(content__icontains=query) |
+                                           Q(content__search=query) |
                                            Q(author__nick__icontains=query) |
                                            Q(section__nick__icontains=query))
             else:

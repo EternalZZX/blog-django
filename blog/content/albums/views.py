@@ -97,6 +97,7 @@ def album_list(request):
     @apiParam {number} [page=0] 相册信息列表页码, 页码为0时返回所有数据
     @apiParam {number} [page_size=10] 相册信息列表页长
     @apiParam {string} [author_uuid] 相册作者
+    @apiParam {number} [privacy] 相册私有状态
     @apiParam {string} [order_field] 相册信息列表排序字段
     @apiParam {string=desc, asc} [order="desc"] 相册信息列表排序方向
     @apiParam {string} [query] 搜索内容，若无搜索字段则全局搜索name, description, author
@@ -139,6 +140,7 @@ def album_list(request):
         'page': int,
         'page_size': int,
         'author_uuid': str,
+        'privacy': int,
         'order_field': str,
         'order': str,
         'query': str,
