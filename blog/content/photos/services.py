@@ -77,8 +77,11 @@ class PhotoService(Service):
              query=None, query_field=None):
         query_level, order_level = self.get_permission_level(PermissionName.PHOTO_SELECT)
         photos = Photo.objects.all()
-        if album_uuid:
-            photos = photos.filter(album__uuid=album_uuid)
+        if album_uuid is not None:
+            if album_uuid:
+                photos = photos.filter(album__uuid=album_uuid)
+            else:
+                photos = photos.filter(album__uuid__isnull=True)
         if album_system:
             photos = photos.filter(album__system=album_system)
         if author_uuid:
