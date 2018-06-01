@@ -49,7 +49,8 @@ INSTALLED_APPS = (
     'blog.content.marks',
     'blog.content.photos',
     'blog.content.sections',
-    'blog.scheduler'
+    'blog.scheduler',
+    'blog.wechat'
 )
 
 MIDDLEWARE_CLASSES = (
