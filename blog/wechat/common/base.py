@@ -22,5 +22,5 @@ class AccessService(object):
                "client_credential&appid=%s&secret=%s" % (APP_ID, APP_SECRET))
         response = urllib.urlopen(url)
         response = json.loads(response.read())
-        cls._accessToken = response['access_token']
+        cls.__accessToken = response['access_token']
         return cls.__accessToken

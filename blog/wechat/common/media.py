@@ -5,6 +5,8 @@ import os
 import json
 import requests
 
+from poster.encode import multipart_encode
+
 from blog.settings import MEDIA_ROOT, MEDIA_URL
 from blog.wechat.common.base import AccessService
 
@@ -16,8 +18,6 @@ class Media(object):
         image_data = open(image_path, "rb").read()
         post_url = "https://api.weixin.qq.com/cgi-bin/media/upload?" \
                    "access_token=%s&type=image" % AccessService.get_access_token()
-        response = requests.post(post_url,
-                                 files={
-                                     'media': image_data
-                                 })
+        data, headers = multipart_encode({'media': image_data})
+        response = requests.post(post_url, data=data, headers=headers)
         return json.loads(response.content)['mediaId']
