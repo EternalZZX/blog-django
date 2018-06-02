@@ -3,7 +3,7 @@
 
 import hashlib
 
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, QueryDict
 
 from blog.wechat import receive, reply
 from blog.common.message import ErrorMsg
@@ -43,7 +43,7 @@ def handle_get(request):
 
 def handle_post(request):
     try:
-        receive_message = receive.parse_xml(request.POST)
+        receive_message = receive.parse_xml(QueryDict(request.body))
         if isinstance(receive_message, receive.Message) and receive_message.message_type == 'text':
             to_user = receive_message.from_username
             from_user = receive_message.to_username
