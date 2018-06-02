@@ -3,7 +3,7 @@
 
 import os
 import json
-import requests
+import urllib2
 
 from poster.encode import multipart_encode
 from poster.streaminghttp import register_openers
@@ -21,6 +21,7 @@ class Media(object):
         image_data = open(image_path, "rb").read()
         post_url = "https://api.weixin.qq.com/cgi-bin/media/upload?" \
                    "access_token=%s&type=image" % AccessService.get_access_token()
-        data, headers = multipart_encode({'media': image_data})
-        response = requests.post(post_url, files=data, headers=headers)
-        return json.loads(response.content)['mediaId']
+        post_data, post_headers = multipart_encode({'media': image_data})
+        request = urllib2.Request(post_url, post_data, post_headers)
+        response = urllib2.urlopen(request)
+        return json.loads(response.read())['mediaId']
