@@ -9,7 +9,7 @@ from blog.wechat import receive, reply
 from blog.common.message import ErrorMsg
 
 
-def handle(request, uuid=None):
+def handle(request):
     if request.method == 'GET':
         return handle_get(request)
     elif request.method == 'POST':
@@ -26,10 +26,10 @@ def handle_get(request):
         nonce = request.GET.get('nonce')
         echostr = request.GET.get('echostr')
         token = '66guitar'
-        list = [token, timestamp, nonce]
-        list.sort()
+        stamp_list = [token, timestamp, nonce]
+        stamp_list.sort()
         sha1 = hashlib.sha1()
-        map(sha1.update, list)
+        map(sha1.update, stamp_list)
         hashcode = sha1.hexdigest()
         if hashcode == signature:
             return HttpResponse(echostr)
@@ -44,14 +44,20 @@ def handle_get(request):
 def handle_post(request):
     try:
         receive_message = receive.parse_xml(request.body)
-        if isinstance(receive_message, receive.Message) and receive_message.message_type == 'text':
+        if isinstance(receive_message, (receive.TextMessage, receive.ImageMessage)):
             to_user = receive_message.from_username
             from_user = receive_message.to_username
-            content = 'test'
-            reply_message = reply.TextMessage(to_user, from_user, content)
+            if receive_message.message_type == 'text':
+                content = 'test'
+                reply_message = reply.TextMessage(to_user, from_user, content)
+            elif receive_message.message_type == 'image':
+                media_id = receive_message.media_id
+                reply_message = reply.ImageMessage(to_user, from_user, media_id)
+            else:
+                reply_message = reply.Message()
             return reply_message.send()
         else:
-            return HttpResponse('success')
+            return reply.Message().send()
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
