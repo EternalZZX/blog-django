@@ -5,8 +5,9 @@ import hashlib
 
 from django.http import HttpResponse, JsonResponse
 
-from blog.wechat import receive, reply
 from blog.common.message import ErrorMsg
+from blog.wechat.common import receive, reply
+from blog.wechat.common.media import Media
 
 
 def handle(request):
@@ -48,8 +49,13 @@ def handle_post(request):
             to_user = receive_message.from_username
             from_user = receive_message.to_username
             if receive_message.message_type == 'text':
-                content = 'test'
-                reply_message = reply.TextMessage(to_user, from_user, content)
+                if receive_message.content == 'upload':
+                    media_id = Media.photo_upload(url='/media/photos/7357d28a-a611-5efd-ae6e-a550a5b95487/'
+                                                      'middle/21012079-f263-5592-95cc-41459892161b.png')
+                    reply_message = reply.ImageMessage(to_user, from_user, media_id)
+                else:
+                    content = 'test'
+                    reply_message = reply.TextMessage(to_user, from_user, content)
             elif receive_message.message_type == 'image':
                 media_id = receive_message.media_id
                 reply_message = reply.ImageMessage(to_user, from_user, media_id)

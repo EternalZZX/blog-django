@@ -143,5 +143,15 @@ CELERYBEAT_SCHEDULE = {
         "schedule": crontab(minute='*/1'),
         "args": (),
         "enabled": True
+    },
+    'wechat_access_token': {
+        "task": "wechat_access_token",
+        "schedule": crontab(minute='*/90'),
+        "args": (),
+        "enabled": True
     }
 }
+
+# WeChat
+APP_ID = 'myAppId'
+APP_SECRET = 'myAppSecret'
