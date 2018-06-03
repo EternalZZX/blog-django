@@ -5,6 +5,7 @@ from blog.content.albums.services import AlbumService
 from blog.wechat.common import reply
 from blog.wechat.common.media import MediaService
 from blog.common.base import Authorize
+from blog.settings import TOKEN_URL_KEY
 
 
 class ReceiveKeywords(object):
@@ -43,7 +44,7 @@ class WeChatService(object):
             for album in albums:
                 article_data.append({
                     'title': album['name'],
-                    'url': 'api.eternalzzx.com/view/albums/%s/' % album['uuid']
+                    'url': 'api.eternalzzx.com/view/albums/%s/?%s=%s' % (album['uuid'], TOKEN_URL_KEY, token)
                 })
             if article_data:
                 article_data[0]['photo_url'] = 'https://mmbiz.qpic.cn/mmbiz_jpg/NYuibG5m9i' \
