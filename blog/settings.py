@@ -153,5 +153,6 @@ CELERYBEAT_SCHEDULE = {
 }
 
 # WeChat
+APP_TOKEN = 'myAppToken'
 APP_ID = 'myAppId'
 APP_SECRET = 'myAppSecret'
