@@ -42,8 +42,8 @@ class WeChatService(object):
             article_data = []
             for album in albums:
                 article_data.append({
-                    'title': album.name,
-                    'url': 'api.eternalzzx.com/view/albums/%s/' % album.uuid
+                    'title': album['name'],
+                    'url': 'api.eternalzzx.com/view/albums/%s/' % album['uuid']
                 })
             if article_data:
                 article_data[0]['photo_url'] = 'https://mmbiz.qpic.cn/mmbiz_jpg/NYuibG5m9i' \
