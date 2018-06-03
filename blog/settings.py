@@ -104,6 +104,7 @@ APPEND_SLASH = False
 # Token Key
 HEADER_KEY = 'Auth-Token'
 TOKEN_COOKIE_KEY = 'BLOG-TOKEN'
+TOKEN_URL_KEY = 'ticket'
 TOKEN_HEADER_KEY = 'HTTP_%s' % HEADER_KEY.replace('-', '_').upper()
 
 # Redis

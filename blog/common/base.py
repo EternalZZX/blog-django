@@ -20,7 +20,8 @@ from blog.common.error import AuthError, ServiceError
 from blog.common.message import ErrorMsg, AccountErrorMsg
 from blog.common.setting import Setting, PermissionName, PermissionLevel, AuthType
 from blog.common.utils import ignored, get_md5
-from blog.settings import TOKEN_HEADER_KEY, TOKEN_COOKIE_KEY, REDIS_HOSTS, REDIS_PASSWORD, MEMCACHED_HOSTS
+from blog.settings import TOKEN_HEADER_KEY, TOKEN_COOKIE_KEY, TOKEN_URL_KEY, \
+    REDIS_HOSTS, REDIS_PASSWORD, MEMCACHED_HOSTS
 
 
 class RedisClient(object):
@@ -350,7 +351,7 @@ class LevelObject(object):
 
 
 class Service(object):
-    def __init__(self, request, instance=None, auth_type=AuthType.HEADER):
+    def __init__(self, request=None, instance=None, auth_type=AuthType.HEADER, token=None):
         if instance:
             self.request = instance.request
             self.auth_type = instance.auth_type
@@ -361,18 +362,25 @@ class Service(object):
             return
         self.request = request
         self.auth_type = auth_type
-        self.token = None
+        self.token = self._token_init(token)
         self.uuid, self.uid, self.role_id = None, None, None
         self.permission = None
         self.role_level = None
         if auth_type != AuthType.NONE:
             self._auth_init()
 
-    def _auth_init(self):
-        if self.auth_type == AuthType.HEADER:
-            self.token = self.request.META.get(TOKEN_HEADER_KEY)
+    def _token_init(self, token=None):
+        if token:
+            return token
+        elif self.auth_type == AuthType.HEADER:
+            return self.request.META.get(TOKEN_HEADER_KEY)
         elif self.auth_type == AuthType.COOKIE:
-            self.token = self.request.COOKIES.get(TOKEN_COOKIE_KEY)
+            return self.request.COOKIES.get(TOKEN_COOKIE_KEY)
+        elif self.auth_type == AuthType.URL:
+            return self.request.GET.get(TOKEN_URL_KEY)
+        return None
+
+    def _auth_init(self):
         self.uuid, self.uid, self.role_id = Authorize().auth_token(self.token)
         self.permission = Grant().get_permission(role_id=self.role_id)
         try:

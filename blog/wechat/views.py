@@ -7,6 +7,7 @@ from django.http import HttpResponse, JsonResponse
 
 from blog.wechat.common import receive, reply
 from blog.wechat.common.media import MediaService
+from blog.wechat.services import WeChatService
 from blog.common.message import ErrorMsg
 from blog.settings import APP_TOKEN
 
@@ -46,42 +47,14 @@ def handle_post(request):
     try:
         receive_message = receive.parse_xml(request.body)
         if isinstance(receive_message, (receive.TextMessage, receive.ImageMessage)):
-            to_user = receive_message.from_username
-            from_user = receive_message.to_username
             if receive_message.message_type == 'text':
-                if receive_message.content == 'news':
-                    article_data = [{
-                        'title': 'title1',
-                        'description': 'description1',
-                        'photo_url': 'https://mmbiz.qpic.cn/mmbiz_jpg/NYuibG5m9ibxicibg1NGYBXO8P5mglthfylgzdLX734NgqYP6eQicqf6fNFaXrWz9oibVw5d2k7unfm3z4rzr9ua9BFg/0?wx_fmt=jpeg',
-                        'url': 'www.eternalzzx.com'
-                    }, {
-                        'title': 'title2',
-                        'description': 'description2',
-                        'photo_url': 'https://mmbiz.qpic.cn/mmbiz_jpg/NYuibG5m9ibxicibg1NGYBXO8P5mglthfylgzdLX734NgqYP6eQicqf6fNFaXrWz9oibVw5d2k7unfm3z4rzr9ua9BFg/0?wx_fmt=jpeg',
-                        'url': 'www.eternalzzx.com'
-                    }, {
-                        'title': 'title3',
-                        'description': 'description3',
-                        'photo_url': 'https://mmbiz.qpic.cn/mmbiz_jpg/NYuibG5m9ibxicibg1NGYBXO8P5mglthfylgzdLX734NgqYP6eQicqf6fNFaXrWz9oibVw5d2k7unfm3z4rzr9ua9BFg/0?wx_fmt=jpeg',
-                        'url': 'www.eternalzzx.com'
-                    }]
-                    reply_message = reply.NewsMessage(to_user, from_user, 3, article_data)
-                elif receive_message.content == 'image':
-                    media_id = MediaService().photo_upload('/media/photos/7357d28a-a611-5efd-ae6e-a550a5b95487/'
-                                                           'middle/21012079-f263-5592-95cc-41459892161b.png')
-                    reply_message = reply.ImageMessage(to_user, from_user, media_id)
+                if receive_message.content in WeChatService.KEYWORDS:
+                    return WeChatService(receive_message).reply_keyword(receive_message.content)
                 else:
-                    content = 'test'
-                    reply_message = reply.TextMessage(to_user, from_user, content)
+                    return WeChatService(receive_message).search_album(receive_message.content)
             elif receive_message.message_type == 'image':
-                media_id = receive_message.media_id
-                reply_message = reply.ImageMessage(to_user, from_user, media_id)
-            else:
-                reply_message = reply.Message()
-            return reply_message.send()
-        else:
-            return reply.Message().send()
+                return WeChatService(receive_message).reply_image(receive_message.media_id)
+        return reply.Message().send()
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
