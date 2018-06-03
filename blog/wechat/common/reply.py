@@ -70,13 +70,17 @@ class NewsMessage(Message):
         for article_dict in article_data:
             article_xml = '<item>'
             if article_dict.has_key('title'):
-                article_xml = '%s<Title><![CDATA[%s]]></Title>' % (article_xml, article_dict['title'])
+                article_xml = '%s<Title><![CDATA[%s]]></Title>' % \
+                              (article_xml, article_dict['title'].encode('utf-8'))
             if article_dict.has_key('description'):
-                article_xml = '%s<Description><![CDATA[%s]]></Description>' % (article_xml, article_dict['description'])
+                article_xml = '%s<Description><![CDATA[%s]]></Description>' % \
+                              (article_xml, article_dict['description'].encode('utf-8'))
             if article_dict.has_key('photo_url'):
-                article_xml = '%s<PicUrl><![CDATA[%s]]></PicUrl>' % (article_xml, article_dict['photo_url'])
+                article_xml = '%s<PicUrl><![CDATA[%s]]></PicUrl>' % \
+                              (article_xml, article_dict['photo_url'].encode('utf-8'))
             if article_dict.has_key('url'):
-                article_xml = '%s<Url><![CDATA[%s]]></Url>' % (article_xml, article_dict['url'])
+                article_xml = '%s<Url><![CDATA[%s]]></Url>' % \
+                              (article_xml, article_dict['url'].encode('utf-8'))
             xml_form = "%s%s</item>" % (xml_form, article_xml)
         return xml_form
 
