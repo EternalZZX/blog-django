@@ -26,7 +26,17 @@ SECRET_KEY = 'r_+x!+6y%&dub)ez47j@85!4^_!j9%zozy+zy6izf5-z5r0i9c'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-TEMPLATE_DEBUG = True
+TEMPLATES = [{
+    'BACKEND': 'django.template.backends.django.DjangoTemplates',
+    'DIRS': [os.path.join(BASE_DIR, 'blog/render/templates')],
+    'APP_DIRS': True,
+    'OPTIONS': {
+        'debug': True,
+        'context_processors': [
+            'django.contrib.auth.context_processors.auth'
+        ]
+    }
+}]
 
 ALLOWED_HOSTS = ['127.0.0.1', '0.0.0.0']
 
@@ -50,7 +60,8 @@ INSTALLED_APPS = (
     'blog.content.photos',
     'blog.content.sections',
     'blog.scheduler',
-    'blog.wechat'
+    'blog.wechat',
+    'blog.render'
 )
 
 MIDDLEWARE_CLASSES = (

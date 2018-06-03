@@ -20,7 +20,7 @@ from blog.common.base import Service, MetadataService
 from blog.common.error import ServiceError
 from blog.common.message import ErrorMsg, ContentErrorMsg
 from blog.common.utils import paging, str_to_list, model_to_dict, html_to_str, get_md5
-from blog.common.setting import Setting, PermissionName
+from blog.common.setting import Setting, PermissionName, AuthType
 
 
 class ArticleService(Service):
@@ -31,9 +31,10 @@ class ArticleService(Service):
     METADATA_ORDER_FIELD = ['read_count', 'comment_count', 'like_count',
                             'dislike_count']
 
-    def __init__(self, request, instance=None):
-        super(ArticleService, self).__init__(request=request, instance=instance)
-        self.section_service = SectionService(request=request, instance=self)
+    def __init__(self, request=None, instance=None, auth_type=AuthType.HEADER, token=None):
+        super(ArticleService, self).__init__(request=request, instance=instance,
+                                             auth_type=auth_type, token=token)
+        self.section_service = SectionService(instance=self)
 
     def get(self, article_uuid, like_list_type=None, like_list_start=0, like_list_end=10):
         self.has_permission(PermissionName.ARTICLE_SELECT)

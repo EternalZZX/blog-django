@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ album.name }}</title>
+    <link rel="stylesheet" type="text/css" href="http://res.wx.qq.com/open/libs/weui/1.1.2/weui.min.css">
+    <style type="text/css">
+        html {
+            font-size: 52px;
+        }
+
+        .weui-article h1 {
+            font-size: 1.2rem;
+            margin: 0;
+        }
+
+        .weui-panel:before {
+            content: none;
+        }
+
+        .weui-media-box__info {
+            display: flex;
+            font-size: .9rem;
+        }
+
+        .weui-media-box__info__meta {
+            padding-right: .5rem;
+        }
+
+        .weui-media-box__info__meta_extra {
+            padding-left: .5rem;
+        }
+
+        .weui-media-box__info__meta:first-child {
+            flex: auto;
+        }
+
+        .weui-media-box__info__meta:last-child {
+            padding-right: 0;
+        }
+
+        .et-photo {
+            width: 100%;
+        }
+
+        .weui-article section:last-child {
+            margin-bottom: 0;
+        }
+
+        .weui-footer__text {
+            font-size: .9rem;
+        }
+    </style>
+</head>
+<body>
+    <article class="weui-article">
+        <h1>{{ album.name }}</h1>
+        <section>
+            <div class="weui-panel weui-panel_access">
+                <div class="weui-panel__bd">
+                    <div class="weui-media-box weui-media-box_text">
+                        <ul class="weui-media-box__info">
+                            <li class="weui-media-box__info__meta">
+                                阅读 {{ album.metadata.read_count }}
+                            </li>
+                            <li class="weui-media-box__info__meta">
+                                66guitar
+                            </li>
+                            <li class="weui-media-box__info__meta weui-media-box__info__meta_extra">
+                                {{ album.create_at | date:'Y-n-d' }}
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <section>
+        {% for photo in photos %}
+            <img class="et-photo" src="" data-src="{{ photo.image_middle }}">
+        {% endfor %}
+        </section>
+    </article>
+    <div class="weui-footer">
+        <p class="weui-footer__text">Copyright &copy; 2017-2018 66guitar</p>
+    </div>
+<script>
+function setCookie (key, value) {
+    var days = 7;
+    var exp = new Date();
+    exp.setTime(exp.getTime() + days * 24 * 60 * 60 * 1000);
+    document.cookie = key + "="+ value + ";path=/;expires=" + exp.toGMTString();
+}
+
+window.onload = function () {
+    setCookie('BLOG-TOKEN', '{{ token }}');
+    var photos = document.getElementsByClassName('et-photo');
+    for (var i in photos) {
+        if (photos.hasOwnProperty(i)) {
+            photos[i].src = photos[i].getAttribute('data-src');
+        }
+    }
+}
+</script>
+</body>
+</html>
