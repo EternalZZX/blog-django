@@ -67,21 +67,17 @@ class NewsMessage(Message):
     @staticmethod
     def _format_article_data(article_data):
         xml_form = ""
-        article_xml = """
-        <item>
-            <Title><![CDATA[{Title}]]></Title>
-            <Description><![CDATA[{Description}]]></Description>
-            <PicUrl><![CDATA[{PhotoUrl}]]></PicUrl>
-            <Url><![CDATA[{Url}]]></Url>
-        </item>
-        """
-        for article in article_data:
-            params_dict = dict()
-            params_dict['Title'] = article.title
-            params_dict['Description'] = article.description
-            params_dict['PhotoUrl'] = article.photo_url
-            params_dict['Url'] = article.url
-            xml_form = "%s%s" % (xml_form, article_xml.format(**params_dict))
+        for article_dict in article_data:
+            article_xml = '<item>'
+            if article_dict.has_key('title'):
+                article_xml = '%s<Title><![CDATA[%s]]></Title>' % (article_xml, article_dict['title'])
+            if article_dict.has_key('description'):
+                article_xml = '%s<Description><![CDATA[%s]]></Description>' % (article_xml, article_dict['description'])
+            if article_dict.has_key('photo_url'):
+                article_xml = '%s<PicUrl><![CDATA[%s]]></PicUrl>' % (article_xml, article_dict['photo_url'])
+            if article_dict.has_key('url'):
+                article_xml = '%s<Url><![CDATA[%s]]></Url>' % (article_xml, article_dict['url'])
+            xml_form = "%s%s</item>" % (xml_form, article_xml)
         return xml_form
 
     def send(self):
