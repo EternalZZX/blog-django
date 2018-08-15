@@ -135,27 +135,31 @@ class SectionService(Service):
                                          read_level=read_level,
                                          only_roles=only_roles,
                                          only_groups=only_groups)
-        for moderator_uuid in moderator_uuids:
-            try:
-                section.moderators.add(User.objects.get(uuid=moderator_uuid))
-            except User.DoesNotExist:
-                pass
-        for assistant_uuid in assistant_uuids:
-            try:
-                # if assistant_uuid not in moderator_uuids:
-                section.assistants.add(User.objects.get(uuid=assistant_uuid))
-            except User.DoesNotExist:
-                pass
-        for role_id in role_ids:
-            try:
-                section.roles.add(Role.objects.get(id=role_id))
-            except Role.DoesNotExist:
-                pass
-        for group_id in group_ids:
-            try:
-                section.groups.add(Group.objects.get(id=group_id))
-            except Group.DoesNotExist:
-                pass
+        if moderator_uuids:
+            for moderator_uuid in moderator_uuids:
+                try:
+                    section.moderators.add(User.objects.get(uuid=moderator_uuid))
+                except User.DoesNotExist:
+                    pass
+        if assistant_uuids:
+            for assistant_uuid in assistant_uuids:
+                try:
+                    # if assistant_uuid not in moderator_uuids:
+                    section.assistants.add(User.objects.get(uuid=assistant_uuid))
+                except User.DoesNotExist:
+                    pass
+        if role_ids:
+            for role_id in role_ids:
+                try:
+                    section.roles.add(Role.objects.get(id=role_id))
+                except Role.DoesNotExist:
+                    pass
+        if group_ids:
+            for group_id in group_ids:
+                try:
+                    section.groups.add(Group.objects.get(id=group_id))
+                except Group.DoesNotExist:
+                    pass
         section_dict = SectionService._section_to_dict(section=section)
         permission_dict = model_to_dict(SectionService._section_permission_update(section, **kwargs))
         del permission_dict['section']
