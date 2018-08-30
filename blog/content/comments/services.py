@@ -42,23 +42,24 @@ class CommentService(Service):
                 raise Comment.DoesNotExist
         except Comment.DoesNotExist:
             raise ServiceError(code=404, message=ContentErrorMsg.COMMENT_NOT_FOUND)
+        is_like_user = CommentMetadataService().is_like_user(resource=comment, user_id=self.uid)
+        like_user_dict = {}
         if like_list_type is None:
             operate_dict = {'read_count': CommentMetadataService.OPERATE_ADD} \
                 if comment.status == Comment.ACTIVE else {}
             metadata = CommentMetadataService().update_metadata_count(resource=comment, **operate_dict)
-            is_like_user = CommentMetadataService().is_like_user(resource=comment, user_id=self.uid)
-            comment_dict = CommentService._comment_to_dict(comment=comment,
-                                                           metadata=metadata,
-                                                           is_like_user=is_like_user)
         else:
             like_level, _ = self.get_permission_level(PermissionName.COMMENT_LIKE)
             if like_level.is_gt_lv10() or like_level.is_gt_lv1() and \
                     int(like_list_type) == CommentMetadataService.LIKE_LIST:
                 metadata, like_user_dict = CommentMetadataService().get_metadata_dict(
                     resource=comment, start=like_list_start, end=like_list_end, list_type=like_list_type)
-                comment_dict = CommentService._comment_to_dict(comment=comment, metadata=metadata, **like_user_dict)
             else:
                 raise ServiceError(code=403, message=ErrorMsg.PERMISSION_DENIED)
+        comment_dict = CommentService._comment_to_dict(comment=comment,
+                                                       metadata=metadata,
+                                                       is_like_user=is_like_user,
+                                                       **like_user_dict)
         return 200, comment_dict
 
     def list(self, page=0, page_size=10, resource_type=None, resource_uuid=None,

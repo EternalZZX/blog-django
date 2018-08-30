@@ -32,22 +32,23 @@ class AlbumService(Service):
                 raise Album.DoesNotExist
         except Album.DoesNotExist:
             raise ServiceError(code=404, message=ContentErrorMsg.ALBUM_NOT_FOUND)
+        is_like_user = AlbumMetadataService().is_like_user(resource=album, user_id=self.uid)
+        like_user_dict = {}
         if like_list_type is None:
             metadata = AlbumMetadataService().update_metadata_count(resource=album,
                                                                     read_count=AlbumMetadataService.OPERATE_ADD)
-            is_like_user = AlbumMetadataService().is_like_user(resource=album, user_id=self.uid)
-            album_dict = AlbumService._album_to_dict(album=album,
-                                                     metadata=metadata,
-                                                     is_like_user=is_like_user)
         else:
             like_level, _ = self.get_permission_level(PermissionName.ALBUM_LIKE)
             if like_level.is_gt_lv10() or like_level.is_gt_lv1() and \
                     int(like_list_type) == AlbumMetadataService.LIKE_LIST:
                 metadata, like_user_dict = AlbumMetadataService().get_metadata_dict(
                     resource=album, start=like_list_start, end=like_list_end, list_type=like_list_type)
-                album_dict = AlbumService._album_to_dict(album=album, metadata=metadata, **like_user_dict)
             else:
                 raise ServiceError(code=403, message=ErrorMsg.PERMISSION_DENIED)
+        album_dict = AlbumService._album_to_dict(album=album,
+                                                 metadata=metadata,
+                                                 is_like_user=is_like_user,
+                                                 **like_user_dict)
         return 200, album_dict
 
     def list(self, page=0, page_size=10, author_uuid=None, privacy=None,

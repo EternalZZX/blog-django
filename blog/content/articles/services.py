@@ -47,23 +47,24 @@ class ArticleService(Service):
                 raise ServiceError(code=403, message=ErrorMsg.PERMISSION_DENIED)
         except Article.DoesNotExist:
             raise ServiceError(code=404, message=ContentErrorMsg.ARTICLE_NOT_FOUND)
+        is_like_user = ArticleMetadataService().is_like_user(resource=article, user_id=self.uid)
+        like_user_dict = {}
         if like_list_type is None:
             operate_dict = {'read_count': ArticleMetadataService.OPERATE_ADD} \
                 if article.status == Article.ACTIVE else {}
             metadata = ArticleMetadataService().update_metadata_count(resource=article, **operate_dict)
-            is_like_user = ArticleMetadataService().is_like_user(resource=article, user_id=self.uid)
-            article_dict = ArticleService._article_to_dict(article=article,
-                                                           metadata=metadata,
-                                                           is_like_user=is_like_user)
         else:
             like_level, _ = self.get_permission_level(PermissionName.ARTICLE_LIKE)
             if like_level.is_gt_lv10() or like_level.is_gt_lv1() and \
                     int(like_list_type) == ArticleMetadataService.LIKE_LIST:
                 metadata, like_user_dict = ArticleMetadataService().get_metadata_dict(
                     resource=article, start=like_list_start, end=like_list_end, list_type=like_list_type)
-                article_dict = ArticleService._article_to_dict(article=article, metadata=metadata, **like_user_dict)
             else:
                 raise ServiceError(code=403, message=ErrorMsg.PERMISSION_DENIED)
+        article_dict = ArticleService._article_to_dict(article=article,
+                                                       metadata=metadata,
+                                                       is_like_user=is_like_user,
+                                                       **like_user_dict)
         return 200, article_dict
 
     def list(self, page=0, page_size=10, section_id=None, author_uuid=None,
