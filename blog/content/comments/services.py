@@ -419,8 +419,7 @@ class CommentService(Service):
         _, like_level = self.get_permission_level(PermissionName.COMMENT_LIKE)
         if like_level.is_lt_lv1():
             raise ServiceError(code=403, message=ErrorMsg.PERMISSION_DENIED)
-        _, read_permission = self._has_get_permission(comment=comment)
-        if not read_permission:
+        if not self._has_get_permission(comment=comment):
             raise ServiceError(code=403, message=ErrorMsg.PERMISSION_DENIED)
         return CommentMetadataService().update_like_list(resource=comment, user_id=self.uid, operate=operate)
 

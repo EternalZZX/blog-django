@@ -571,19 +571,21 @@ class MetadataService(object):
 
     def _get_like_list(self, resource, start=0, end=-1, list_type=LIKE_LIST):
         start = 0 if start is None else int(start)
-        end = -1 if end is None or int(end) == -1 else int(end) + 1
+        end = -1 if end is None else int(end)
         list_type, like_users, dislike_users = int(list_type), None, None
         like_list_key, dislike_list_key = self._get_like_list_key(resource.uuid)
         if list_type in (self.LIKE_LIST, self.ALL_LIST):
+            if not self.redis_client.exists(like_list_key):
+                return self._get_sql_like_list(resource=resource, start=start, end=end)
             like_users = self.redis_client.sorted_set_range(like_list_key, start, end)
-            if not like_users:
-                return self._get_sql_like_list(resource=resource)
-            like_users.remove('PLACEHOLDER')
+            if 'PLACEHOLDER' in like_users:
+                like_users.remove('PLACEHOLDER')
         if list_type in (self.DISLIKE_LIST, self.ALL_LIST):
+            if not self.redis_client.exists(dislike_list_key):
+                return self._get_sql_like_list(resource=resource, start=start, end=end)
             dislike_users = self.redis_client.sorted_set_range(dislike_list_key, start, end)
-            if not dislike_users:
-                return self._get_sql_like_list(resource=resource)
-            dislike_users.remove('PLACEHOLDER')
+            if 'PLACEHOLDER' in dislike_users:
+                dislike_users.remove('PLACEHOLDER')
         return like_users, dislike_users
 
     def _set_redis_metadata_count(self, resource, metadata):
@@ -594,14 +596,13 @@ class MetadataService(object):
 
     def _set_redis_like_list(self, resource, like_users, dislike_users):
         like_list_key, dislike_list_key = self._get_like_list_key(resource.uuid)
-        time_stamp = int(time.time())
         self.redis_client.delete(like_list_key, dislike_list_key)
-        self.redis_client.sorted_set_add(like_list_key, time_stamp, 'PLACEHOLDER')
-        self.redis_client.sorted_set_add(dislike_list_key, time_stamp, 'PLACEHOLDER')
-        for user_uid in like_users:
-            self.redis_client.sorted_set_add(like_list_key, time_stamp, user_uid)
-        for user_uid in dislike_users:
-            self.redis_client.sorted_set_add(dislike_list_key, time_stamp, user_uid)
+        self.redis_client.sorted_set_add(like_list_key, -1, 'PLACEHOLDER')
+        self.redis_client.sorted_set_add(dislike_list_key, -1, 'PLACEHOLDER')
+        for (index, user_uid) in like_users:
+            self.redis_client.sorted_set_add(like_list_key, index, user_uid)
+        for (index, user_uid) in dislike_users:
+            self.redis_client.sorted_set_add(dislike_list_key, index, user_uid)
 
     def _get_sql_metadata_count(self, resource):
         read_count = resource.metadata.read_count
@@ -613,7 +614,7 @@ class MetadataService(object):
         self._set_redis_metadata_count(resource=resource, metadata=metadata)
         return metadata
 
-    def _get_sql_like_list(self, resource):
+    def _get_sql_like_list(self, resource, start=0, end=-1):
         like_users = resource.metadata.like_users.all()
         like_users = list(user.id for user in like_users)
         dislike_users = resource.metadata.dislike_users.all()
@@ -621,7 +622,9 @@ class MetadataService(object):
         self._set_redis_like_list(resource=resource,
                                   like_users=like_users,
                                   dislike_users=dislike_users)
-        return like_users, dislike_users
+        if end < 0:
+            return like_users, dislike_users
+        return like_users[start:end + 1], dislike_users[start:end + 1]
 
     @abstractmethod
     def _set_sql_metadata(self, resource_uuid, metadata):
