@@ -130,9 +130,11 @@ class ArticleService(Service):
         article_dict_list = []
         for article in articles:
             metadata = ArticleMetadataService().get_metadata_count(resource=article)
+            is_like_user = ArticleMetadataService().is_like_user(resource=article, user_id=self.uid)
             article_dict = ArticleService._article_to_dict(article=article,
                                                            metadata=metadata,
                                                            content=False,
+                                                           is_like_user=is_like_user,
                                                            read_permission=article_read_list[article.id])
             article_dict_list.append(article_dict)
         return 200, {'articles': article_dict_list, 'total': total}

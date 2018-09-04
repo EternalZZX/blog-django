@@ -99,7 +99,10 @@ class AlbumService(Service):
         album_dict_list = []
         for album in albums:
             metadata = AlbumMetadataService().get_metadata_count(resource=album)
-            album_dict = AlbumService._album_to_dict(album=album, metadata=metadata)
+            is_like_user = AlbumMetadataService().is_like_user(resource=album, user_id=self.uid)
+            album_dict = AlbumService._album_to_dict(album=album,
+                                                     metadata=metadata,
+                                                     is_like_user=is_like_user)
             album_dict_list.append(album_dict)
         return 200, {'albums': album_dict_list, 'total': total}
 

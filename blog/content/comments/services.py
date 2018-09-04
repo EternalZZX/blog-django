@@ -122,7 +122,10 @@ class CommentService(Service):
         comment_dict_list = []
         for comment in comments:
             metadata = CommentMetadataService().get_metadata_count(resource=comment)
-            comment_dict = CommentService._comment_to_dict(comment=comment, metadata=metadata)
+            is_like_user = CommentMetadataService().is_like_user(resource=comment, user_id=self.uid)
+            comment_dict = CommentService._comment_to_dict(comment=comment,
+                                                           metadata=metadata,
+                                                           is_like_user=is_like_user)
             comment_dict_list.append(comment_dict)
         return 200, {'comments': comment_dict_list, 'total': total}
 

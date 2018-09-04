@@ -132,7 +132,10 @@ class PhotoService(Service):
         photo_dict_list = []
         for photo in photos:
             metadata = PhotoMetadataService().get_metadata_count(resource=photo)
-            photo_dict = PhotoService._photo_to_dict(photo=photo, metadata=metadata)
+            is_like_user = PhotoMetadataService().is_like_user(resource=photo, user_id=self.uid)
+            photo_dict = PhotoService._photo_to_dict(photo=photo,
+                                                     metadata=metadata,
+                                                     is_like_user=is_like_user)
             photo_dict_list.append(photo_dict)
         return 200, {'photos': photo_dict_list, 'total': total}
 
