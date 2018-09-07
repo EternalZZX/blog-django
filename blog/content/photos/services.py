@@ -192,7 +192,10 @@ class PhotoService(Service):
             raise ServiceError(code=404, message=ContentErrorMsg.PHOTO_NOT_FOUND)
         if like_operate is not None:
             metadata = self._update_like_list(photo=photo, operate=like_operate)
-            return 200, PhotoService._photo_to_dict(photo=photo, metadata=metadata)
+            is_like_user = PhotoMetadataService().is_like_user(resource=photo, user_id=self.uid)
+            return 200, PhotoService._photo_to_dict(photo=photo,
+                                                    metadata=metadata,
+                                                    is_like_user=is_like_user)
         is_self = photo.author_id == self.uid
         is_content_change, is_edit = False, False
         if is_self and update_level.is_gt_lv1() or update_level.is_gt_lv10():
@@ -220,7 +223,11 @@ class PhotoService(Service):
                  photo.status == Photo.FAILED):
                 photo.status = status if Setting().PHOTO_AUDIT else photo.status
         photo.save()
-        return 200, PhotoService._photo_to_dict(photo=photo)
+        metadata = PhotoMetadataService().get_metadata_count(resource=photo)
+        is_like_user = PhotoMetadataService().is_like_user(resource=photo, user_id=self.uid)
+        return 200, PhotoService._photo_to_dict(photo=photo,
+                                                metadata=metadata,
+                                                is_like_user=is_like_user)
 
     def delete(self, delete_id, force):
         if force:

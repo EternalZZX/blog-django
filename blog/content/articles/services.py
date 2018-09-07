@@ -187,7 +187,10 @@ class ArticleService(Service):
                                message=ContentErrorMsg.ARTICLE_NOT_FOUND)
         if like_operate is not None:
             metadata = self._update_like_list(article=article, operate=like_operate)
-            return 200, ArticleService._article_to_dict(article=article, metadata=metadata)
+            is_like_user = ArticleMetadataService().is_like_user(resource=article, user_id=self.uid)
+            return 200, ArticleService._article_to_dict(article=article,
+                                                        metadata=metadata,
+                                                        is_like_user=is_like_user)
         is_self = article.author_id == self.uid
         is_content_change, is_edit = False, False
         set_role = SectionService.is_manager(user_uuid=self.uuid, section=article.section)
@@ -239,7 +242,10 @@ class ArticleService(Service):
                 article.status = status if Setting().ARTICLE_AUDIT else article.status
         article.save()
         metadata = ArticleMetadataService().get_metadata_count(resource=article)
-        return 200, ArticleService._article_to_dict(article=article, metadata=metadata)
+        is_like_user = ArticleMetadataService().is_like_user(resource=article, user_id=self.uid)
+        return 200, ArticleService._article_to_dict(article=article,
+                                                    metadata=metadata,
+                                                    is_like_user=is_like_user)
 
     def delete(self, delete_id, force):
         if force:

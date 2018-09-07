@@ -159,7 +159,10 @@ class CommentService(Service):
             raise ServiceError(code=404, message=ContentErrorMsg.COMMENT_NOT_FOUND)
         if like_operate is not None:
             metadata = self._update_like_list(comment=comment, operate=like_operate)
-            return 200, CommentService._comment_to_dict(comment=comment, metadata=metadata)
+            is_like_user = CommentMetadataService().is_like_user(resource=comment, user_id=self.uid)
+            return 200, CommentService._comment_to_dict(comment=comment,
+                                                        metadata=metadata,
+                                                        is_like_user=is_like_user)
         is_self = comment.author_id == self.uid
         is_content_change = False
         edit_permission, set_role = False, None
@@ -196,7 +199,10 @@ class CommentService(Service):
         self._update_comment_count(comment.resource_type, status=comment.status, status_old=status_old,
                                    resource_uuid=comment.resource_uuid, reply_comment=comment.reply_comment)
         metadata = CommentMetadataService().get_metadata_count(resource=comment)
-        return 200, CommentService._comment_to_dict(comment=comment, metadata=metadata)
+        is_like_user = CommentMetadataService().is_like_user(resource=comment, user_id=self.uid)
+        return 200, CommentService._comment_to_dict(comment=comment,
+                                                    metadata=metadata,
+                                                    is_like_user=is_like_user)
 
     def delete(self, delete_id, force):
         if force:

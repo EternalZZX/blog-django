@@ -142,7 +142,10 @@ class AlbumService(Service):
                                message=ContentErrorMsg.ALBUM_NOT_FOUND)
         if like_operate is not None:
             metadata = self._update_like_list(album=album, operate=like_operate)
-            return 200, AlbumService._album_to_dict(album=album, metadata=metadata)
+            is_like_user = AlbumMetadataService().is_like_user(resource=album, user_id=self.uid)
+            return 200, AlbumService._album_to_dict(album=album,
+                                                    metadata=metadata,
+                                                    is_like_user=is_like_user)
         is_self = album.author_id == self.uid
         if is_self or update_level.is_gt_lv10():
             if name:
@@ -165,7 +168,10 @@ class AlbumService(Service):
             raise ServiceError(code=403, message=ErrorMsg.PERMISSION_DENIED)
         album.save()
         metadata = AlbumMetadataService().get_metadata_count(resource=album)
-        return 200, AlbumService._album_to_dict(album=album, metadata=metadata)
+        is_like_user = AlbumMetadataService().is_like_user(resource=album, user_id=self.uid)
+        return 200, AlbumService._album_to_dict(album=album,
+                                                metadata=metadata,
+                                                is_like_user=is_like_user)
 
     def delete(self, delete_id):
         delete_level, _ = self.get_permission_level(PermissionName.ALBUM_DELETE)
