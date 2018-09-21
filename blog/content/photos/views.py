@@ -203,7 +203,7 @@ def photo_list(request):
         'album_uuid': str,
         'album_system': int,
         'author_uuid': str,
-        'status': int,
+        'status': str,
         'order_field': str,
         'order': str,
         'query': str,

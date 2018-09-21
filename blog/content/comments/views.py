@@ -199,7 +199,7 @@ def comment_list(request):
         'dialog_uuid': str,
         'reply_uuid': str,
         'author_uuid': str,
-        'status': int,
+        'status': str,
         'order_field': str,
         'order': str,
         'query': str,
