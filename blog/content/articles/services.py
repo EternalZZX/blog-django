@@ -47,23 +47,24 @@ class ArticleService(Service):
                 raise ServiceError(code=403, message=ErrorMsg.PERMISSION_DENIED)
         except Article.DoesNotExist:
             raise ServiceError(code=404, message=ContentErrorMsg.ARTICLE_NOT_FOUND)
+        is_like_user = ArticleMetadataService().is_like_user(resource=article, user_id=self.uid)
+        like_user_dict = {}
         if like_list_type is None:
             operate_dict = {'read_count': ArticleMetadataService.OPERATE_ADD} \
                 if article.status == Article.ACTIVE else {}
             metadata = ArticleMetadataService().update_metadata_count(resource=article, **operate_dict)
-            is_like_user = ArticleMetadataService().is_like_user(resource=article, user_id=self.uid)
-            article_dict = ArticleService._article_to_dict(article=article,
-                                                           metadata=metadata,
-                                                           is_like_user=is_like_user)
         else:
             like_level, _ = self.get_permission_level(PermissionName.ARTICLE_LIKE)
             if like_level.is_gt_lv10() or like_level.is_gt_lv1() and \
                     int(like_list_type) == ArticleMetadataService.LIKE_LIST:
                 metadata, like_user_dict = ArticleMetadataService().get_metadata_dict(
                     resource=article, start=like_list_start, end=like_list_end, list_type=like_list_type)
-                article_dict = ArticleService._article_to_dict(article=article, metadata=metadata, **like_user_dict)
             else:
                 raise ServiceError(code=403, message=ErrorMsg.PERMISSION_DENIED)
+        article_dict = ArticleService._article_to_dict(article=article,
+                                                       metadata=metadata,
+                                                       is_like_user=is_like_user,
+                                                       **like_user_dict)
         return 200, article_dict
 
     def list(self, page=0, page_size=10, section_id=None, author_uuid=None,
@@ -129,9 +130,11 @@ class ArticleService(Service):
         article_dict_list = []
         for article in articles:
             metadata = ArticleMetadataService().get_metadata_count(resource=article)
+            is_like_user = ArticleMetadataService().is_like_user(resource=article, user_id=self.uid)
             article_dict = ArticleService._article_to_dict(article=article,
                                                            metadata=metadata,
                                                            content=False,
+                                                           is_like_user=is_like_user,
                                                            read_permission=article_read_list[article.id])
             article_dict_list.append(article_dict)
         return 200, {'articles': article_dict_list, 'total': total}
@@ -184,7 +187,10 @@ class ArticleService(Service):
                                message=ContentErrorMsg.ARTICLE_NOT_FOUND)
         if like_operate is not None:
             metadata = self._update_like_list(article=article, operate=like_operate)
-            return 200, ArticleService._article_to_dict(article=article, metadata=metadata)
+            is_like_user = ArticleMetadataService().is_like_user(resource=article, user_id=self.uid)
+            return 200, ArticleService._article_to_dict(article=article,
+                                                        metadata=metadata,
+                                                        is_like_user=is_like_user)
         is_self = article.author_id == self.uid
         is_content_change, is_edit = False, False
         set_role = SectionService.is_manager(user_uuid=self.uuid, section=article.section)
@@ -236,7 +242,10 @@ class ArticleService(Service):
                 article.status = status if Setting().ARTICLE_AUDIT else article.status
         article.save()
         metadata = ArticleMetadataService().get_metadata_count(resource=article)
-        return 200, ArticleService._article_to_dict(article=article, metadata=metadata)
+        is_like_user = ArticleMetadataService().is_like_user(resource=article, user_id=self.uid)
+        return 200, ArticleService._article_to_dict(article=article,
+                                                    metadata=metadata,
+                                                    is_like_user=is_like_user)
 
     def delete(self, delete_id, force):
         if force:

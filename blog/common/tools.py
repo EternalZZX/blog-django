@@ -17,8 +17,8 @@ class BaseModel(object):
     def update_m2m_field(m2m_field, model, ids, id_field='id'):
         if ids is not None:
             m2m_field.clear()
-            for id in ids:
-                query_dict = {id_field: id}
+            for item in ids:
+                query_dict = {id_field: item}
                 try:
                     m2m_field.add(model.objects.get(**query_dict))
                 except model.DoesNotExist:

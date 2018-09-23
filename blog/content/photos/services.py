@@ -53,23 +53,24 @@ class PhotoService(Service):
                 raise Photo.DoesNotExist
         except Photo.DoesNotExist:
             raise ServiceError(code=404, message=ContentErrorMsg.PHOTO_NOT_FOUND)
+        is_like_user = PhotoMetadataService().is_like_user(resource=photo, user_id=self.uid)
+        like_user_dict = {}
         if like_list_type is None:
             operate_dict = {'read_count': PhotoMetadataService.OPERATE_ADD} \
                 if photo.status == Photo.ACTIVE else {}
             metadata = PhotoMetadataService().update_metadata_count(resource=photo, **operate_dict)
-            is_like_user = PhotoMetadataService().is_like_user(resource=photo, user_id=self.uid)
-            photo_dict = PhotoService._photo_to_dict(photo=photo,
-                                                     metadata=metadata,
-                                                     is_like_user=is_like_user)
         else:
             like_level, _ = self.get_permission_level(PermissionName.PHOTO_LIKE)
             if like_level.is_gt_lv10() or like_level.is_gt_lv1() and \
                     int(like_list_type) == PhotoMetadataService.LIKE_LIST:
                 metadata, like_user_dict = PhotoMetadataService().get_metadata_dict(
                     resource=photo, start=like_list_start, end=like_list_end, list_type=like_list_type)
-                photo_dict = PhotoService._photo_to_dict(photo=photo, metadata=metadata, **like_user_dict)
             else:
                 raise ServiceError(code=403, message=ErrorMsg.PERMISSION_DENIED)
+        photo_dict = PhotoService._photo_to_dict(photo=photo,
+                                                 metadata=metadata,
+                                                 is_like_user=is_like_user,
+                                                 **like_user_dict)
         return 200, photo_dict
 
     def list(self, page=0, page_size=10, album_uuid=None, album_system=None,
@@ -131,7 +132,10 @@ class PhotoService(Service):
         photo_dict_list = []
         for photo in photos:
             metadata = PhotoMetadataService().get_metadata_count(resource=photo)
-            photo_dict = PhotoService._photo_to_dict(photo=photo, metadata=metadata)
+            is_like_user = PhotoMetadataService().is_like_user(resource=photo, user_id=self.uid)
+            photo_dict = PhotoService._photo_to_dict(photo=photo,
+                                                     metadata=metadata,
+                                                     is_like_user=is_like_user)
             photo_dict_list.append(photo_dict)
         return 200, {'photos': photo_dict_list, 'total': total}
 
@@ -188,7 +192,10 @@ class PhotoService(Service):
             raise ServiceError(code=404, message=ContentErrorMsg.PHOTO_NOT_FOUND)
         if like_operate is not None:
             metadata = self._update_like_list(photo=photo, operate=like_operate)
-            return 200, PhotoService._photo_to_dict(photo=photo, metadata=metadata)
+            is_like_user = PhotoMetadataService().is_like_user(resource=photo, user_id=self.uid)
+            return 200, PhotoService._photo_to_dict(photo=photo,
+                                                    metadata=metadata,
+                                                    is_like_user=is_like_user)
         is_self = photo.author_id == self.uid
         is_content_change, is_edit = False, False
         if is_self and update_level.is_gt_lv1() or update_level.is_gt_lv10():
@@ -216,7 +223,11 @@ class PhotoService(Service):
                  photo.status == Photo.FAILED):
                 photo.status = status if Setting().PHOTO_AUDIT else photo.status
         photo.save()
-        return 200, PhotoService._photo_to_dict(photo=photo)
+        metadata = PhotoMetadataService().get_metadata_count(resource=photo)
+        is_like_user = PhotoMetadataService().is_like_user(resource=photo, user_id=self.uid)
+        return 200, PhotoService._photo_to_dict(photo=photo,
+                                                metadata=metadata,
+                                                is_like_user=is_like_user)
 
     def delete(self, delete_id, force):
         if force:

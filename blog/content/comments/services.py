@@ -42,23 +42,24 @@ class CommentService(Service):
                 raise Comment.DoesNotExist
         except Comment.DoesNotExist:
             raise ServiceError(code=404, message=ContentErrorMsg.COMMENT_NOT_FOUND)
+        is_like_user = CommentMetadataService().is_like_user(resource=comment, user_id=self.uid)
+        like_user_dict = {}
         if like_list_type is None:
             operate_dict = {'read_count': CommentMetadataService.OPERATE_ADD} \
                 if comment.status == Comment.ACTIVE else {}
             metadata = CommentMetadataService().update_metadata_count(resource=comment, **operate_dict)
-            is_like_user = CommentMetadataService().is_like_user(resource=comment, user_id=self.uid)
-            comment_dict = CommentService._comment_to_dict(comment=comment,
-                                                           metadata=metadata,
-                                                           is_like_user=is_like_user)
         else:
             like_level, _ = self.get_permission_level(PermissionName.COMMENT_LIKE)
             if like_level.is_gt_lv10() or like_level.is_gt_lv1() and \
                     int(like_list_type) == CommentMetadataService.LIKE_LIST:
                 metadata, like_user_dict = CommentMetadataService().get_metadata_dict(
                     resource=comment, start=like_list_start, end=like_list_end, list_type=like_list_type)
-                comment_dict = CommentService._comment_to_dict(comment=comment, metadata=metadata, **like_user_dict)
             else:
                 raise ServiceError(code=403, message=ErrorMsg.PERMISSION_DENIED)
+        comment_dict = CommentService._comment_to_dict(comment=comment,
+                                                       metadata=metadata,
+                                                       is_like_user=is_like_user,
+                                                       **like_user_dict)
         return 200, comment_dict
 
     def list(self, page=0, page_size=10, resource_type=None, resource_uuid=None,
@@ -121,7 +122,10 @@ class CommentService(Service):
         comment_dict_list = []
         for comment in comments:
             metadata = CommentMetadataService().get_metadata_count(resource=comment)
-            comment_dict = CommentService._comment_to_dict(comment=comment, metadata=metadata)
+            is_like_user = CommentMetadataService().is_like_user(resource=comment, user_id=self.uid)
+            comment_dict = CommentService._comment_to_dict(comment=comment,
+                                                           metadata=metadata,
+                                                           is_like_user=is_like_user)
             comment_dict_list.append(comment_dict)
         return 200, {'comments': comment_dict_list, 'total': total}
 
@@ -155,7 +159,10 @@ class CommentService(Service):
             raise ServiceError(code=404, message=ContentErrorMsg.COMMENT_NOT_FOUND)
         if like_operate is not None:
             metadata = self._update_like_list(comment=comment, operate=like_operate)
-            return 200, CommentService._comment_to_dict(comment=comment, metadata=metadata)
+            is_like_user = CommentMetadataService().is_like_user(resource=comment, user_id=self.uid)
+            return 200, CommentService._comment_to_dict(comment=comment,
+                                                        metadata=metadata,
+                                                        is_like_user=is_like_user)
         is_self = comment.author_id == self.uid
         is_content_change = False
         edit_permission, set_role = False, None
@@ -192,7 +199,10 @@ class CommentService(Service):
         self._update_comment_count(comment.resource_type, status=comment.status, status_old=status_old,
                                    resource_uuid=comment.resource_uuid, reply_comment=comment.reply_comment)
         metadata = CommentMetadataService().get_metadata_count(resource=comment)
-        return 200, CommentService._comment_to_dict(comment=comment, metadata=metadata)
+        is_like_user = CommentMetadataService().is_like_user(resource=comment, user_id=self.uid)
+        return 200, CommentService._comment_to_dict(comment=comment,
+                                                    metadata=metadata,
+                                                    is_like_user=is_like_user)
 
     def delete(self, delete_id, force):
         if force:
@@ -419,8 +429,7 @@ class CommentService(Service):
         _, like_level = self.get_permission_level(PermissionName.COMMENT_LIKE)
         if like_level.is_lt_lv1():
             raise ServiceError(code=403, message=ErrorMsg.PERMISSION_DENIED)
-        _, read_permission = self._has_get_permission(comment=comment)
-        if not read_permission:
+        if not self._has_get_permission(comment=comment):
             raise ServiceError(code=403, message=ErrorMsg.PERMISSION_DENIED)
         return CommentMetadataService().update_like_list(resource=comment, user_id=self.uid, operate=operate)
 

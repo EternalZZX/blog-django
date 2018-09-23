@@ -129,7 +129,7 @@ def comment_list(request):
     @apiParam {number=0, 1, 2} [resource_type] 评论资源类型，Article=0, Album=1, Photo=2
     @apiParam {string} [resource_uuid] 评论资源UUID
     @apiParam {number} [resource_section_id] 评论资源所属板块
-    @apiParam {string} [parent_uuid] 对话评论UUID
+    @apiParam {string} [dialog_uuid] 对话评论UUID
     @apiParam {string} [reply_uuid] 回复评论UUID
     @apiParam {string} [author_uuid] 评论作者
     @apiParam {number=0, 1, 2, 3, 4} [status] 评论状态，Cancel=0, Active=1, Audit=2,
@@ -199,7 +199,7 @@ def comment_list(request):
         'dialog_uuid': str,
         'reply_uuid': str,
         'author_uuid': str,
-        'status': int,
+        'status': str,
         'order_field': str,
         'order': str,
         'query': str,

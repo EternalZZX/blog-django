@@ -176,7 +176,7 @@ def article_list(request):
         'page_size': int,
         'section_id': int,
         'author_uuid': str,
-        'status': int,
+        'status': str,
         'order_field': str,
         'order': str,
         'query': str,

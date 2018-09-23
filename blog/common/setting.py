@@ -180,4 +180,3 @@ class AuthType(StaticObject):
     HEADER = 1
     COOKIE = 2
     URL = 3
-

@@ -128,17 +128,17 @@ def model_to_dict(instance, **kwargs):
 
 def request_parser(data, params):
     params_dict = {}
-    for key, type in params.items():
+    for key, data_type in params.items():
         value = data.get(key)
         if value is None:
             continue
-        if type == str:
+        if data_type == str:
             params_dict[key] = value
-        elif type == bool:
+        elif data_type == bool:
             params_dict[key] = value == 'true'
-        elif type == int:
+        elif data_type == int:
             params_dict[key] = int(value)
-        elif type == list:
+        elif data_type == list:
             params_dict[key] = str_to_list(value)
         else:
             params_dict[key] = value
