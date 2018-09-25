@@ -377,8 +377,7 @@ class PhotoService(Service):
         _, like_level = self.get_permission_level(PermissionName.PHOTO_LIKE)
         if like_level.is_lt_lv1():
             raise ServiceError(code=403, message=ErrorMsg.PERMISSION_DENIED)
-        _, read_permission = self.has_get_permission(photo=photo)
-        if not read_permission:
+        if not self.has_get_permission(photo=photo):
             raise ServiceError(code=403, message=ErrorMsg.PERMISSION_DENIED)
         return PhotoMetadataService().update_like_list(resource=photo, user_id=self.uid, operate=operate)
 
