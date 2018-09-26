@@ -74,8 +74,8 @@ class PhotoService(Service):
         return 200, photo_dict
 
     def list(self, page=0, page_size=10, album_uuid=None, album_system=None,
-             author_uuid=None, status=None, order_field=None, order='desc',
-             query=None, query_field=None):
+             author_uuid=None, status=None, privacy=None, order_field=None,
+             order='desc', query=None, query_field=None):
         query_level, order_level = self.get_permission_level(PermissionName.PHOTO_SELECT)
         photos = Photo.objects.all()
         if album_uuid is not None:
@@ -92,6 +92,8 @@ class PhotoService(Service):
                 photos = photos.filter(status=int(status))
             else:
                 photos = photos.filter(reduce(self.status_or, list(status)))
+        if privacy is not None:
+            photos = photos.filter(privacy=privacy)
         if order_field:
             if (order_level.is_gt_lv1() and order_field in PhotoService.PHOTO_ORDER_FIELD) \
                     or order_level.is_gt_lv10():

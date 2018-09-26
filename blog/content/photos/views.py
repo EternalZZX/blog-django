@@ -150,6 +150,7 @@ def photo_list(request):
     @apiParam {string} [author_uuid] 照片作者
     @apiParam {number=0, 1, 2, 3, 4, 5} [status] 照片状态，Cancel=0, Active=1, Audit=2,
                                                  Failed=3, Recycled=4，状态可拼接，e.g. '123'
+    @apiParam {number=0, 1, 2} [privacy] 照片私有状态
     @apiParam {string} [order_field] 照片信息列表排序字段
     @apiParam {string=desc, asc} [order="desc"] 照片信息列表排序方向
     @apiParam {string} [query] 搜索内容，若无搜索字段则全局搜索description, author, album
@@ -204,6 +205,7 @@ def photo_list(request):
         'album_system': int,
         'author_uuid': str,
         'status': str,
+        'privacy': int,
         'order_field': str,
         'order': str,
         'query': str,
