@@ -232,6 +232,7 @@ def photo_create(request):
     @apiPermission PHOTO_READ
     @apiPermission PHOTO_CANCEL
     @apiPermission PHOTO_AUDIT
+    @apiPermission PHOTO_LIMIT
     @apiUse Header
     @apiParam {file} image 照片文件
     @apiParam {string} [description] 照片描述
