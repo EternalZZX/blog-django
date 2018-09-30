@@ -114,6 +114,7 @@ class MemcachedClient(object):
         return self.client.delete(key)
 
 
+# Todo rewrite access token JWT or OAuth 2.0
 class Authorize(object):
     TOKEN_FLAG = 'ETERN'
     GUEST_FLAG = 'GUEST'

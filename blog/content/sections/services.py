@@ -96,6 +96,7 @@ class SectionService(Service):
             else:
                 raise ServiceError(code=403,
                                    message=ErrorMsg.QUERY_PERMISSION_DENIED)
+        # Todo fix performance issue
         section_read_list = {}
         for section in sections:
             get_permission, read_permission = self.has_get_permission(section=section)

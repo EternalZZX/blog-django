@@ -92,6 +92,7 @@ class AlbumService(Service):
             else:
                 raise ServiceError(code=403,
                                    message=ErrorMsg.QUERY_PERMISSION_DENIED)
+        # Todo fix performance issue
         for album in albums:
             if not self.has_get_permission(album=album):
                 albums = albums.exclude(id=album.id)
@@ -201,12 +202,11 @@ class AlbumService(Service):
 
     def _update_like_list(self, album, operate):
         _, like_level = self.get_permission_level(PermissionName.ALBUM_LIKE)
-        if like_level.is_lt_lv1():
+        if like_level.is_lt_lv1() or not self.has_get_permission(album=album):
             raise ServiceError(code=403, message=ErrorMsg.PERMISSION_DENIED)
-        _, read_permission = self.has_get_permission(album=album)
-        if not read_permission:
-            raise ServiceError(code=403, message=ErrorMsg.PERMISSION_DENIED)
-        return AlbumMetadataService().update_like_list(resource=album, user_id=self.uid, operate=operate)
+        return AlbumMetadataService().update_like_list(resource=album,
+                                                       user_id=self.uid,
+                                                       operate=operate)
 
     def _get_privacy(self, privacy=Album.PUBLIC):
         _, privacy_level = self.get_permission_level(PermissionName.ALBUM_PRIVACY, False)

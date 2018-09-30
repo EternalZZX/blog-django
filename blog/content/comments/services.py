@@ -115,6 +115,7 @@ class CommentService(Service):
                                            Q(author__nick__icontains=query))
             else:
                 raise ServiceError(code=403, message=ErrorMsg.QUERY_PERMISSION_DENIED)
+        # Todo fix performance issue
         for comment in comments:
             if not self._has_get_permission(comment=comment):
                 comments = comments.exclude(id=comment.id)

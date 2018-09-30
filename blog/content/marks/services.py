@@ -83,6 +83,7 @@ class MarkService(Service):
             else:
                 raise ServiceError(code=403,
                                    message=ErrorMsg.QUERY_PERMISSION_DENIED)
+        # Todo fix performance issue
         for mark in marks:
             if not self._has_get_permission(mark=mark):
                 marks = marks.exclude(id=mark.id)

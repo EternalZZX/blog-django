@@ -131,6 +131,7 @@ class PhotoService(Service):
             if not self.has_get_permission(photo=photo):
                 photos = photos.exclude(id=photo.id)
         photos, total = paging(photos, page=page, page_size=page_size)
+        # Todo fix performance issue
         photo_dict_list = []
         for photo in photos:
             metadata = PhotoMetadataService().get_metadata_count(resource=photo)
