@@ -207,7 +207,7 @@ def article_create(request):
     @apiParam {string} title 文章标题
     @apiParam {string} [keywords] 文章关键词，e.g.'keyword1,keyword2'
     @apiParam {string} [cover_uuid] 文章封面UUID
-    @apiParam {string} [overview={content[:200]}] 文章概述
+    @apiParam {string} [overview={content(:200)}] 文章概述
     @apiParam {string} [content] 文章内容
     @apiParam {string} [section_id] 文章所属板块ID
     @apiParam {number=0, 1, 2, 3, 4, 5} [status=1] 文章状态, Cancel=0, Active=1, Draft=2, Audit=3,
