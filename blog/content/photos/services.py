@@ -207,16 +207,16 @@ class PhotoService(Service):
                 is_content_change = True
             if album_uuid is not None and album_uuid != photo.album.uuid:
                 photo.album = self._get_album(album_uuid=album_uuid)
-            if privacy and int(privacy) != photo.privacy:
+            if privacy is not None and int(privacy) != photo.privacy:
                 photo.privacy, is_edit = self._get_privacy(privacy=privacy), True
-            if read_level and int(read_level) != photo.read_level:
+            if read_level is not None and int(read_level) != photo.read_level:
                 photo.read_level, is_edit = self._get_read_level(read_level=read_level), True
             if is_content_change or is_edit:
                 photo.last_editor_id = self.uid
                 photo.edit_at = timezone.now()
         elif not self._has_status_permission(photo=photo):
             raise ServiceError(code=403, message=ErrorMsg.PERMISSION_DENIED)
-        if status and int(status) != photo.status:
+        if status is not None and int(status) != photo.status:
             photo.status = self._get_update_status(status, photo, is_content_change)
         elif is_content_change:
             _, audit_level = self.get_permission_level(PermissionName.PHOTO_AUDIT, False)

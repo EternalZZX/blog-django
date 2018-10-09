@@ -219,16 +219,16 @@ class ArticleService(Service):
                 section = self._get_section(section_id=section_id)
                 article.section, is_content_change = section, True
                 set_role = SectionService.is_manager(user_uuid=self.uuid, section=section)
-            if privacy and int(privacy) != article.privacy:
+            if privacy is not None and int(privacy) != article.privacy:
                 article.privacy, is_edit = self._get_privacy(privacy=privacy), True
-            if read_level and int(read_level) != article.read_level:
+            if read_level is not None and int(read_level) != article.read_level:
                 article.read_level, is_edit = self._get_read_level(read_level=read_level), True
             if is_content_change or is_edit:
                 article.last_editor_id = self.uid
                 article.edit_at = timezone.now()
         elif not self._has_status_permission(article=article, set_role=set_role):
             raise ServiceError(code=403, message=ErrorMsg.PERMISSION_DENIED)
-        if status and int(status) != article.status:
+        if status is not None and int(status) != article.status:
             article.status = self._get_update_status(status, article, set_role, is_content_change)
         elif is_content_change:
             _, audit_level = self.get_permission_level(PermissionName.ARTICLE_AUDIT, False)

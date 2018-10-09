@@ -159,7 +159,7 @@ class AlbumService(Service):
                     raise ServiceError(message=AccountErrorMsg.USER_NOT_FOUND)
             if cover_uuid is not None:
                 album.cover = self._get_cover_url(user_id=album.author_id, cover_uuid=cover_uuid)
-            if privacy and int(privacy) != album.privacy:
+            if privacy is not None and int(privacy) != album.privacy:
                 album.privacy = self._get_privacy(privacy=privacy)
             if system is not None:
                 system_level, _ = self.get_permission_level(PermissionName.ALBUM_SYSTEM)

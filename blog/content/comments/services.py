@@ -180,7 +180,7 @@ class CommentService(Service):
         elif not self._has_status_permission(comment=comment, set_role=set_role):
             raise ServiceError(code=403, message=ErrorMsg.PERMISSION_DENIED)
         status_old = comment.status
-        if status and int(status) != status_old:
+        if status is not None and int(status) != status_old:
             comment.status = self._get_update_status(status, comment, set_role, is_content_change)
         elif is_content_change:
             _, audit_level = self.get_permission_level(PermissionName.COMMENT_AUDIT, False)

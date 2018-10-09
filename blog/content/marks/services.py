@@ -126,7 +126,7 @@ class MarkService(Service):
                 mark.name = name
             mark.update_char_field('description', description)
             mark.update_char_field('color', color)
-            if privacy and int(privacy) != mark.privacy:
+            if privacy is not None and int(privacy) != mark.privacy:
                 mark.privacy = self._get_privacy(privacy=privacy)
             if author_uuid and author_level.is_gt_lv10():
                 try:
