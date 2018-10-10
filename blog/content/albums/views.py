@@ -164,6 +164,7 @@ def album_create(request):
     @apiDescription 创建相册
     @apiPermission ALBUM_CREATE
     @apiPermission ALBUM_PRIVACY
+    @apiPermission ALBUM_SYSTEM
     @apiUse Header
     @apiParam {string} name 相册名
     @apiParam {string} [description] 相册描述
