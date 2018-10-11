@@ -205,7 +205,7 @@ class PhotoService(Service):
             if description is not None and description != photo.description:
                 photo.update_char_field('description', description)
                 is_content_change = True
-            if album_uuid is not None and album_uuid != photo.album.uuid:
+            if album_uuid is not None and (not photo.album or album_uuid != photo.album.uuid):
                 photo.album = self._get_album(album_uuid=album_uuid)
             if privacy is not None and int(privacy) != photo.privacy:
                 photo.privacy, is_edit = self._get_privacy(privacy=privacy), True
@@ -394,7 +394,7 @@ class PhotoService(Service):
 
     def _get_read_level(self, read_level=100):
         _, read_permission_level = self.get_permission_level(PermissionName.PHOTO_READ, False)
-        read_level = int(read_level) if read_level else 100
+        read_level = int(read_level)
         if read_permission_level.is_lt_lv1():
             read_level = 100
         else:
