@@ -51,7 +51,7 @@ class AlbumService(Service):
                                                  **like_user_dict)
         return 200, album_dict
 
-    def list(self, page=0, page_size=10, author_uuid=None, privacy=None,
+    def list(self, page=0, page_size=10, author_uuid=None, privacy=None, system=None,
              order_field=None, order='desc', query=None, query_field=None):
         query_level, order_level = self.get_permission_level(PermissionName.ALBUM_SELECT)
         albums = Album.objects.all()
@@ -59,6 +59,8 @@ class AlbumService(Service):
             albums = albums.filter(author__uuid=author_uuid)
         if privacy is not None:
             albums = albums.filter(privacy=privacy)
+        if system is not None:
+            albums = albums.filter(system=system) | albums
         if order_field:
             if (order_level.is_gt_lv1() and order_field in AlbumService.ALBUM_ORDER_FIELD) \
                     or order_level.is_gt_lv10():

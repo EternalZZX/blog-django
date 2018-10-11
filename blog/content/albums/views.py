@@ -98,6 +98,7 @@ def album_list(request):
     @apiParam {number} [page_size=10] 相册信息列表页长
     @apiParam {string} [author_uuid] 相册作者
     @apiParam {number=0, 1, 2} [privacy] 相册私有状态
+    @apiParam {number=0, 1, 2, 3} [system] 系统相册类型, Avatar=0, AlbumCover=1, SectionCover=2, ArticleCover=3
     @apiParam {string} [order_field] 相册信息列表排序字段
     @apiParam {string=desc, asc} [order="desc"] 相册信息列表排序方向
     @apiParam {string} [query] 搜索内容，若无搜索字段则全局搜索name, description, author
@@ -141,6 +142,7 @@ def album_list(request):
         'page_size': int,
         'author_uuid': str,
         'privacy': int,
+        'system': int,
         'order_field': str,
         'order': str,
         'query': str,
@@ -171,7 +173,7 @@ def album_create(request):
     @apiParam {string} [cover_uuid] 相册封面UUID
     @apiParam {string} [author_uuid={self}] 作者UUID
     @apiParam {number=0, 1, 2} [privacy=1] 相册私有状态, Private=0, Public=1, Protected=2
-    @apiParam {number=0, 1} [system] 系统相册类型, Avatar=0, AlbumCover=1, SectionCover=2, ArticleCover=3
+    @apiParam {number=0, 1, 2, 3} [system] 系统相册类型, Avatar=0, AlbumCover=1, SectionCover=2, ArticleCover=3
     @apiSuccess {string} data 创建相册信息详情
     @apiSuccessExample {json} Success-Response:
     HTTP/1.1 200 OK
