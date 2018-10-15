@@ -195,7 +195,7 @@ def section_create(request):
     @apiParam {string} [owner_uuid={self}] 大版主UUID
     @apiParam {string} [moderator_uuids] 版主UUID列表，e.g.'7357d28a-a611-5efd-ae6e-a550a5b95487'
     @apiParam {string} [assistant_uuids] 副版主UUID列表，e.g.'4be0643f-1d98-573b-97cd-ca98a65347dd'
-    @apiParam {number=0, 1, 2} [status=2] 版块状态, Cancel=0, Normal=1, Hide=2
+    @apiParam {number=0, 1, 2} [status=1] 版块状态, Cancel=0, Normal=1, Hide=2
     @apiParam {number} [read_level=0] 版块需求等级
     @apiParam {only_roles=true, false} [default=false] 是否指定角色拥有阅读权限
     @apiParam {string} [role_ids] 角色ID列表，e.g.'1,2'
