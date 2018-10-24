@@ -10,26 +10,26 @@ from blog.common.utils import Response, json_response, request_parser
 
 
 @json_response
-def section_operate(request, section_id=None):
+def section_operate(request, section_name=None):
     if request.method == 'GET':
-        if not section_id:
+        if not section_name:
             response = section_list(request)
         else:
-            response = section_get(request, section_id)
+            response = section_get(request, section_name)
     elif request.method == 'POST':
         response = section_create(request)
     elif request.method == 'PUT':
-        response = section_update(request, section_id)
+        response = section_update(request, section_name)
     elif request.method == 'DELETE':
-        response = section_delete(request, section_id)
+        response = section_delete(request, section_name)
     else:
         response = Response(code=405, data=ErrorMsg.REQUEST_METHOD_ERROR)
     return response
 
 
-def section_get(request, section_id):
+def section_get(request, section_name):
     """
-    @api {get} /content/sections/{id}/ section get
+    @api {get} /content/sections/{name}/ section get
     @apiVersion 0.1.0
     @apiName section_get
     @apiGroup content
@@ -89,7 +89,7 @@ def section_get(request, section_id):
     }
     """
     try:
-        code, data = SectionService(request).get(section_id=section_id)
+        code, data = SectionService(request).get(section_name=section_name)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
                      getattr(e, 'message', ErrorMsg.REQUEST_ERROR)
@@ -326,9 +326,9 @@ def section_create(request):
     return Response(code=code, data=data)
 
 
-def section_update(request, section_id):
+def section_update(request, section_name):
     """
-    @api {put} /content/sections/{id}/ section update
+    @api {put} /content/sections/{name}/ section update
     @apiVersion 0.1.0
     @apiName section_update
     @apiGroup content
@@ -467,7 +467,7 @@ def section_update(request, section_id):
             if value is not None:
                 kwargs[key] = value
         params_dict.update(kwargs)
-        code, data = SectionService(request).update(section_id=section_id,
+        code, data = SectionService(request).update(section_name=section_name,
                                                     **params_dict)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
@@ -475,16 +475,16 @@ def section_update(request, section_id):
     return Response(code=code, data=data)
 
 
-def section_delete(request, section_id):
+def section_delete(request, section_name):
     """
-    @api {delete} /content/sections/[id]/ section delete
+    @api {delete} /content/sections/[name]/ section delete
     @apiVersion 0.1.0
     @apiName section_delete
     @apiGroup content
     @apiDescription 删除版块
     @apiPermission SECTION_DELETE
     @apiUse Header
-    @apiParam {string} [id_list] 删除版块id列表，e.g.'7,8,9', 当使用URL参数id时
+    @apiParam {string} [id_list] 删除版块name列表，e.g.'a,b,c', 当使用URL参数name时
                                  该参数忽略
     @apiParam {bool=true, false} [force=false] 强制删除
     @apiSuccess {string} data 版块删除信息详情
@@ -509,8 +509,8 @@ def section_delete(request, section_id):
     data = QueryDict(request.body)
     force = data.get('force') == 'true'
     try:
-        if section_id:
-            id_list = [{'delete_id': section_id, 'force': force}]
+        if section_name:
+            id_list = [{'delete_id': section_name, 'force': force}]
         else:
             id_list = data.get('id_list')
             if not isinstance(id_list, (unicode, str)):

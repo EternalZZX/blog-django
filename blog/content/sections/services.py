@@ -42,10 +42,10 @@ class SectionService(Service):
             self.is_controller = is_owner or is_moderator
             self.is_manager = is_assistant or is_moderator or is_owner
 
-    def get(self, section_id):
+    def get(self, section_name):
         self.has_permission(PermissionName.SECTION_SELECT)
         try:
-            section = Section.objects.get(id=section_id)
+            section = Section.objects.get(name=section_name)
             get_permission, read_permission = self.has_get_permission(section=section)
             if not get_permission:
                 raise Section.DoesNotExist
@@ -170,7 +170,7 @@ class SectionService(Service):
         section_dict['policy'] = policy_dict
         return 201, section_dict
 
-    def update(self, section_id, name=None, nick=None, description=None,
+    def update(self, section_name, name=None, nick=None, description=None,
                cover_uuid=None, owner_uuid=None, moderator_uuids=None,
                assistant_uuids=None, status=None, read_level=None,
                only_roles=False, role_ids=None, only_groups=False,
@@ -178,7 +178,7 @@ class SectionService(Service):
         update_level, policy_level = self.get_permission_level(PermissionName.SECTION_UPDATE)
         op = update_level.is_gt_lv9()
         try:
-            section = Section.objects.get(id=section_id)
+            section = Section.objects.get(name=section_name)
         except Section.DoesNotExist:
             raise ServiceError(code=404, message=ContentErrorMsg.SECTION_NOT_FOUND)
         set_role = self.is_manager(user_uuid=self.uuid, section=section)
@@ -186,7 +186,7 @@ class SectionService(Service):
             raise ServiceError(code=403, message=ErrorMsg.PERMISSION_DENIED)
         permission = section.permission
         if name and self.has_set_permission(permission.set_name, set_role, op) and \
-                SectionService.is_unique(model_obj=Section, exclude_id=section_id, name=name):
+                SectionService.is_unique(model_obj=Section, exclude_id=section.id, name=name):
             section.name = name
         if nick and self.has_set_permission(permission.set_nick, set_role, op):
             section.nick = nick
@@ -242,7 +242,7 @@ class SectionService(Service):
         delete_level, cancel_level = self.get_permission_level(PermissionName.SECTION_DELETE)
         result = {'id': delete_id}
         try:
-            section = Section.objects.get(id=delete_id)
+            section = Section.objects.get(name=delete_id)
             result['name'], result['status'] = section.nick, 'SUCCESS'
             set_role = self.is_manager(user_uuid=self.uuid, section=section)
             permission = section.permission

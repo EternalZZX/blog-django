@@ -18,7 +18,7 @@ class Section(models.Model, BaseModel):
     )
 
     id = models.AutoField(primary_key=True)
-    name = models.CharField(max_length=50)
+    name = models.SlugField(unique=True)
     nick = models.CharField(max_length=200)
     description = models.TextField(null=True)
     cover = models.CharField(max_length=300, null=True)

@@ -28,7 +28,7 @@ class User(models.Model, BaseModel):
                             default=str(uuid.uuid4()),
                             unique=True,
                             editable=False)
-    username = models.SlugField()
+    username = models.SlugField(unique=True)
     password = models.CharField(max_length=50)
     nick = models.CharField(max_length=200)
     avatar = models.CharField(max_length=300, null=True)
