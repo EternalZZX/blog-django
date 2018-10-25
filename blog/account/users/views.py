@@ -163,7 +163,7 @@ def user_list(request):
         'query_field': str
     }
     try:
-        params_dict = request_parser(data=request.POST, params=params)
+        params_dict = request_parser(data=request.GET, params=params)
         code, data = UserService(request).list(**params_dict)
     except Exception as e:
         code, data = getattr(e, 'code', 400), \
