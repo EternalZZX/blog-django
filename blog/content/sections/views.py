@@ -346,7 +346,7 @@ def section_update(request, section_name):
     @apiParam {number} [read_level=0] 版块需求等级
     @apiParam {bool=true, false} [only_roles=false] 是否指定角色拥有阅读权限
     @apiParam {string} [role_ids] 角色ID列表，e.g.'1,2'
-    @apiParam {only_groups=true, false} [default=false] 是否指定组拥有阅读权限
+    @apiParam {bool=true, false} [only_groups=false] 是否指定组拥有阅读权限
     @apiParam {string} [group_ids] 用户组ID列表，e.g.'2,9,32,43'
     @apiParam {number=0, 1, 2, 3} [kwargs] 权限设置, Owner=0, Moderator=1, Manager=2, All=3,
                                            参数名'set_permission', 'delete_permission', 'set_owner',
