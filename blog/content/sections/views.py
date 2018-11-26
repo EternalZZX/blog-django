@@ -344,7 +344,7 @@ def section_update(request, section_name):
     @apiParam {string} [assistant_uuids] 副版主UUID列表，e.g.'4be0643f-1d98-573b-97cd-ca98a65347dd'
     @apiParam {number=0, 1, 2} [status=2] 版块状态, Cancel=0, Normal=1, Hide=2
     @apiParam {number} [read_level=0] 版块需求等级
-    @apiParam {only_roles=true, false} [default=false] 是否指定角色拥有阅读权限
+    @apiParam {bool=true, false} [only_roles=false] 是否指定角色拥有阅读权限
     @apiParam {string} [role_ids] 角色ID列表，e.g.'1,2'
     @apiParam {only_groups=true, false} [default=false] 是否指定组拥有阅读权限
     @apiParam {string} [group_ids] 用户组ID列表，e.g.'2,9,32,43'
