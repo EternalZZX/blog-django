@@ -112,7 +112,7 @@ def article_list(request):
     @apiUse Header
     @apiParam {number} [page=0] 文章信息列表页码, 页码为0时返回所有数据
     @apiParam {number} [page_size=10] 文章信息列表页长
-    @apiParam {string} [section_id] 文章所属板块
+    @apiParam {string} [section_name] 文章所属板块
     @apiParam {string} [author_uuid] 文章作者
     @apiParam {number=0, 1, 2, 3, 4, 5} [status] 文章状态，Cancel=0, Active=1, Draft=2, Audit=3,
                                                  Failed=4, Recycled=5，状态可拼接，e.g. '134'
@@ -174,7 +174,7 @@ def article_list(request):
     params = {
         'page': int,
         'page_size': int,
-        'section_id': int,
+        'section_name': str,
         'author_uuid': str,
         'status': str,
         'order_field': str,
@@ -209,7 +209,7 @@ def article_create(request):
     @apiParam {string} [cover_uuid] 文章封面UUID
     @apiParam {string} [overview={content(:200)}] 文章概述
     @apiParam {string} [content] 文章内容
-    @apiParam {string} [section_id] 文章所属板块ID
+    @apiParam {string} [section_name] 文章所属板块
     @apiParam {number=0, 1, 2, 3, 4, 5} [status=1] 文章状态, Cancel=0, Active=1, Draft=2, Audit=3,
                                                    Failed=4, Recycled=5
     @apiParam {number=0, 1, 2} [privacy=1] 文章私有状态, Private=0, Public=1, Protected=2
@@ -266,7 +266,7 @@ def article_create(request):
         'cover_uuid': str,
         'overview': str,
         'content': str,
-        'section_id': int,
+        'section_name': str,
         'status': int,
         'privacy': int,
         'read_level': int,
@@ -300,7 +300,7 @@ def article_update(request, article_uuid):
     @apiParam {string} [cover_uuid] 文章封面UUID
     @apiParam {string} [overview] 文章概述
     @apiParam {string} [content] 文章内容
-    @apiParam {string} [section_id] 文章所属板块ID
+    @apiParam {string} [section_name] 文章所属板块
     @apiParam {number=0, 1, 2, 3, 4, 5} [status=1] 文章状态, Cancel=0, Active=1, Draft=2, Audit=3,
                                                    Failed=4, Recycled=5
     @apiParam {number=0, 1, 2} [privacy=1] 文章私有状态, Private=0, Public=1, Protected=2
@@ -357,7 +357,7 @@ def article_update(request, article_uuid):
         'cover_uuid': str,
         'overview': str,
         'content': str,
-        'section_id': int,
+        'section_name': str,
         'status': int,
         'privacy': int,
         'read_level': int,

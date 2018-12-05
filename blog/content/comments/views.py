@@ -195,7 +195,7 @@ def comment_list(request):
         'page_size': int,
         'resource_type': int,
         'resource_uuid': str,
-        'resource_section_id': int,
+        'resource_section_name': str,
         'dialog_uuid': str,
         'reply_uuid': str,
         'author_uuid': str,

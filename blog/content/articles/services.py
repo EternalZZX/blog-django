@@ -67,13 +67,13 @@ class ArticleService(Service):
                                                        **like_user_dict)
         return 200, article_dict
 
-    def list(self, page=0, page_size=10, section_id=None, author_uuid=None,
+    def list(self, page=0, page_size=10, section_name=None, author_uuid=None,
              status=None, order_field=None, order='desc', query=None,
              query_field=None):
         query_level, order_level = self.get_permission_level(PermissionName.ARTICLE_SELECT)
         articles = Article.objects.all()
-        if section_id:
-            articles = articles.filter(section_id=section_id)
+        if section_name:
+            articles = articles.filter(section__name=section_name)
         if author_uuid:
             articles = articles.filter(author__uuid=author_uuid)
         if status:
@@ -141,7 +141,7 @@ class ArticleService(Service):
         return 200, {'articles': article_dict_list, 'total': total}
 
     def create(self, title, keywords=None, cover_uuid=None, overview=None,
-               content=None, section_id=None, status=Article.AUDIT,
+               content=None, section_name=None, status=Article.AUDIT,
                privacy=Article.PUBLIC, read_level=100, file_storage=False):
         self.has_permission(PermissionName.ARTICLE_CREATE)
         article_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, ('%s%s%s' % (title, self.uuid, time.time())).encode('utf-8')))
@@ -154,7 +154,7 @@ class ArticleService(Service):
             overview = html_to_str(content[:200])
             if len(content) > 200:
                 overview = overview + '...'
-        section = self._get_section(section_id=section_id)
+        section = self._get_section(section_name=section_name)
         status = self._get_create_status(status=status, section=section)
         privacy = self._get_privacy(privacy=privacy)
         read_level = self._get_read_level(read_level=read_level)
@@ -178,7 +178,7 @@ class ArticleService(Service):
         return 201, ArticleService._article_to_dict(article=article)
 
     def update(self, article_uuid, title, keywords=None, cover_uuid=None,
-               overview=None, content=None, section_id=None, status=None,
+               overview=None, content=None, section_name=None, status=None,
                privacy=None, read_level=None, like_operate=None):
         update_level, _ = self.get_permission_level(PermissionName.ARTICLE_UPDATE)
         try:
@@ -215,8 +215,8 @@ class ArticleService(Service):
                 article.overview, is_content_change = overview, True
             if content is not None and self._update_content(article=article, content=content):
                 is_content_change = True
-            if section_id is not None and int(section_id) != int(article.section_id):
-                section = self._get_section(section_id=section_id)
+            if section_name is not None and (not article.section or section_name != article.section.name):
+                section = self._get_section(section_name=section_name)
                 article.section, is_content_change = section, True
                 set_role = SectionService.is_manager(user_uuid=self.uuid, section=section)
             if privacy is not None and int(privacy) != article.privacy:
@@ -356,11 +356,11 @@ class ArticleService(Service):
             return True
         return False
 
-    def _get_section(self, section_id):
+    def _get_section(self, section_name):
         section = None
-        if section_id:
+        if section_name:
             try:
-                section = Section.objects.get(id=section_id)
+                section = Section.objects.get(name=section_name)
                 get_permission, read_permission = self.section_service.has_get_permission(section)
                 if not get_permission:
                     raise ServiceError(code=400, message=ContentErrorMsg.SECTION_NOT_FOUND)
@@ -371,13 +371,13 @@ class ArticleService(Service):
                     raise ServiceError(code=403, message=ContentErrorMsg.SECTION_PERMISSION_DENIED)
                 if section_policy.max_articles is not None and \
                         Article.objects.filter(author_id=self.uid,
-                                               section_id=section_id).count() >= section_policy.max_articles:
+                                               section__name=section_name).count() >= section_policy.max_articles:
                     raise ServiceError(code=403, message=ContentErrorMsg.SECTION_PERMISSION_DENIED)
                 start = timezone.now().date()
                 end = start + timezone.timedelta(days=1)
                 if section_policy.max_articles_one_day is not None and \
                         Article.objects.filter(author_id=self.uid,
-                                               section_id=section_id,
+                                               section__name=section_name,
                                                create_at__range=(start, end)).count() >= \
                         section_policy.max_articles_one_day:
                     raise ServiceError(code=403, message=ContentErrorMsg.SECTION_PERMISSION_DENIED)

@@ -63,7 +63,7 @@ class CommentService(Service):
         return 200, comment_dict
 
     def list(self, page=0, page_size=10, resource_type=None, resource_uuid=None,
-             resource_section_id=None, dialog_uuid=None, reply_uuid=None,
+             resource_section_name=None, dialog_uuid=None, reply_uuid=None,
              author_uuid=None, status=None, order_field=None, order='desc',
              query=None, query_field=None):
         query_level, order_level = self.get_permission_level(PermissionName.COMMENT_SELECT)
@@ -72,8 +72,8 @@ class CommentService(Service):
             comments = comments.filter(resource_type=int(resource_type))
         if resource_uuid:
             comments = comments.filter(resource_uuid=resource_uuid)
-        if resource_section_id:
-            comments = comments.filter(resource_section_id=int(resource_section_id))
+        if resource_section_name:
+            comments = comments.filter(resource_section__name=resource_section_name)
         if dialog_uuid:
             comments = comments.filter(Q(uuid=dialog_uuid.split(' ')[0]) |
                                        Q(dialog_uuid=dialog_uuid))
