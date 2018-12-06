@@ -177,7 +177,7 @@ class ArticleService(Service):
                                          last_editor_id=self.uid)
         return 201, ArticleService._article_to_dict(article=article)
 
-    def update(self, article_uuid, title, keywords=None, cover_uuid=None,
+    def update(self, article_uuid, title=None, keywords=None, cover_uuid=None,
                overview=None, content=None, section_name=None, status=None,
                privacy=None, read_level=None, like_operate=None):
         update_level, _ = self.get_permission_level(PermissionName.ARTICLE_UPDATE)
