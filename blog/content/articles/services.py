@@ -542,6 +542,11 @@ class ArticleService(Service):
             article_dict['content'] = article.content_file.read()
         UserService.dict_add_user(article.author, article_dict, 'author')
         UserService.dict_add_user(article.last_editor, article_dict, 'last_editor')
+        if article.section:
+            article_dict['section'] = {
+                'name': article.section.name,
+                'nick': article.section.nick
+            }
         article_dict['metadata'] = {}
         article_dict['metadata']['read_count'] = metadata.read_count if metadata else 0
         article_dict['metadata']['comment_count'] = metadata.comment_count if metadata else 0
